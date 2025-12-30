@@ -1,0 +1,132 @@
+#! /usr/bin/node
+
+import { argv, exit } from "process";
+import { existsSync, mkdirSync } from "fs";
+import { execSync, spawn } from "child_process";
+import config from "../velvet.json" with { type: 'json' };
+import { platform } from "os";
+
+if (argv.length <= 2) {
+    printUsage();
+    exit(1);
+}
+
+const option = argv[2];
+
+if (!option in config.targets) {
+    console.log(`target ${option} is not found in velvet.json`);
+    printUsage();
+    exit(0);
+}
+
+if (!existsSync('.velvet')) {
+    mkdirSync('.velvet');
+}
+
+const target = foldTarget(config.targets[option]);
+const targetType = target.type;
+target.name = option;
+
+if (!targetType) {
+    console.log(`target ${option} has no type (e.g. preview)`);
+    exit(1);
+}
+
+if (targetType == "preview") {
+    runPreview(target);
+}
+
+function runPreview() {
+    checkBuildTool();
+    console.log(`selected configuration (preview mode): (${target.name})`);
+    console.log('looking for build environment (.velvet/.preview)');
+    if (!existsSync('.velvet/.preview')) {
+        console.log('creating build environment (.velvet/.preview)');
+        mkdirSync('.velvet/.preview', { recursive: true });
+    }
+    console.log(`configuring project in preview mode`);
+    try {
+        const cmakeEnv = target.cmakeEnv;
+        let additionalVars = "";
+        if (cmakeEnv) {
+            for (const prop in cmakeEnv) {
+                additionalVars += `-D${prop}="${cmakeEnv[prop]}"`;
+            }
+        }
+        execSync(`cmake -S . -B .velvet/.preview -DVELVET_PREVIEW=1 -DVELVET_PREVIEW_BASE_URL="${config.address}" ${additionalVars} -DCMAKE_EXPORT_COMPILE_COMMANDS=1`, { stdio: 'inherit' });
+    } catch (error) {
+        console.error(error);
+        console.log('failed to configure CMake project!');
+        console.log('make sure C++ compiler is installed and works correctly');
+        exit(1);
+    }
+    console.log('building project');
+    try {
+        execSync('cmake --build .velvet/.preview', { stdio: 'inherit' });
+    } catch (error) {
+        console.error(error);
+        console.log('failed to build project!');
+        console.log('check compiler & linker error messages');
+        exit(1);
+    }
+    console.log('starting development server');
+    try {
+        const server = spawn(target.server, { shell: true, stdio: 'inherit' });
+        try {
+            execSync(target.run[platform()].replace("BUILD_ENV", ".velvet/.preview"), { stdio: 'inherit' });
+        } catch (error) {
+            console.error(error);
+            console.log('program exited with non-zero code!');
+        }
+        server.kill();
+    } catch {
+        console.log('development server exited with non-zero code!');
+    }
+}
+
+function foldTarget(target) {
+    if (!('inherit' in target)) return target;
+    const inherit = target.inherit;
+    if (!inherit in config.targets) {
+        console.error(`unknown target to inherit '${inherit}'`);
+        exit(1);
+    }
+    const inheritTarget = foldTarget(config.targets[inherit]);
+    return { ...inheritTarget, ...target }
+}
+
+function isCmakeInstalled() {
+    try {
+        execSync('cmake --help');
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function checkBuildTool() {
+    if (!isCmakeInstalled()) {
+        console.log('CMake is not installed!');
+        console.log('please install cmake and re-run the script');
+        exit(1);
+    }
+}
+
+function print(command, args) {
+    commands[command].help(args);
+}
+
+function run(command) {
+    commands[command].run();
+}
+
+function printUsage() {
+    console.log('usage:');
+    console.log('\tvelvet [config] [args...]');
+    console.log();
+    console.log('options:');
+    console.log('\tpreview - run app in development mode (with HMR support etc.)');
+    console.log();
+    console.log('get info about [args...] using:');
+    console.log('\tvelvet [option] help');
+}
