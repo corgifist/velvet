@@ -1,6 +1,7 @@
 #pragma once
 
 #include "geometry.h"
+#include "menu.h"
 
 #include <cstdint>
 #include <string>
@@ -46,7 +47,7 @@ private:
         return lhs = static_cast<Window::Flag>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
     }
 
-    Window(std::string_view title, std::string_view url, Rect content, Flag flags);
+    Window(std::string_view title, std::string_view url, Menu menu, Rect content, Flag flags);
 
     void *m_data;
 };
@@ -54,7 +55,7 @@ private:
 
 class WindowBuilder {
 public:
-    WindowBuilder() : m_title("Velvet"), m_url("https://google.com"), m_content(0, 0, 640, 480), m_resizable(true) {}
+    WindowBuilder() : m_title("Velvet"), m_url("https://google.com"), m_content(0, 0, 640, 480), m_resizable(true), m_menu("Velvet") {}
 
     WindowBuilder &title(std::string_view title);
     std::string title();
@@ -71,12 +72,16 @@ public:
     WindowBuilder &minimizable(bool minimizable);
     bool minimizable();
 
+    WindowBuilder &menu(Menu menu);
+    Menu menu();
+
     velvet::Window *build();
 
 private:
     std::string m_title, m_url;
     Rect m_content;
     bool m_resizable, m_minimizable;
+    Menu m_menu;
 };
 
 

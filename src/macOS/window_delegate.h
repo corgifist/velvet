@@ -9,4 +9,6 @@
 
 - (BOOL)windowShouldClose:(NSWindow *)sender;
 
+- (void)windowDidBecomeKey:(NSNotification *)notification;
+
 @end

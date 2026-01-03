@@ -1,7 +1,11 @@
 #import "window_delegate.h"
+#include <Foundation/Foundation.h>
+#include <AppKit/AppKit.h>
+#include <Foundation/NSObjCRuntime.h>
 #include "application.h"
 #include <cstddef>
 #include "window.h"
+#import "mac_window.h"
 
 #include <vector>
 #include <any>
@@ -36,6 +40,17 @@ std::vector<velvet::Window*> windows;
     }
     delete window;
     return YES;
+}
+
+- (void)windowDidBecomeKey:(NSNotification *)notification {
+    MacWindow *key = (MacWindow *) [NSApp keyWindow];
+    if (!key) return;
+    [NSApp setMenu:key.menuBar];
+    auto app = velvet::Application::shared();
+    auto name = app->application_name();
+    if (!name.empty()) {
+        [[[NSApp menu] itemAtIndex:0] setTitle:[NSString stringWithCString:name.data() encoding:NSUTF8StringEncoding]];
+    }
 }
 
 - (velvet::Window *)getWindowByPlatformHandle:(NSWindow *)handle {

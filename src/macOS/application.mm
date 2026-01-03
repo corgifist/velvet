@@ -4,6 +4,7 @@
 
 #include <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
+#include <string_view>
 #include <objc/NSObject.h>
 #import <Cocoa/Cocoa.h>
 
@@ -20,7 +21,7 @@
 
 namespace velvet {
 
-Application::Application() {
+Application::Application() : m_name("") {
     NSApplication *app = [NSApplication sharedApplication];
 
     MacApplication *data = [[[MacApplication alloc] init] retain];
@@ -41,10 +42,20 @@ void Application::exit(int code) {
 
 void Application::add_window(Window *window) {
     [((MacApplication*) m_data).windowDelegate addWindow:window];
+
+    window->focus();
 }
 
 void Application::log(std::string_view message) {
     NSLog(@"%s", message.data());
+}
+
+void Application::set_application_name(std::string_view t_name) {
+    this->m_name = t_name;
+}
+
+std::string Application::application_name() {
+    return m_name;
 }
 
 } // namespace velvet

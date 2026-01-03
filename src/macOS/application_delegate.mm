@@ -24,5 +24,4 @@ using namespace velvet;
     _application->fire_callback("relaunch", (bool) hasVisibleWindows);
     return YES;
 }
-
 @end

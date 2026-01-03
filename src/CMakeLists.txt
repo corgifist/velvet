@@ -14,6 +14,7 @@ set(Velvet_Headers
     definitions.h
     application.h
     window.h
+    menu.h
     velvet.h
 )
 

@@ -5,6 +5,7 @@ set(Velvet_Sources
     macOS/window.mm
     macOS/window_delegate.mm
     macOS/web_view_controller.mm
+    macOS/menu.mm
     PARENT_SCOPE
 )
 

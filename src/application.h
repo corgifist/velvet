@@ -24,10 +24,15 @@ public:
 
     void add_window(Window *window);
 
+    void set_application_name(std::string_view name);
+    std::string application_name();
+
     static Application *shared();
 
 private:
     Application();
+
+    std::string m_name;
 
     std::unordered_map<std::string, std::vector<ApplicationCallback>> m_callbacks;
 

@@ -9,7 +9,7 @@ velvet::Window *WindowBuilder::build() {
     if (m_resizable) flags |= Window::Flag::Resizable;
     if (m_minimizable) flags |= Window::Flag::Minimizable;
 
-    velvet::Window *window = new velvet::Window(m_title, m_url, m_content, flags);
+    velvet::Window *window = new velvet::Window(m_title, m_url, m_menu, m_content, flags);
     return window;
 }
 
@@ -47,6 +47,15 @@ WindowBuilder &WindowBuilder::minimizable(bool t_minimizable) {
 
 bool WindowBuilder::minimizable() {
     return m_minimizable;
+}
+
+WindowBuilder &WindowBuilder::menu(Menu menu) {
+    this->m_menu = menu;
+    return *this;
+}
+
+Menu WindowBuilder::menu() {
+    return m_menu;
 }
 
 } // namespace velvet
