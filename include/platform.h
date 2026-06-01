@@ -37,4 +37,7 @@
 #define VELVET_PLATFORM(NAME) \
     VELVET_PLATFORM_ ## NAME
 
+// shorthand way of using VELVET_PLATFORM macro
+#define VL_PLATFORM VELVET_PLATFORM
+
 #endif // VELVET_PLATFORM_H
