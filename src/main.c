@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "velvet.h"
 #include "da.h"
+#include "platform.h"
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
