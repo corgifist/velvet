@@ -12,10 +12,14 @@
     #define VL_MALLOC malloc
 #endif // !defined(VL_MALLOC)
 
+#if !defined(VL_REALLOC)
+    #define VL_REALLOC realloc
+#endif // !defined(VL_REALLOC)
+
 #if !defined(VL_FREE)
     #define VL_FREE free
 #endif // !defined(VL_FREE)
 
-typedef uint8_t velvet_byte_t;
+typedef uint8_t vl_byte_t;
 
 #endif // VELVET_MEMORY_H

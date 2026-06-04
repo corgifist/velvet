@@ -11,33 +11,30 @@
 #endif // defined(__APPLE__)
 
 #if TARGET_OS_MAC == 1
-    #define VELVET_PLATFORM_MAC 1
+    #define VL_PLATFORM_MAC 1
 #endif // TARGET_OS_MAC
 
 #if defined(__gnu_linux__)
-    #define VELVET_PLATFORM_GNU_LINUX 1
+    #define VL_PLATFORM_GNU_LINUX 1
 #endif // defined(__gnu_linux__)
 
 #if defined(_WIN32)
-    #define VELVET_PLATFORM_WINDOWS 1
+    #define VL_PLATFORM_WINDOWS 1
 #endif // defined(_WIN32)
 
-#if !defined(VELVET_PLATFORM_MAC)
-    #define VELVET_PLATFORM_MAC 0
-#endif // !defined(VELVET_PLATFORM_MAC)
+#if !defined(VL_PLATFORM_MAC)
+    #define VL_PLATFORM_MAC 0
+#endif // !defined(VL_PLATFORM_MAC)
 
-#if !defined(VELVET_PLATFORM_GNU_LINUX)
-    #define VELVET_PLATFORM_GNU_LINUX 0
-#endif // !defined(VELVET_PLATFORM_GNU_LINUX)
+#if !defined(VL_PLATFORM_GNU_LINUX)
+    #define VL_PLATFORM_GNU_LINUX 0
+#endif // !defined(VL_PLATFORM_GNU_LINUX)
 
-#if !defined(VELVET_PLATFORM_WINDOWS)
-    #define VELVET_PLATFORM_WINDOWS 0
-#endif // !defined(VELVET_PLATFORM_WINDOWS)
+#if !defined(VL_PLATFORM_WINDOWS)
+    #define VL_PLATFORM_WINDOWS 0
+#endif // !defined(VL_PLATFORM_WINDOWS)
 
-#define VELVET_PLATFORM(NAME) \
-    VELVET_PLATFORM_ ## NAME
-
-// shorthand way of using VELVET_PLATFORM macro
-#define VL_PLATFORM VELVET_PLATFORM
+#define VL_PLATFORM(NAME) \
+    VL_PLATFORM_M ## NAME
 
 #endif // VELVET_PLATFORM_H

@@ -8,7 +8,7 @@
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
-    velvet_da_header_t *header = VL_DA_HEADER_PTR(array);
+    vl_da_header_t *header = VL_DA_HEADER_PTR(array);
     printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
     VL_DA_FREE(array);
 }
