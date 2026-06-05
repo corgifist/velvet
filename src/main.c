@@ -1,4 +1,6 @@
+#include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "memory.h"
@@ -33,6 +35,23 @@ void da_test() {
     VL_DA_FREE(array2);
 }
 
+void da_stress_test() {
+    VL_DA(int) da = VL_DA_INIT(int);
+    srand(time(NULL));
+    for (int i = 0; i < 100; ++i) {
+        *VL_DA_PUSH(da, int) = rand();
+    }
+    printf("the numbers are:\n");
+    for (int i = 0; i < 100; i++) {
+        printf("%i\n", da[i]);
+    }
+    printf("added 100 random numbers: %zu %zu %zu\n", VL_DA_HEADER_PTR(da)->capacity, VL_DA_HEADER_PTR(da)->count, VL_DA_HEADER_PTR(da)->element_size);
+    for (int i = 0; i < 99; ++i) {
+        VL_DA_DELETE(da, 0);
+    }
+    printf("deleted all numbers except one: %i\n", da[0]);
+}
+
 int main(int argc, const char *argv[]) {
     char cwd[256];
     getcwd(cwd, 256);
@@ -47,11 +66,11 @@ int main(int argc, const char *argv[]) {
     printf("mac\n");
 #endif
 
-    da_test();
-
     void *mem = VL_MALLOC(sizeof(int));
     printf("void: %i\n", *((int*) mem));
     VL_FREE(mem);
+
+    da_stress_test();
 
     return 0;
 }

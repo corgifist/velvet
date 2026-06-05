@@ -98,8 +98,8 @@ typedef struct vl_da_header vl_da_header_t;
     *VL_DA_PUSH(array, int) = 123;
     instead of int and `123` you can use anything you like
 */
-#define VL_DA_PUSH(DA, VALUE) \
-    VL_DA_PUSH_WITH_REALLOCATOR(DA, VALUE, VL_REALLOC)
+#define VL_DA_PUSH(DA, TYPE) \
+    VL_DA_PUSH_WITH_REALLOCATOR(DA, TYPE, VL_REALLOC)
 
 /*
     appends an empty element to the dynamic array DA

@@ -46,7 +46,7 @@ void vl_da_delete(VL_DA(void) *da, size_t index, vl_realloc_t reallocate) {
     if (!da) return;
     if (!(*da)) return;
     vl_da_header_t *header = VL_DA_HEADER_PTR(*da);
-    VL_ASSERT((index >= 0 && index <= header->count) && "out of bounds call to vl_da_delete");
+    VL_ASSERT((index >= 0 && index < header->count) && "out of bounds call to vl_da_delete");
     header->count--;
     if (index == header->count) {
         memset((void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t) + header->element_size * index), 0, header->element_size);
