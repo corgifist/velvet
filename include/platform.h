@@ -35,6 +35,6 @@
 #endif // !defined(VL_PLATFORM_WINDOWS)
 
 #define VL_PLATFORM(NAME) \
-    VL_PLATFORM_M ## NAME
+    VL_PLATFORM_ ## NAME
 
 #endif // VELVET_PLATFORM_H
