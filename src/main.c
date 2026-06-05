@@ -11,6 +11,26 @@ void da_test() {
     vl_da_header_t *header = VL_DA_HEADER_PTR(array);
     printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
     VL_DA_FREE(array);
+
+    VL_DA(int) array2 = VL_DA_INIT(int);
+    for (int i = 0; i < 12; ++i) {
+        *VL_DA_PUSH(array2, int) = (i + 1) * 13;
+    }
+    header = VL_DA_HEADER_PTR(array2);
+    printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
+    for (int i = 0; i < header->count; ++i) {
+        printf("%i: %i\n", i, array2[i]);
+    }
+    VL_DA_DELETE_WITH_REALLOCATOR(array2, 0, VL_REALLOC);
+    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
+    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
+    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
+    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
+    printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
+    for (int i = 0; i < header->count; ++i) {
+        printf("%i: %i\n", i, array2[i]);
+    }
+    VL_DA_FREE(array2);
 }
 
 int main(int argc, const char *argv[]) {

@@ -59,7 +59,77 @@ typedef struct vl_da_header vl_da_header_t;
     using a custom memory allocator ALLOCATOR
 */
 #define VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, ALLOCATOR) \
-    vl_da_init(sizeof(TYPE), CAPACITY, ALLOCATOR)
+    (vl_da_init(sizeof(TYPE), CAPACITY, ALLOCATOR))
+
+
+/*
+    appends VALUE to the dynamic array DA
+    returns a pointer to the newly added element of dynamic array
+    if the number of elements exceeds the da's capacity reallocating
+    using the default reallocator is performed
+
+    notice: VALUE should not be a constant
+    e.g. VL_DA_APPEND(int_array, 5) is not supported
+    instead, you should use *VL_DA_PUSH(DA, int) = 5
+*/
+#define VL_DA_APPEND(DA, VALUE) \
+    VL_DA_APPEND_WITH_REALLOCATOR(DA, VALUE, VL_REALLOC)
+
+/*
+    appends VALUE to the dynamic array DA
+    returns a pointer to the newly added element of dynamic array
+    if the number of elements exceeds the da's capacity reallocating
+    using REALLOCATE reallocator is performed
+
+    notice: VALUE should not be a constant
+    e.g. VL_DA_APPEND_WITH_ALLOCATOR(int_array, 5, VL_REALLOC) is not supported
+    instead, you should use *VL_DA_PUSH(DA, int) = 5
+*/
+#define VL_DA_APPEND_WITH_REALLOCATOR(DA, VALUE, REALLOCATOR) \
+    (vl_da_append(&(DA), &(VALUE), sizeof(VALUE), REALLOCATOR))
+
+/*
+    appends an empty element to the dynamic array DA
+    returns a pointer to the newly added empty element  
+    if the number of elements exceeds the da's capacity reallocating
+    using the default reallocator is performed
+
+    you're expected to use this macro in such manner:
+    *VL_DA_PUSH(array, int) = 123;
+    instead of int and `123` you can use anything you like
+*/
+#define VL_DA_PUSH(DA, VALUE) \
+    VL_DA_PUSH_WITH_REALLOCATOR(DA, VALUE, VL_REALLOC)
+
+/*
+    appends an empty element to the dynamic array DA
+    returns a pointer to the newly added empty element  
+    if the number of elements exceeds the da's capacity reallocating
+    using REALLOCATE reallocator is performed
+
+    you're expected to use this macro in such manner:
+    *VL_DA_PUSH_WITH_REALLOCATOR(array, int, VL_REALLOC) = 123;
+    instead of int and `123` you can use anything you like
+*/
+#define VL_DA_PUSH_WITH_REALLOCATOR(DA, TYPE, REALLOCATOR) \
+    (TYPE*) (vl_da_append((VL_DA(void)*) &(DA), NULL, 0, (REALLOCATOR)))
+
+
+/*
+    deletes element at index INDEX from dynamic array DA
+    if possible, shrinks the DA using the default REALLOCATE reallocator
+    to save memory
+*/
+#define VL_DA_DELETE(DA, INDEX) \
+    VL_DA_DELETE_WITH_REALLOCATOR(DA, INDEX, VL_REALLOC)
+
+/*
+    deletes element at index INDEX from dynamic array DA
+    if possible, shrinks the DA using the REALLOCATOR reallocator
+    to save memory
+*/
+#define VL_DA_DELETE_WITH_REALLOCATOR(DA, INDEX, REALLOCATOR) \
+    (vl_da_delete((VL_DA(void)*) &(DA), (INDEX), (REALLOCATOR)))
 
 /*
     returns a pointer to the header of the dynamic array
@@ -89,15 +159,17 @@ typedef struct vl_da_header vl_da_header_t;
         DEALLOCATOR(VL_DA_HEADER_PTR(DA)); \
     } while (0) 
 
-typedef void *(vl_da_malloc_t)(size_t bytes);
-
 /*
-    void *vl_da_init(size_t element_size, size_t capacity, vl_da_malloc_t allocator);
+    void *vl_da_init(size_t element_size, size_t capacity, vl_da_malloc_t allocate);
 
     returns a dynamic array with the given parameters
     returns NULL if a call to the allocator fails
 */
-void *vl_da_init(size_t element_size, size_t capacity, vl_da_malloc_t allocator);
+void *vl_da_init(size_t element_size, size_t capacity, vl_malloc_t allocate);
+
+void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_realloc_t reallocate);
+
+void vl_da_delete(VL_DA(void) *da, size_t index, vl_realloc_t reallocate);
 
 
 #endif // VELVET_DA_H

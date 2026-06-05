@@ -5,5 +5,6 @@ add_executable(velvet src/main.c include/velvet.h
     include/platform.h
     include/memory.h
     include/da.h
-    src/da.c)
+    src/da.c
+    include/assert.h)
 target_include_directories(velvet PRIVATE include)

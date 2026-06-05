@@ -20,6 +20,10 @@
     #define VL_FREE free
 #endif // !defined(VL_FREE)
 
+typedef void *(vl_malloc_t)(size_t size);
+typedef void *(vl_realloc_t)(void *mem, size_t size);
+typedef void (vl_free_t)(void *mem);
+
 typedef uint8_t vl_byte_t;
 
 #endif // VELVET_MEMORY_H
