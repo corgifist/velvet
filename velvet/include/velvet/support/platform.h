@@ -34,6 +34,15 @@
     #define VL_PLATFORM_WINDOWS 0
 #endif // !defined(VL_PLATFORM_WINDOWS)
 
+/*
+    available platforms: WINDOWS, MAC, GNU_LINUX
+
+    usage:
+        #if VL_PLATFORM(WINDOWS)
+            ...
+        #elif VL_PLATFORM(MAC)
+        #endif
+*/
 #define VL_PLATFORM(NAME) \
     VL_PLATFORM_ ## NAME
 

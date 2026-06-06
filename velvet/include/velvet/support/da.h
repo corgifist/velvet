@@ -8,6 +8,7 @@
 #include <stddef.h>
 
 #include "memory.h"
+#include "api.h"
 
 /*
     velvet's dynamic array is fairly simple to understand using this graph
@@ -160,16 +161,46 @@ typedef struct vl_da_header vl_da_header_t;
     } while (0) 
 
 /*
-    void *vl_da_init(size_t element_size, size_t capacity, vl_da_malloc_t allocate);
+    VL_API void *vl_da_init(size_t element_size, size_t capacity, vl_da_malloc_t allocate);
 
-    returns a dynamic array with the given parameters
-    returns NULL if a call to the allocator fails
+    NOTICE: using vl_da_init directly is not recommended
+            instead, resort to VL_DA_INIT macro
+
+    allocates and returns a dynamic array with the given parameters
+    returns NULL if allocating memory through allocator fails
 */
-void *vl_da_init(size_t element_size, size_t capacity, vl_malloc_t allocate);
+VL_API void *vl_da_init(size_t element_size, size_t capacity, vl_malloc_t allocate);
 
-void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_realloc_t reallocate);
+/*
+    VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_realloc_t reallocate);  
 
-void vl_da_delete(VL_DA(void) *da, size_t index, vl_realloc_t reallocate);
+    NOTICE: using vl_da_append directly is not recommended
+            instead, resort to VL_DA_APPEND or VL_DA_PUSH (selon vos besoins)
+
+    appends an item to the dynamic array, increasing its capacity if needed
+    returns a pointer to the newly added item
+
+    WARNING: increasing the capacity of da changes the value of *da
+             e.g.:
+             VL_DA(int) array = VL_DA_INIT(int);
+             VL_DA(int) reserved_array = array; // at this point array == reserved_array
+             *VL_DA_PUSH(array, int) = 5; // at this point it's not guaranteed that array == reserved_array
+*/
+VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_realloc_t reallocate);
+
+
+/*
+    VL_API void vl_da_delete(VL_DA(void) *da, size_t index, vl_realloc_t reallocate);
+
+    NOTICE: using vl_da_Delete directly is not recommended
+            instead, resort to VL_DA_DELETE
+
+    deletes an item at index from the dynamic array
+    shrinks the dynamic array if possible to save memory
+
+    WARNING: shrinking the capacity of da changes the value of *da
+*/
+VL_API void vl_da_delete(VL_DA(void) *da, size_t index, vl_realloc_t reallocate);
 
 
 #endif // VELVET_DA_H

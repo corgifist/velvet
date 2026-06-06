@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "memory.h"
-#include "velvet.h"
-#include "da.h"
-#include "platform.h"
+#include <velvet/support/da.h>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
@@ -23,11 +23,11 @@ void da_test() {
     for (int i = 0; i < header->count; ++i) {
         printf("%i: %i\n", i, array2[i]);
     }
-    VL_DA_DELETE_WITH_REALLOCATOR(array2, 0, VL_REALLOC);
-    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
-    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
-    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
-    VL_DA_DELETE_WITH_REALLOCATOR(array2, 1, VL_REALLOC);
+    VL_DA_DELETE(array2, 0);
+    VL_DA_DELETE(array2, 1);
+    VL_DA_DELETE(array2, 1);
+    VL_DA_DELETE(array2, 1);
+    VL_DA_DELETE(array2, 1);
     printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
     for (int i = 0; i < header->count; ++i) {
         printf("%i: %i\n", i, array2[i]);
@@ -61,14 +61,10 @@ int main(int argc, const char *argv[]) {
 #if VL_PLATFORM(WINDOWS)
     printf("win32\n");
 #elif VL_PLATFORM(GNU_LINUX)
-    printf("gnu linux\n");
+    printf("gnu/linux\n");
 #elif VL_PLATFORM(MAC)
     printf("mac\n");
 #endif
-
-    void *mem = VL_MALLOC(sizeof(int));
-    printf("void: %i\n", *((int*) mem));
-    VL_FREE(mem);
 
     da_stress_test();
 
