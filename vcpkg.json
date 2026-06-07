@@ -1,0 +1,7 @@
+{
+  "name": "velvet",
+  "version": "0.0.1",
+  "dependencies": [
+    "icu"
+  ]
+}
