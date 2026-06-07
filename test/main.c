@@ -1,9 +1,11 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unicode/umachine.h>
 #include <unistd.h>
 
-#include <velvet/support/da.h>
+#include "velvet/support/platform.h"
+#include "velvet/support/da.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -52,6 +54,19 @@ void da_stress_test() {
     printf("deleted all numbers except one: %i\n", da[0]);
 }
 
+#include <unicode/utf8.h>
+
+void icu_test() {
+    const char *msg = "Hello, мир!";
+    int i = 0;
+    UChar32 c;
+    do {
+        U8_NEXT(msg, i, 0, c);
+        printf("%i: %i\n", i, c);
+    } while (c);
+    
+}
+
 int main(int argc, const char *argv[]) {
     char cwd[256];
     getcwd(cwd, 256);
@@ -66,7 +81,8 @@ int main(int argc, const char *argv[]) {
     printf("mac\n");
 #endif
 
-    da_stress_test();
+    // da_stress_test();
+    icu_test();
 
     return 0;
 }
