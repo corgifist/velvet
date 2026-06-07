@@ -1,7 +1,5 @@
-add_subdirectory(support)
-add_subdirectory(html)
-
 set(Velvet_Sources
     ${Velvet_Sources}
+    src/support/da.c
     PARENT_SCOPE
 )

@@ -7,6 +7,8 @@
 #include "velvet/support/platform.h"
 #include "velvet/support/da.h"
 
+#include "velvet/html/lexer.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -57,14 +59,32 @@ void da_stress_test() {
 #include <unicode/utf8.h>
 
 void icu_test() {
-    const char *msg = "Hello, мир!";
+    const char *msg = u8"Hello, мир!";
     int i = 0;
     UChar32 c;
+    size_t count = 0;
     do {
         U8_NEXT(msg, i, 0, c);
-        printf("%i: %i\n", i, c);
-    } while (c);
-    
+        if (c <= 0) break;
+        count++;
+        printf("%zu: %i (%s)\n", count, c, msg);
+    } while (c > 0);
+}
+
+void lexer_test() {
+    vl_html_lexer_t lexer = {0};
+    const char *text = "Hello, мир!";
+    if (vl_html_lexer_init(&lexer, text)) {
+        printf("vl_html_lexer_init error\n");
+        return;
+    }
+    printf("expect squiggles: %s\n", lexer.text);
+    printf("length: %zu\n", lexer.length);
+    if (vl_html_lexer_deinit(&lexer)) {
+        printf("failed to deinit lexer\n");
+        return;
+    }
+    printf("deinitialized lexer\n");
 }
 
 int main(int argc, const char *argv[]) {
@@ -82,7 +102,8 @@ int main(int argc, const char *argv[]) {
 #endif
 
     // da_stress_test();
-    icu_test();
+    // icu_test();
+    lexer_test();
 
     return 0;
 }

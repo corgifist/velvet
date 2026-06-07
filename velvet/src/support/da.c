@@ -1,6 +1,5 @@
 #include "support/da.h"
 #include "support/managed_assert.h"
-#include "memory.h"
 #include <string.h>
 
 static void *vl_da_grow(VL_DA(void) da, vl_realloc_t reallocate) {
