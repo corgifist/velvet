@@ -80,6 +80,13 @@ void lexer_test() {
     }
     printf("expect squiggles: %s\n", lexer.text);
     printf("length: %zu\n", lexer.length);
+
+    vl_html_token_t tok = {0};
+    while (!vl_html_lexer_get(&lexer, &tok)) {
+        if (tok.type == VL_HTML_TOKEN_TYPE_STOP) break;
+        printf("%zu %i %.*s\n", tok.inline_pos, tok.text_length, tok.text_length, tok.text);
+    }
+
     if (vl_html_lexer_deinit(&lexer)) {
         printf("failed to deinit lexer\n");
         return;
