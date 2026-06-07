@@ -65,6 +65,9 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
     ADVANCE();
 
     SET_TOKEN(VL_HTML_TOKEN_TYPE_SYMBOL, U8_LENGTH(c));
+
+#undef ADVANCE
+#undef SET_TOKEN
     
     return VL_SUCCESS;
 }
