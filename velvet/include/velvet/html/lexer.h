@@ -43,6 +43,13 @@ typedef struct vl_html_token vl_html_token_t;
 
 vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text);
 
+/**
+ * perform lexical analysis and return the next token
+ *
+ * @param lexer a pointer to the vl_html_lexer instance
+ * @param token a pointer to the vl_html_token instance (token will be stored here)
+ * @return vl_result code
+ */
 vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token);
 
 /**
