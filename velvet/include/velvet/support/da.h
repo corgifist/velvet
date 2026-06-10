@@ -47,6 +47,7 @@ typedef struct vl_da_header vl_da_header_t;
 */
 #define VL_DA_INIT(TYPE) \
     VL_DA_INIT_WITH_CAPACITY(TYPE, VL_DA_DEFAULT_CAPACITY)
+#define VL_DA_NEW VL_DA_INIT
 
 /*
     initializes a dynamic array of type TYPE with initial capacity of CAPACITY 

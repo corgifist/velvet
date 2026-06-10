@@ -17,8 +17,8 @@ struct vl_html_lexer {
 typedef struct vl_html_lexer vl_html_lexer_t;
 
 enum vl_html_token_type {
-    VL_HTML_TOKEN_TYPE_SYMBOL,
-    VL_HTML_TOKEN_TYPE_STOP
+    VL_HTML_TOKEN_TYPE_STOP = 0,
+    VL_HTML_TOKEN_TYPE_SYMBOL
 };
 
 typedef enum vl_html_token_type vl_html_token_type_t;
@@ -54,6 +54,7 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token);
 
 /**
  * deinitialize a given vl_html_lexer instance
+ * deinitializing lexer invalidates all tokens produced by this lexer
  *
  * @param lexer a pointer to the vl_html_lexer
  * @return vl_result code
