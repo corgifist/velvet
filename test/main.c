@@ -73,7 +73,7 @@ void icu_test() {
 
 void lexer_test() {
     vl_html_lexer_t lexer = {0};
-    const char *text = "Hello, мир!";
+    const char *text = "Привет, мир!";
     if (vl_html_lexer_init(&lexer, text)) {
         printf("vl_html_lexer_init error\n");
         return;
@@ -84,7 +84,7 @@ void lexer_test() {
     vl_html_token_t tok = {0};
     while (!vl_html_lexer_get(&lexer, &tok)) {
         if (tok.type == VL_HTML_TOKEN_TYPE_STOP) break;
-        printf("%zu %i %.*s\n", tok.inline_pos, tok.text_length, tok.text_length, tok.text);
+        printf("%i %zu %i %.*s\n", tok.type, tok.inline_pos, tok.text_length, tok.text_length, tok.text);
     }
 
     if (vl_html_lexer_deinit(&lexer)) {

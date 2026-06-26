@@ -11,14 +11,17 @@ struct vl_html_lexer {
     char *text;
     size_t raw_length; // amount of bytes in text (text is NOT null-terminated)
     size_t length; // amount of utf-8 codepoints in text
+
     size_t raw_pos, pos, inline_pos, line;
+    UChar32 c;
 };
 
 typedef struct vl_html_lexer vl_html_lexer_t;
 
 enum vl_html_token_type {
     VL_HTML_TOKEN_TYPE_STOP = 0,
-    VL_HTML_TOKEN_TYPE_SYMBOL
+    VL_HTML_TOKEN_TYPE_SYMBOL,
+    VL_HTML_TOKEN_TYPE_WORD
 };
 
 typedef enum vl_html_token_type vl_html_token_type_t;
