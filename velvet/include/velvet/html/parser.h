@@ -22,4 +22,6 @@ vl_result_t vl_html_parser_init_with_lexer(vl_html_parser_t *parser, vl_html_lex
 
 vl_result_t vl_html_parser_get(vl_html_parser_t *parser, vl_html_node_t *node);
 
+vl_result_t vl_html_parser_deinit(vl_html_parser_t *parser);
+
 #endif // VELVET_HTML_PARSER_H

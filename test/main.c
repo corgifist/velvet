@@ -4,13 +4,12 @@
 #include <unicode/umachine.h>
 #include <unistd.h>
 
-#include "velvet/support/platform.h"
+#include "velvet/html/document.h"
 #include "velvet/support/da.h"
 
-#include "velvet/html/lexer.h"
-
-#define _USE_MATH_DEFINES
-#include <math.h>
+#include "velvet/html/parser.h"
+#include "velvet/support/result.h"
+#include "velvet/velvet.h"
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
@@ -94,23 +93,35 @@ void lexer_test() {
     printf("deinitialized lexer\n");
 }
 
-int main(int argc, const char *argv[]) {
-    char cwd[256];
-    getcwd(cwd, 256);
-    printf("%s | %s\n", argv[0], cwd);
-    printf("%0.2f\n", M_PI);
+void parser_test() {
+    vl_html_parser_t parser;
+    const char *input = VL_STRINGIFY(
+        <node>
+    );
+    if (vl_html_parser_init(&parser, input)) {
+        printf("failed to initalize parser: %s\n", input);
+        return;
+    }
+    
+    vl_html_node_t root = {0};
+    if (vl_html_node_init(&root)) {
+        printf("failed to initialize html root\n");
+        return;
+    }
+    if (vl_html_parser_get(&parser, &root) != VL_SUCCESS) {
+        printf("failed to parse root\n");
+        return;
+    }
+    vl_html_parser_deinit(&parser);
+    printf("root->tag = %s\n", root.tag);
+}
 
-#if VL_PLATFORM(WINDOWS)
-    printf("win32\n");
-#elif VL_PLATFORM(GNU_LINUX)
-    printf("gnu/linux\n");
-#elif VL_PLATFORM(MAC)
-    printf("mac\n");
-#endif
+int main(int argc, const char *argv[]) {
 
     // da_stress_test();
     // icu_test();
-    lexer_test();
+    // lexer_test();
+    parser_test();
 
     return 0;
 }

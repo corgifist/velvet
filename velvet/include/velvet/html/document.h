@@ -21,6 +21,6 @@ struct vl_html_node {
 
 typedef struct vl_html_node vl_html_node_t;
 
-vl_result_t vl_html_node_init_move_ownership(vl_html_node_t *node, VL_DA(char) tag);
+vl_result_t vl_html_node_init(vl_html_node_t *node);
 
 #endif // VELVET_DOCUMENT_H

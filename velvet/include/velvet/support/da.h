@@ -147,6 +147,9 @@ typedef struct vl_da_header vl_da_header_t;
 #define VL_DA_HEADER(DA) \
     (*VL_DA_HEADER_PTR(DA))
 
+#define VL_DA_LENGTH(DA) \
+    (VL_DA_HEADER_PTR(DA)->count)
+
 /*
     dispose the dynamic array using default deallocator
 */
