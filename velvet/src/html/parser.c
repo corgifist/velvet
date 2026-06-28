@@ -97,6 +97,14 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         if (current->type == VL_HTML_TOKEN_TYPE_STOP) {
             return VL_SUCCESS;
         }
+        if (VL_TOKEN_COMPARE(current, "/")) {
+            // parse short node
+            // e.g. <meta content="..." />
+            if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip /
+            if (!VL_TOKEN_COMPARE(current, ">")) return VL_ERROR;
+            if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
+            return VL_SUCCESS;
+        }
         vl_html_attribute_t attribute = {0};
         if (current->type != VL_HTML_TOKEN_TYPE_WORD) {
             if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
@@ -108,8 +116,11 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         attribute.name[current->text_length] = '\0';
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         if (!VL_TOKEN_COMPARE(current, "=")) {
-            if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
-            continue;
+            // parsing empty attribute
+            // e.g. <checkbox selected> or <script async>
+            attribute.value = VL_DA_INIT_WITH_CAPACITY(char, 1);
+            attribute.value[0] = '\0';
+            goto append_attribute;
         }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         if (current->type != VL_HTML_TOKEN_TYPE_STRING) {
@@ -121,8 +132,11 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             *VL_DA_PUSH(attribute.value, char) = current->text[i + 1];
         }
         attribute.value[current->text_length - 2] = '\0';
+
+        append_attribute:
         VL_DA_APPEND(node->attributes, attribute);
     }
+
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
     vl_html_node_t tmp_node = {0};
     while (true) {
