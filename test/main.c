@@ -97,7 +97,7 @@ void parser_test() {
     vl_html_parser_t parser;
     const char *input = VL_STRINGIFY(
         <div attr="Hello" attr2="World">
-            <p></p>
+            <p>Hello, Velvet! &apos;</p>
         </div>
     );
     if (vl_html_parser_init(&parser, input)) {

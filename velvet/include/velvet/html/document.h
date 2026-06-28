@@ -25,4 +25,6 @@ vl_result_t vl_html_node_init(vl_html_node_t *node);
 vl_result_t vl_html_node_print(vl_html_node_t *node);
 vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent);
 
+vl_result_t vl_html_node_deinit(vl_html_node_t *node);
+
 #endif // VELVET_DOCUMENT_H
