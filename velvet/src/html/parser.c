@@ -15,7 +15,21 @@
     VL_TOKEN_COMPARE_EX((TOKEN_PTR)->text, (TOKEN_PTR)->text_length, (B))
 
 #define VL_HTML_PARSER_CLOSE_NODE -2
-#define VL_HTML_PARSER_SKIP_NODE -3
+
+typedef struct {
+    const char *k;
+    const char *v;
+} vl_html_parser_escape_t;
+
+#define ESCAPE(K, V) ((vl_html_parser_escape_t) {.k = K, .v = V})
+
+static const vl_html_parser_escape_t s_escapes[] = {
+    ESCAPE("apos", "&"),
+    ESCAPE("lt", "<"),
+    ESCAPE("gt", ">"),
+    ESCAPE("quot", "\""),
+    ESCAPE("apos", "'")
+};
 
 static vl_result_t tokenize(vl_html_parser_t *parser) {
     for (int i = 1; i < VL_HTML_PARSER_LOOKAHEAD; i++) {
@@ -144,6 +158,44 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
         if (current->type == VL_HTML_TOKEN_TYPE_STOP) {
             // out of tokens
             goto success;
+        }
+        // parse html escapes (e.g. &apos;)
+        if (VL_TOKEN_COMPARE(current, "&")) {
+            VL_DA(char) entity_accumulator = VL_DA_INIT(char);
+            if (tokenize(parser)) {  // skip &
+                goto escape_fail;
+            }
+            while (!VL_TOKEN_COMPARE(current, ";")) {
+                for (int i = 0; i < current->text_length; i++) {
+                    *VL_DA_PUSH(entity_accumulator, char) = current->text[i];
+                }
+                if (tokenize(parser)) {
+                    goto escape_fail;
+                }
+            }
+            if (tokenize(parser)) { // skip ;
+                goto escape_fail;
+            }
+            goto escape_success;
+
+            escape_fail:
+            VL_DA_FREE(entity_accumulator);
+            return VL_ERROR;
+            
+            escape_success:
+            for (int i = 0; i < sizeof(s_escapes) / sizeof(*s_escapes); i++) {
+                if (memcmp(entity_accumulator, 
+                            s_escapes[i].k, 
+                             MIN(VL_DA_LENGTH(entity_accumulator), sizeof(s_escapes[i].k) - 1)) == 0) {
+                    const char *v = s_escapes[i].v;
+                    while (*v != '\0') {
+                        *VL_DA_PUSH(node->text, char) = *v++;
+                    }
+                    goto escape_next;
+                }
+            }
+            escape_next:
+            continue;
         }
         if (VL_TOKEN_COMPARE(current, "<") && (current + 1)->type == VL_HTML_TOKEN_TYPE_WORD) {
             // end of the text node, beginning of the tag node

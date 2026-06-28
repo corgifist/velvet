@@ -31,6 +31,18 @@ vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
     return VL_SUCCESS;
 }
 
+static void lexer_advance(vl_html_lexer_t *lexer) {
+    do { 
+        U8_NEXT(lexer->text, lexer->raw_pos, lexer->raw_length, lexer->c);
+        if (lexer->c >= 0) { 
+            lexer->pos++;
+            lexer->inline_pos++;
+            break;
+        }
+    } while (lexer->c < 0 && lexer->raw_pos < lexer->raw_length);
+}
+
+
 vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
     if (!lexer || !token) return VL_ERROR;
     if (!lexer->text) return VL_ERROR;
@@ -45,14 +57,7 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
     } while (0)
 
 #define ADVANCE() \
-    do { \
-        U8_NEXT(lexer->text, lexer->raw_pos, lexer->raw_length, lexer->c); \
-        if (lexer->c >= 0) { \
-            lexer->pos++; \
-            lexer->inline_pos++; \
-            break; \
-        } \
-    } while (lexer->c < 0 && lexer->raw_pos < lexer->raw_length)
+    lexer_advance(lexer)
 
     // end of input
     if (lexer->c == -2) {
