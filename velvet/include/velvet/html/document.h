@@ -16,11 +16,13 @@ struct vl_html_node {
     VL_DA(vl_html_attribute_t) attributes;
     VL_DA(struct vl_html_node) children; // children nodes
 
-    VL_DA(char) text;
+    VL_DA(char) text; // null-terminated utf-8 string
 };
 
 typedef struct vl_html_node vl_html_node_t;
 
 vl_result_t vl_html_node_init(vl_html_node_t *node);
+vl_result_t vl_html_node_print(vl_html_node_t *node);
+vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent);
 
 #endif // VELVET_DOCUMENT_H

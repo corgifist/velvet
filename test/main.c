@@ -72,7 +72,7 @@ void icu_test() {
 
 void lexer_test() {
     vl_html_lexer_t lexer = {0};
-    const char *text = "Привет, мир!";
+    const char *text = "<node name=\"Привет, \nмир!\">";
     if (vl_html_lexer_init(&lexer, text)) {
         printf("vl_html_lexer_init error\n");
         return;
@@ -96,7 +96,9 @@ void lexer_test() {
 void parser_test() {
     vl_html_parser_t parser;
     const char *input = VL_STRINGIFY(
-        <node>
+        <div attr="Hello" attr2="World">
+            <p></p>
+        </div>
     );
     if (vl_html_parser_init(&parser, input)) {
         printf("failed to initalize parser: %s\n", input);
@@ -113,7 +115,7 @@ void parser_test() {
         return;
     }
     vl_html_parser_deinit(&parser);
-    printf("root->tag = %s\n", root.tag);
+    vl_html_node_print(&root);
 }
 
 int main(int argc, const char *argv[]) {

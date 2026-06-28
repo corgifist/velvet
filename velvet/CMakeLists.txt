@@ -1,3 +1,4 @@
+set(CMAKE_BUILD_TYPE Debug)
 add_subdirectory(include)
 add_subdirectory(src)
 

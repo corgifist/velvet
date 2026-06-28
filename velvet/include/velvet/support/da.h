@@ -88,7 +88,7 @@ typedef struct vl_da_header vl_da_header_t;
     instead, you should use *VL_DA_PUSH(DA, int) = 5
 */
 #define VL_DA_APPEND_WITH_REALLOCATOR(DA, VALUE, REALLOCATOR) \
-    (vl_da_append(&(DA), &(VALUE), sizeof(VALUE), REALLOCATOR))
+    (vl_da_append((void**) &(DA), (void*) &(VALUE), sizeof(VALUE), REALLOCATOR))
 
 /*
     appends an empty element to the dynamic array DA

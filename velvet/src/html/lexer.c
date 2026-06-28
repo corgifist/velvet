@@ -52,7 +52,7 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
             lexer->inline_pos++; \
             break; \
         } \
-    } while (lexer->c < 0)
+    } while (lexer->c < 0 && lexer->raw_pos < lexer->raw_length)
 
     // end of input
     if (lexer->c == -2) {
@@ -77,6 +77,23 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
             ADVANCE();
         }
         SET_TOKEN(VL_HTML_TOKEN_TYPE_WORD, word_begin, word_end);
+        return VL_SUCCESS;
+    }
+
+    if (lexer->c == '\"') {
+        const char *string_begin = cursor - U8_LENGTH(lexer->c);
+        const char *string_end = cursor;
+        ADVANCE();
+        while (lexer->c != '\"') {
+            if (lexer->c < 0) {
+                return VL_ERROR;
+            }
+            string_end += U8_LENGTH(lexer->c);
+            ADVANCE();
+        }
+        ADVANCE(); // skip "
+        string_end += 1; // include closing double quote
+        SET_TOKEN(VL_HTML_TOKEN_TYPE_STRING, string_begin, string_end);
         return VL_SUCCESS;
     }
 
