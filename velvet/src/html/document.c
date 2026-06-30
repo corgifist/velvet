@@ -32,13 +32,19 @@ vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
         printf(" ");
     }
     for (int i = 0; i < attributes_count; i++) {
-        printf("%s=\"%s\"", node->attributes[i].name, node->attributes[i].value);
+        printf("%s", node->attributes[i].name);
+        if (VL_DA_LENGTH(node->attributes[i].value) > 1) {
+            printf("=\"%s\"", node->attributes[i].value);
+        }
         if (i != attributes_count - 1) {
             printf(" ");
         }
     }
-    printf(">");
     size_t children_count = VL_DA_LENGTH(node->children);
+    if (children_count == 0) {
+        printf("/");
+    }
+    printf(">");
     if (children_count > 0) {
         printf("\n");
     }
@@ -47,10 +53,13 @@ vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
             return VL_ERROR;
         }
     }
-    for (int i = 0; i < indent && children_count > 0; i++) {
-        printf("\t");
+    if (children_count > 0) {
+        for (int i = 0; i < indent && children_count > 0; i++) {
+            printf("\t");
+        }
+        printf("</%s>", node->tag);
     }
-    printf("</%s>\n", node->tag);
+    printf("\n");
     return VL_SUCCESS;
 }
 
