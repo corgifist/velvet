@@ -96,9 +96,15 @@ void lexer_test() {
 void parser_test() {
     vl_html_parser_t parser;
     const char *input = VL_STRINGIFY(
-        <div attr="Hello" attr2="World">
+        <div attr="Hello &amp;" attr2='World'>
+            Text Node 1
             <p>Hello, Velvet! &apos;  5 &gt; 4</p>
             <checkbox selected/>
+            Text Node 2
+            "This is a string &amp;"
+            <p>
+                Testing entities: &amp; | &amps; | &quot; | &apos;
+            </p>
         </div>
     );
     if (vl_html_parser_init(&parser, input)) {

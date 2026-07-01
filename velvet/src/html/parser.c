@@ -24,11 +24,11 @@ typedef struct {
 #define ESCAPE(K, V) ((vl_html_parser_escape_t) {.k = K, .v = V})
 
 static const vl_html_parser_escape_t s_escapes[] = {
-    ESCAPE("apos", "&"),
+    ESCAPE("amp", "&"),
     ESCAPE("lt", "<"),
     ESCAPE("gt", ">"),
     ESCAPE("quot", "\""),
-    ESCAPE("apos", "'")
+    ESCAPE("apos", "'"),
 };
 
 static vl_result_t tokenize(vl_html_parser_t *parser) {
@@ -67,6 +67,57 @@ vl_result_t vl_html_parser_init_with_lexer(vl_html_parser_t *parser, vl_html_lex
     return VL_SUCCESS;
 }
 
+
+static vl_result_t collect_escaped_string(vl_html_parser_t *parser, VL_DA(char)* text, bool include_quotes) {
+    if (!parser || !text || !*text) return VL_ERROR;
+    vl_html_token_t *current = parser->lookahead;
+    if (current->type != VL_HTML_TOKEN_TYPE_STRING) return VL_ERROR;
+    VL_DA(char) escape_accumulator = NULL;
+    int limit = current->text_length - (!include_quotes);
+    for (int i = !include_quotes; i < limit; i++) {
+        if (current->text[i] == '&' && (i + 1) < limit) {
+            if (!escape_accumulator) {
+                escape_accumulator = VL_DA_INIT(char);
+            }
+            i++; // skip &
+            while (current->text[i] != ';') {
+                if (i >= limit) {
+                    for (int j = 0; j < VL_DA_LENGTH(escape_accumulator); j++) {
+                        *VL_DA_PUSH(text, char) = escape_accumulator[j];
+                    }
+                    goto end;
+                }
+                *VL_DA_PUSH(escape_accumulator, char) = current->text[i++];
+            }
+            for (int j = 0; j < sizeof(s_escapes) / sizeof(*s_escapes); j++) {
+                if (strlen(s_escapes[j].k) != VL_DA_LENGTH(escape_accumulator)) continue;
+                if (memcmp(s_escapes[j].k, escape_accumulator, 
+                        VL_DA_LENGTH(escape_accumulator)) == 0) {
+                        for (int k = 0; k < strlen(s_escapes[j].v); k++) {
+                            *VL_DA_PUSH(*text, char) = s_escapes[j].v[k];
+                        }
+                        goto escape_success;
+                }
+            }
+
+            // escaping failed, adding the collected text back
+            *VL_DA_PUSH(*text, char) = '&';
+            for (int j = 0; j < VL_DA_LENGTH(escape_accumulator); j++) {
+                *VL_DA_PUSH(*text, char) = escape_accumulator[j];
+            }
+            *VL_DA_PUSH(*text, char) = ';';
+
+            escape_success:
+            // resetting the escape_accumulator to avoid unnecessary allocations
+            VL_DA_HEADER_PTR(escape_accumulator)->count = 0;
+            continue;
+        }
+        *VL_DA_PUSH(*text, char) = current->text[i];
+    }
+    end:
+    if (escape_accumulator) VL_DA_FREE(escape_accumulator);
+    return VL_SUCCESS;
+}
 
 static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node) {
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip <
@@ -128,10 +179,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             continue;
         }
         attribute.value = VL_DA_INIT(char);
-        for (int i = 0; i < current->text_length - 2; i++) {
-            *VL_DA_PUSH(attribute.value, char) = current->text[i + 1];
-        }
-        attribute.value[current->text_length - 2] = '\0';
+        if (collect_escaped_string(parser, &attribute.value, false)) return VL_ERROR;
 
         append_attribute:
         VL_DA_APPEND(node->attributes, attribute);
@@ -198,9 +246,10 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             
             escape_success:
             for (int i = 0; i < sizeof(s_escapes) / sizeof(*s_escapes); i++) {
+                if (strlen(s_escapes[i].k) != VL_DA_LENGTH(entity_accumulator)) continue;
                 if (memcmp(entity_accumulator, 
                             s_escapes[i].k, 
-                             MIN(VL_DA_LENGTH(entity_accumulator), sizeof(s_escapes[i].k) - 1)) == 0) {
+                             VL_DA_LENGTH(entity_accumulator)) == 0) {
                     const char *v = s_escapes[i].v;
                     while (*v != '\0') {
                         *VL_DA_PUSH(node->text, char) = *v++;
@@ -208,6 +257,14 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
                     goto escape_next;
                 }
             }
+
+            // push the collected text back
+            *VL_DA_PUSH(node->text, char) = '&';
+            for (int i = 0; i < VL_DA_LENGTH(entity_accumulator); i++) {
+                *VL_DA_PUSH(node->text, char) = entity_accumulator[i];
+            }
+            *VL_DA_PUSH(node->text, char) = ';';
+
             escape_next:
             continue;
         }
@@ -220,8 +277,12 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             // end of the text node, beginning of the tag node
             goto success;
         }
-        for (int i = 0; i < current->text_length; i++) {
-            *VL_DA_PUSH(node->text, char) = current->text[i];
+        if (current->type == VL_HTML_TOKEN_TYPE_STRING) {
+            if (collect_escaped_string(parser, &node->text, true)) return VL_ERROR;
+        } else {
+            for (int i = 0; i < current->text_length; i++) {
+                *VL_DA_PUSH(node->text, char) = current->text[i];
+            }
         }
         if (tokenize(parser)) return VL_ERROR;
         if (VL_TOKEN_COMPARE(current, " ") || VL_TOKEN_COMPARE(current, "\n") || VL_TOKEN_COMPARE(current, "\t")) {
