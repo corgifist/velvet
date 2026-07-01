@@ -63,6 +63,12 @@ typedef struct vl_da_header vl_da_header_t;
 #define VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, ALLOCATOR) \
     (vl_da_init(sizeof(TYPE), CAPACITY, ALLOCATOR))
 
+#define VL_DA_INIT_FROM_STRING(STRING) \
+    VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, VL_MALLOC)
+
+#define VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, ALLOCATOR) \
+    (vl_da_init_from_string(STRING , ALLOCATOR))
+
 
 /*
     appends VALUE to the dynamic array DA
@@ -167,6 +173,8 @@ typedef struct vl_da_header vl_da_header_t;
     returns NULL if allocating memory through allocator fails
 */
 VL_API void *vl_da_init(size_t element_size, size_t capacity, vl_malloc_t allocate);
+
+VL_API void *vl_da_init_from_string(const char *string, vl_malloc_t allocate);
 
 /*
     VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_realloc_t reallocate);  

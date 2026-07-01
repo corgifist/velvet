@@ -13,7 +13,6 @@
 vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
     if (!lexer) return VL_ERROR;
     lexer->raw_length = strlen(text);
-    if (lexer->raw_length == 0) return VL_ERROR;
     lexer->text = VL_MALLOC(lexer->raw_length);
     memcpy(lexer->text, text, lexer->raw_length);
     size_t count = 0, i = 0;

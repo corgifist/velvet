@@ -21,11 +21,22 @@ static void *vl_da_shrink(VL_DA(void) da, vl_realloc_t reallocate) {
 void *vl_da_init(size_t element_size, size_t capacity, vl_malloc_t allocate) {
     vl_byte_t *mem = allocate(sizeof(vl_da_header_t) + element_size * capacity);
     if (!mem) return NULL;
+    memset(mem, 0, sizeof(vl_da_header_t) + element_size * capacity);
     vl_da_header_t *header = (vl_da_header_t*) mem;
     header->count = 0;
     header->capacity = capacity;
     header->element_size = element_size;
     return mem + sizeof(vl_da_header_t);
+}
+
+void *vl_da_init_from_string(const char *string, vl_malloc_t allocate) {
+    VL_ASSERT(string && "const char *string is NULL");
+    unsigned long length = strlen(string);
+    VL_DA(char) da = vl_da_init(1, length + 1, allocate);
+    if (!da) return NULL;
+    memcpy(da, string, length);
+    da[length] = '\0';
+    return da;
 }
 
 void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_realloc_t reallocate) {

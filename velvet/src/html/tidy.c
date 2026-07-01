@@ -1,0 +1,31 @@
+#include "velvet/html/tidy.h"
+#include "html/document.h"
+#include "support/da.h"
+#include "support/result.h"
+#include <string.h>
+
+static vl_html_node_t create_minimal_node(const char *tag) {
+    vl_html_node_t html_node = {0};
+    html_node.tag = VL_DA_INIT_FROM_STRING(tag);
+    html_node.children = VL_DA_INIT(vl_html_node_t);
+    return html_node;
+}
+
+vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
+    if (!node) return VL_ERROR;
+    if (strcmp(node->tag, "html") != 0) {
+        vl_html_node_t html_node = create_minimal_node("html");
+
+        vl_html_node_t head_node = create_minimal_node("head");
+        vl_html_node_t body_node = create_minimal_node("body");
+
+        VL_DA_APPEND(body_node.children, *node);
+
+        VL_DA_APPEND(html_node.children, head_node);
+        VL_DA_APPEND(html_node.children, body_node);
+
+        *node = html_node;
+    }
+
+    return VL_SUCCESS;
+}

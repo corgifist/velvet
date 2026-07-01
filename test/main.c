@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "velvet/html/document.h"
+#include "velvet/html/tidy.h"
 #include "velvet/support/da.h"
 
 #include "velvet/html/parser.h"
@@ -125,12 +126,60 @@ void parser_test() {
     vl_html_node_print(&root);
 }
 
+void empty_parser_test() {
+    vl_html_parser_t parser;
+    const char *input = "";
+    if (vl_html_parser_init(&parser, input)) {
+        printf("failed to initialize parser\n");
+        return;
+    }
+    vl_html_node_t node = {0};
+    if (vl_html_node_init(&node)) {
+        printf("failed to initialize node\n");
+        return;
+    }
+    if (vl_html_parser_get(&parser, &node)) {
+        printf("failed to parse root\n");
+        return;
+    }
+    vl_html_node_print(&node);
+}
+
+void tidy_test() {
+    vl_html_parser_t parser;
+    const char *input = VL_STRINGIFY(
+        <div>
+            <p>Hello, World!</p>
+        </div>  
+    );
+    if (vl_html_parser_init(&parser, input)) {
+        printf("failed to initialize parser\n");
+        return;
+    }
+    vl_html_node_t node = {0};
+    if (vl_html_node_init(&node)) {
+        printf("failed to initialize node\n");
+        return;
+    }
+    if (vl_html_parser_get(&parser, &node)) {
+        printf("failed to parse root\n");
+        return;
+    }
+    if (vl_html_tidy_node(&node)) {
+        printf("failed to tidy node\n");
+        return;
+    }
+    vl_html_node_print(&node);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
     // icu_test();
     // lexer_test();
-    parser_test();
+    // parser_test();
+    // empty_parser_test();
+    tidy_test();
 
     return 0;
 }
