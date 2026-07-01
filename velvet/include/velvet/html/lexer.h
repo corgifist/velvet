@@ -2,6 +2,7 @@
 #define VELVET_HTML_LEXER_H
 
 #include "velvet/support/result.h"
+#include "velvet/support/api.h"
 
 #include <stdlib.h>
 
@@ -45,7 +46,7 @@ typedef struct vl_html_token vl_html_token_t;
  * @return vl_result code
  */
 
-vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text);
+VL_API vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text);
 
 /**
  * perform lexical analysis and return the next token
@@ -54,7 +55,7 @@ vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text);
  * @param token a pointer to the vl_html_token instance (token will be stored here)
  * @return vl_result code
  */
-vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token);
+VL_API vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token);
 
 /**
  * deinitialize a given vl_html_lexer instance
@@ -63,6 +64,6 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token);
  * @param lexer a pointer to the vl_html_lexer
  * @return vl_result code
  */
-vl_result_t vl_html_lexer_deinit(vl_html_lexer_t *lexer);
+VL_API vl_result_t vl_html_lexer_deinit(vl_html_lexer_t *lexer);
 
 #endif // VELVET_HTML_LEXER_H

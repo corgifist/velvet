@@ -13,7 +13,7 @@
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
-    vl_da_header_t *header = VL_DA_HEADER_PTR(array);
+    vl_da_header_t *header = VL_DA_HEADER(array);
     printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
     VL_DA_FREE(array);
 
@@ -21,7 +21,7 @@ void da_test() {
     for (int i = 0; i < 12; ++i) {
         *VL_DA_PUSH(array2, int) = (i + 1) * 13;
     }
-    header = VL_DA_HEADER_PTR(array2);
+    header = VL_DA_HEADER(array2);
     printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
     for (int i = 0; i < header->count; ++i) {
         printf("%i: %i\n", i, array2[i]);
@@ -48,7 +48,7 @@ void da_stress_test() {
     for (int i = 0; i < 100; i++) {
         printf("%i\n", da[i]);
     }
-    printf("added 100 random numbers: %zu %zu %zu\n", VL_DA_HEADER_PTR(da)->capacity, VL_DA_HEADER_PTR(da)->count, VL_DA_HEADER_PTR(da)->element_size);
+    printf("added 100 random numbers: %zu %zu %zu\n", VL_DA_HEADER(da)->capacity, VL_DA_HEADER(da)->count, VL_DA_HEADER(da)->element_size);
     for (int i = 0; i < 99; ++i) {
         VL_DA_DELETE(da, 0);
     }

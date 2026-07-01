@@ -4,6 +4,8 @@
 #include "velvet/support/da.h"
 #include "velvet/support/result.h"
 
+#include "velvet/support/api.h"
+
 struct vl_html_attribute {
     VL_DA(char) name; // null-terminated utf-8 string
     VL_DA(char) value; // null-terminated utf-8 string
@@ -21,10 +23,10 @@ struct vl_html_node {
 
 typedef struct vl_html_node vl_html_node_t;
 
-vl_result_t vl_html_node_init(vl_html_node_t *node);
-vl_result_t vl_html_node_print(vl_html_node_t *node);
-vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent);
+VL_API vl_result_t vl_html_node_init(vl_html_node_t *node);
+VL_API vl_result_t vl_html_node_print(vl_html_node_t *node);
+VL_API vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent);
 
-vl_result_t vl_html_node_deinit(vl_html_node_t *node);
+VL_API vl_result_t vl_html_node_deinit(vl_html_node_t *node);
 
 #endif // VELVET_DOCUMENT_H

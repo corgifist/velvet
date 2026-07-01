@@ -14,7 +14,7 @@
     velvet's dynamic array is fairly simple to understand using this graph
 
     VL_DA(int) array = VL_DA_INIT(int);
-    vl_da_header_t *header = VL_DA_HEADER_PTR(array);
+    vl_da_header_t *header = VL_DA_HEADER(array);
     int* third_item = array + 2;
 
     ------------------------------------------------------------------------------
@@ -137,18 +137,11 @@ typedef struct vl_da_header vl_da_header_t;
     returns a pointer to the header of the dynamic array
     return type is velvet_da_header_t*
 */
-#define VL_DA_HEADER_PTR(DA) \
+#define VL_DA_HEADER(DA) \
     ((vl_da_header_t*) (((vl_byte_t*) DA) - sizeof(vl_da_header_t)))
 
-/*
-    dereferences a pointer accquired through VELVET_DA_HEADER_PTR(DA)
-    return type is velvet_da_header_t
-*/
-#define VL_DA_HEADER(DA) \
-    (*VL_DA_HEADER_PTR(DA))
-
 #define VL_DA_LENGTH(DA) \
-    (VL_DA_HEADER_PTR(DA)->count)
+    (VL_DA_HEADER(DA)->count)
 
 /*
     dispose the dynamic array using default deallocator
@@ -161,7 +154,7 @@ typedef struct vl_da_header vl_da_header_t;
 */
 #define VL_DA_FREE_WITH_DEALLOCATOR(DA, DEALLOCATOR) \
     do { \
-        DEALLOCATOR(VL_DA_HEADER_PTR(DA)); \
+        DEALLOCATOR(VL_DA_HEADER(DA)); \
     } while (0) 
 
 /*

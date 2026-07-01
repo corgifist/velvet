@@ -4,7 +4,7 @@
 
 static void *vl_da_grow(VL_DA(void) da, vl_realloc_t reallocate) {
     if (!da) return NULL;
-    vl_da_header_t *header = VL_DA_HEADER_PTR(da);
+    vl_da_header_t *header = VL_DA_HEADER(da);
     header->capacity *= 2;
     header = reallocate(header, sizeof(vl_da_header_t) + header->element_size * header->capacity);
     return (void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t));
@@ -12,7 +12,7 @@ static void *vl_da_grow(VL_DA(void) da, vl_realloc_t reallocate) {
 
 static void *vl_da_shrink(VL_DA(void) da, vl_realloc_t reallocate) {
     if (!da) return NULL;
-    vl_da_header_t *header = VL_DA_HEADER_PTR(da);
+    vl_da_header_t *header = VL_DA_HEADER(da);
     header->capacity /= 2;
     header = reallocate(header, sizeof(vl_da_header_t) + header->element_size * header->capacity);
     return (void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t));
@@ -29,11 +29,11 @@ void *vl_da_init(size_t element_size, size_t capacity, vl_malloc_t allocate) {
 }
 
 void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_realloc_t reallocate) {
-    vl_da_header_t *header = VL_DA_HEADER_PTR(*da);
+    vl_da_header_t *header = VL_DA_HEADER(*da);
     if (item) VL_ASSERT((element_size == header->element_size) && "mismatching DA types");
     if (header->count >= header->capacity) {
         *da = vl_da_grow(*da, reallocate);
-        header = VL_DA_HEADER_PTR(*da);
+        header = VL_DA_HEADER(*da);
         VL_ASSERT(header && "couldn't grow da in vl_da_append"); 
     }
     if (item) memcpy((void*) (((vl_byte_t*) *da) + header->element_size * header->count), item, element_size);
@@ -44,7 +44,7 @@ void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_realloc_
 void vl_da_delete(VL_DA(void) *da, size_t index, vl_realloc_t reallocate) {
     if (!da) return;
     if (!(*da)) return;
-    vl_da_header_t *header = VL_DA_HEADER_PTR(*da);
+    vl_da_header_t *header = VL_DA_HEADER(*da);
     VL_ASSERT((index >= 0 && index < header->count) && "out of bounds call to vl_da_delete");
     header->count--;
     if (index == header->count) {
@@ -58,6 +58,6 @@ void vl_da_delete(VL_DA(void) *da, size_t index, vl_realloc_t reallocate) {
     }
     if (header->count <= header->capacity / 2 && header->capacity / 2 >= VL_DA_DEFAULT_CAPACITY) {
         *da = vl_da_shrink(*da, reallocate);
-        VL_ASSERT(VL_DA_HEADER_PTR(*da) && "couldn't shrink da in vl_da_delete");
+        VL_ASSERT(VL_DA_HEADER(*da) && "couldn't shrink da in vl_da_delete");
     }
 }

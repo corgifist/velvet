@@ -109,7 +109,7 @@ static vl_result_t collect_escaped_string(vl_html_parser_t *parser, VL_DA(char)*
 
             escape_success:
             // resetting the escape_accumulator to avoid unnecessary allocations
-            VL_DA_HEADER_PTR(escape_accumulator)->count = 0;
+            VL_DA_HEADER(escape_accumulator)->count = 0;
             continue;
         }
         *VL_DA_PUSH(*text, char) = current->text[i];
@@ -139,7 +139,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     // printf("%i current: %.*s\n", current->type, current->text_length, current->text);
     if (current->type != VL_HTML_TOKEN_TYPE_WORD) return VL_ERROR;
     node->tag = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
-    VL_DA_HEADER_PTR(node->tag)->count = current->text_length + 1;
+    VL_DA_HEADER(node->tag)->count = current->text_length + 1;
     memcpy(node->tag, current->text, current->text_length);
     node->tag[VL_DA_LENGTH(node->tag)] = '\0';
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip tag name and spaces
@@ -162,7 +162,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             continue;
         }
         attribute.name = VL_DA_INIT_WITH_CAPACITY(char, current->text_length +1);
-        VL_DA_HEADER_PTR(attribute.name)->count = current->text_length + 1;
+        VL_DA_HEADER(attribute.name)->count = current->text_length + 1;
         memcpy(attribute.name, current->text, current->text_length);
         attribute.name[current->text_length] = '\0';
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
@@ -201,7 +201,10 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         }
         if (parse_result == VL_HTML_PARSER_CLOSE_NODE) {
             if (vl_html_node_deinit(&tmp_node)) return VL_ERROR;
-            if (memcmp(node->tag, close_tag_begin, MIN(VL_DA_LENGTH(node->tag) - 1, close_tag_end - close_tag_begin)) != 0) {
+            if (VL_DA_LENGTH(node->tag) != close_tag_end - close_tag_begin) {
+                return VL_ERROR;
+            }
+            if (memcmp(node->tag, close_tag_begin, VL_DA_LENGTH(node->tag)) != 0) {
                 return VL_ERROR;
             }
             return VL_SUCCESS;
