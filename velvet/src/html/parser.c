@@ -119,9 +119,6 @@ static vl_result_t collect_escaped_string(vl_html_parser_t *parser, VL_DA(char)*
     return VL_SUCCESS;
 }
 
-// forward-declare parser_get for tokenize_node
-static vl_result_t parser_get(vl_html_parser_t *parser, vl_html_node_t *node);
-
 static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node) {
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip <
     static const char *close_tag_begin = NULL;
@@ -192,7 +189,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     vl_html_node_t tmp_node = {0};
     while (true) {
         if (vl_html_node_init(&tmp_node)) return VL_ERROR;
-        vl_result_t parse_result = parser_get(parser, &tmp_node);
+        vl_result_t parse_result = vl_html_parser_get_ex(parser, &tmp_node);
         // printf("%i\n", parse_result);
         if (parse_result == VL_HTML_PARSER_STOP) {
             if (vl_html_node_deinit(&tmp_node)) return VL_ERROR;
@@ -302,7 +299,7 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
     return VL_SUCCESS;
 }
 
-static vl_result_t parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {
+vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node) {
     if (!parser || !node) return VL_ERROR;
     vl_html_token_t *current = parser->lookahead;
     if (current->type == VL_HTML_TOKEN_TYPE_STOP) {
@@ -322,7 +319,7 @@ static vl_result_t parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {
 }
 
 vl_result_t vl_html_parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {
-    vl_result_t parse_result = parser_get(parser, node);
+    vl_result_t parse_result = vl_html_parser_get_ex(parser, node);
     // no more input left
     if (parse_result == VL_HTML_PARSER_STOP) {
         return VL_SUCCESS;

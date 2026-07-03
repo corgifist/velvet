@@ -1,8 +1,18 @@
 #include "html/document.h"
+#include "html/parser.h"
+
+#include "html/tidy.h"
 #include "support/da.h"
 #include "support/result.h"
 
 #include <stdio.h>
+
+vl_result_t vl_html_attribute_deinit(vl_html_attribute_t *attribute) {
+    if (!attribute) return VL_ERROR;
+    VL_DA_FREE(attribute->name);
+    VL_DA_FREE(attribute->value);
+    return VL_SUCCESS;
+}
 
 vl_result_t vl_html_node_init(vl_html_node_t *node) {
     if (!node) return VL_ERROR;
@@ -71,7 +81,7 @@ vl_result_t vl_html_node_deinit(vl_html_node_t *node) {
     node->tag = NULL;
     if (node->attributes) {
         for (int i = 0; i < VL_DA_LENGTH(node->attributes); i++) {
-            // vl_html_attribute_deinit(node->attributes[i]);
+            vl_html_attribute_deinit(node->attributes + i);
         }
         VL_DA_FREE(node->attributes);
     }
@@ -86,4 +96,62 @@ vl_result_t vl_html_node_deinit(vl_html_node_t *node) {
     if (node->text) VL_DA_FREE(node->text);
     node->text = NULL;
     return VL_SUCCESS;
+}
+
+vl_result_t vl_html_document_init(vl_html_document_t *document, const char *input) {
+    if (!document || !input) return VL_ERROR;
+    vl_html_node_t root_node = {0};
+    vl_html_node_t tmp_node = {0};
+    if (vl_html_node_init(&tmp_node)) return VL_ERROR;
+    vl_html_parser_t parser = {0};
+    if (vl_html_parser_init(&parser, input)) {
+        vl_html_node_deinit(&tmp_node);
+        return VL_ERROR;
+    }
+    vl_result_t result_code = VL_HTML_PARSER_STOP;
+    int collector_state = 0;
+    vl_html_node_t prev_node = {0};
+    while ((result_code = vl_html_parser_get_ex(&parser, &tmp_node)) != VL_HTML_PARSER_STOP) {
+        if (result_code == VL_ERROR) {
+            goto failure;
+        }
+        if (collector_state == 0) {
+            prev_node = tmp_node;
+            if (vl_html_node_init(&tmp_node)) {
+                goto failure;
+            }
+            collector_state = 1;
+            continue;
+        }
+        if (collector_state == 1 || collector_state == 2) {
+            if (collector_state == 1 && vl_html_node_init(&root_node)) {
+                vl_html_node_deinit(&tmp_node);
+                vl_html_parser_deinit(&parser);
+                return VL_ERROR;
+            }
+            if (collector_state == 1) {
+                VL_DA_APPEND(root_node.children, prev_node);
+            }
+            VL_DA_APPEND(root_node.children, tmp_node);
+            if (vl_html_node_init(&tmp_node)) {
+                goto failure;
+            }
+            collector_state = 2;
+        }
+    }
+    if (collector_state == 1) {
+        document->root = tmp_node;
+    } else {
+        document->root = root_node;
+    }
+    if (vl_html_tidy_node(&document->root)) {
+        goto failure;
+    }
+    return VL_SUCCESS;
+
+    failure:
+    vl_html_parser_deinit(&parser);
+    vl_html_node_deinit(&tmp_node);
+    vl_html_node_deinit(&root_node);
+    return VL_ERROR;
 }

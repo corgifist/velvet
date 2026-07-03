@@ -148,9 +148,12 @@ void empty_parser_test() {
 void tidy_test() {
     vl_html_parser_t parser;
     const char *input = VL_STRINGIFY(
-        <div>
-            <p>Hello, World!</p>
-        </div>  
+        <head>
+            <title>Tidy test</title>
+        </head>
+        <body>
+            Hello, World!
+        </body>
     );
     if (vl_html_parser_init(&parser, input)) {
         printf("failed to initialize parser\n");
@@ -172,6 +175,29 @@ void tidy_test() {
     vl_html_node_print(&node);
 }
 
+void document_test() {
+    const char *input = VL_STRINGIFY(
+        <head>
+            <title>Hello, Velvet!</title>
+        </head>     
+        <body>
+            Hello, World!
+            <p>
+                Such a beautiful HTML Document!
+            </p>
+        </body>
+        <div>
+            Oh no, an oopsie-whoopsie :|
+        </div>
+    );
+    vl_html_document_t document = {0};
+    if (vl_html_document_init(&document, input)) {
+        printf("failed to initialize the document\n");
+        return;
+    }
+    vl_html_node_print(&document.root);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -179,7 +205,8 @@ int main(int argc, const char *argv[]) {
     // lexer_test();
     // parser_test();
     // empty_parser_test();
-    tidy_test();
+    // tidy_test();
+    document_test();
 
     return 0;
 }
