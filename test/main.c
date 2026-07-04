@@ -178,16 +178,22 @@ void tidy_test() {
 void document_test() {
     const char *input = VL_STRINGIFY(
         <head>
+            <!-- First comment -->
             <title>Hello, Velvet!</title>
         </head>     
         <body>
             Hello, World!
             <p>
+                <!-- Another comment! -->
                 Such a beautiful HTML Document!
             </p>
         </body>
         <div>
+            <!-- So many comments... -->
             Oh no, an oopsie-whoopsie :|
+            <p>
+                So <!-- OMG -->close!
+            </p>
         </div>
     );
     vl_html_document_t document = {0};

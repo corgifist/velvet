@@ -44,6 +44,28 @@ static vl_result_t skip_spaces(vl_html_parser_t *parser) {
         // skip all meaningless tokens
         if (tokenize(parser)) return VL_ERROR;
     } 
+    if (VL_TOKEN_COMPARE(current, "<") 
+            && VL_TOKEN_COMPARE(current + 1, "!") 
+            && VL_TOKEN_COMPARE(current + 2, "-") 
+            && VL_TOKEN_COMPARE(current + 3, "-")) {
+        // skip comment
+        for (int i = 0; i < 4; i++) {
+            if (tokenize(parser)) return VL_ERROR;
+        }
+        while (true) {
+            if (VL_TOKEN_COMPARE(current, "-") && VL_TOKEN_COMPARE(current + 1, "-") && VL_TOKEN_COMPARE(current + 2, ">")) {
+                break;
+            }
+            if (tokenize(parser)) return VL_ERROR;
+        }
+        for (int i = 0; i < 3; i++) {
+            if (tokenize(parser)) return VL_ERROR;
+        }
+    }
+    while (VL_TOKEN_COMPARE(current, " ") || VL_TOKEN_COMPARE(current, "\t") || VL_TOKEN_COMPARE(current, "\n")) {
+        // skip all meaningless tokens
+        if (tokenize(parser)) return VL_ERROR;
+    }
     return VL_SUCCESS;
 }
 
@@ -288,10 +310,11 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             }
         }
         if (tokenize(parser)) return VL_ERROR;
-        if (VL_TOKEN_COMPARE(current, " ") || VL_TOKEN_COMPARE(current, "\n") || VL_TOKEN_COMPARE(current, "\t")) {
+        const char *original_text = current->text;
+        if (skip_spaces(parser)) return VL_ERROR;
+        if (original_text != current->text) {
             *VL_DA_PUSH(node->text, char) = ' ';
         }
-        if (skip_spaces(parser)) return VL_ERROR;
     }
 
     success:
