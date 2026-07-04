@@ -39,4 +39,6 @@ VL_API vl_result_t vl_html_node_deinit(vl_html_node_t *node);
 
 VL_API vl_result_t vl_html_document_init(vl_html_document_t *document, const char *input);
 
+VL_API vl_result_t vl_html_document_deinit(vl_html_document_t *document);
+
 #endif // VELVET_DOCUMENT_H

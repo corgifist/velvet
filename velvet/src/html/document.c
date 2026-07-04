@@ -168,3 +168,10 @@ vl_result_t vl_html_document_init(vl_html_document_t *document, const char *inpu
     vl_html_node_deinit(&root_node);
     return VL_ERROR;
 }
+
+vl_result_t vl_html_document_deinit(vl_html_document_t *document) {
+    if (!document) return VL_ERROR;
+    vl_html_node_deinit(&document->root);
+    if (document->doctype) VL_DA_FREE(document->doctype);
+    return VL_SUCCESS;
+}
