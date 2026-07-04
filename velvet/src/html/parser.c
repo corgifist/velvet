@@ -371,7 +371,11 @@ vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node
 vl_result_t vl_html_parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {
     vl_result_t parse_result = vl_html_parser_get_ex(parser, node);
     // no more input left
-    if (parse_result == VL_HTML_PARSER_STOP || parse_result == VL_HTML_PARSER_DOCTYPE_NODE) {
+    if (parse_result == VL_HTML_PARSER_STOP) {
+        return VL_SUCCESS;
+    }
+    // doctypes nodes are normal and not normal at the same time
+    if (parse_result == VL_HTML_PARSER_DOCTYPE_NODE) {
         return VL_SUCCESS;
     }
     // we should not get a closing node here
