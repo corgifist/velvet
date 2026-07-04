@@ -152,13 +152,15 @@ vl_result_t vl_html_document_init(vl_html_document_t *document, const char *inpu
         }
     }
     if (collector_state == 1) {
-        document->root = tmp_node;
+        document->root = prev_node;
     } else {
         document->root = root_node;
     }
+    if (vl_html_node_deinit(&tmp_node)) goto failure;
     if (vl_html_tidy_node(&document->root)) {
         goto failure;
     }
+    vl_html_parser_deinit(&parser);
     return VL_SUCCESS;
 
     failure:
@@ -169,9 +171,30 @@ vl_result_t vl_html_document_init(vl_html_document_t *document, const char *inpu
     return VL_ERROR;
 }
 
+vl_result_t vl_html_document_print(vl_html_document_t *document) {
+    if (!document) return VL_ERROR;
+    if (document->doctype) {
+        printf("<!doctype ");
+        for (int i = 0; i < VL_DA_LENGTH(document->doctype); i++) {
+            printf("%s", document->doctype[i]);
+            if (i != VL_DA_LENGTH(document->doctype) - 1) {
+                printf(" ");
+            }
+        }
+        printf(">\n");
+    }
+    if (vl_html_node_print(&document->root)) return VL_ERROR;
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_html_document_deinit(vl_html_document_t *document) {
     if (!document) return VL_ERROR;
     vl_html_node_deinit(&document->root);
-    if (document->doctype) VL_DA_FREE(document->doctype);
+    if (document->doctype) {
+        for (int i = 0; i < VL_DA_LENGTH(document->doctype); i++) {
+            VL_DA_FREE(document->doctype[i]);
+        }
+        VL_DA_FREE(document->doctype);
+    }
     return VL_SUCCESS;
 }

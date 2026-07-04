@@ -201,7 +201,7 @@ void document_test() {
             <!-- So many comments... -->
             Oh no, an oopsie-whoopsie :|
             <p>
-                So <!-- OMG -->close!
+                So <!-- OMG --> close!
             </p>
         </div>
     );
@@ -210,18 +210,24 @@ void document_test() {
         printf("failed to initialize the document\n");
         return;
     }
-    printf("<!doctype ");
-    for (int i = 0; i < VL_DA_LENGTH(document.doctype); i++) {
-        printf("%s", document.doctype[i]);
-        if (i != VL_DA_LENGTH(document.doctype) - 1) {
-            printf(" ");
-        }
-    }
-    printf(">\n");
-    printf("allocations after parsing: %zu\n", vl_memory_allocations_count());
-    vl_html_node_print(&document.root);
+
+    vl_memory_print_allocations();
+    vl_html_document_print(&document);
     vl_html_document_deinit(&document);
-    printf("allocations after deallocating: %zu\n", vl_memory_allocations_count());
+    vl_memory_print_allocations();
+}
+
+void memory_test() {
+    vl_memory_print_allocations();
+    int *ints = vl_malloc(sizeof(int) * 5);
+    printf("-------------------\n");
+    vl_memory_print_allocations();
+    ints = vl_realloc(ints, sizeof(int) * 10);
+    printf("-------------------\n");
+    vl_memory_print_allocations();
+    vl_free(ints);
+    printf("-------------------\n");
+    vl_memory_print_allocations();
 }
 
 int main(int argc, const char *argv[]) {
@@ -233,6 +239,7 @@ int main(int argc, const char *argv[]) {
     // empty_parser_test();
     // tidy_test();
     document_test();
+    // memory_test();
 
     return 0;
 }

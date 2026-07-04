@@ -72,20 +72,16 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
         return VL_SUCCESS;
     }
 
-    if (node->tag && strcmp(node->tag, "html") != 0) {
-        vl_html_node_t html_node = create_minimal_node("html");
+    vl_html_node_t html_node = create_minimal_node("html");
 
-        vl_html_node_t head_node = create_minimal_node("head");
-        vl_html_node_t body_node = create_minimal_node("body");
+    vl_html_node_t head_node = create_minimal_node("head");
+    vl_html_node_t body_node = create_minimal_node("body");
 
-        VL_DA_APPEND(body_node.children, *node);
+    VL_DA_APPEND(body_node.children, *node);
 
-        VL_DA_APPEND(html_node.children, head_node);
-        VL_DA_APPEND(html_node.children, body_node);
+    VL_DA_APPEND(html_node.children, head_node);
+    VL_DA_APPEND(html_node.children, body_node);
 
-        *node = html_node;
-        return VL_SUCCESS;
-    }
-
+    *node = html_node;
     return VL_SUCCESS;
 }

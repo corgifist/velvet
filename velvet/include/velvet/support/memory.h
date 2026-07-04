@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 struct vl_source_location {
     const char *file;
@@ -50,6 +51,8 @@ VL_API void *vl_malloc_(size_t size, vl_source_location_t loc);
 VL_API void *vl_realloc_(void *mem, size_t size, vl_source_location_t loc);
 VL_API void vl_free_(void *mem, vl_source_location_t loc);
 
+VL_API void vl_memory_print_allocations();
+VL_API void vl_memory_set_enable_logging(bool logging);
 VL_API size_t vl_memory_allocations_count();
 
 #endif // VELVET_MEMORY_H
