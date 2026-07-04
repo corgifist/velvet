@@ -6,9 +6,11 @@
 
 #include "velvet/html/document.h"
 #include "velvet/html/tidy.h"
+#include "velvet/support/api.h"
 #include "velvet/support/da.h"
 
 #include "velvet/html/parser.h"
+#include "velvet/support/memory.h"
 #include "velvet/support/result.h"
 #include "velvet/velvet.h"
 
@@ -182,6 +184,11 @@ void document_test() {
         <head>
             <!-- First comment -->
             <title>Hello, Velvet!</title>
+            <style>
+                p {
+                    color: black;
+                }
+            </style>
         </head>     
         <body>
             Hello, World!
@@ -211,7 +218,10 @@ void document_test() {
         }
     }
     printf(">\n");
+    printf("allocations after parsing: %zu\n", vl_memory_allocations_count());
     vl_html_node_print(&document.root);
+    vl_html_document_deinit(&document);
+    printf("allocations after deallocating: %zu\n", vl_memory_allocations_count());
 }
 
 int main(int argc, const char *argv[]) {

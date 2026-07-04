@@ -15,4 +15,6 @@ target_compile_definitions(velvet PRIVATE VELVET_EXPORT_SYMBOLS)
 set_target_properties(velvet PROPERTIES
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
+    C_STANDARD 99
+    C_STANDARD_REQUIRED ON
 )

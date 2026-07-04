@@ -13,7 +13,7 @@
 vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
     if (!lexer) return VL_ERROR;
     lexer->raw_length = strlen(text);
-    lexer->text = VL_MALLOC(lexer->raw_length);
+    lexer->text = vl_malloc(lexer->raw_length);
     memcpy(lexer->text, text, lexer->raw_length);
     size_t count = 0, i = 0;
     lexer->c = 0;
@@ -113,6 +113,6 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
 
 vl_result_t vl_html_lexer_deinit(vl_html_lexer_t *lexer) {
     if (!lexer) return VL_ERROR;
-    if (lexer->text) VL_FREE(lexer->text);
+    if (lexer->text) vl_free(lexer->text);
     return VL_SUCCESS;
 }

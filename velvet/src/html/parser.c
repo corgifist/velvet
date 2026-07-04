@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <unicode/urename.h>
+#include <unicode/ustring.h>
+
 #define VL_TOKEN_COMPARE_EX(A, A_LENGTH, B) \
     ((A_LENGTH == sizeof(B) - 1) && (!memcmp(A, B, A_LENGTH)))
 
@@ -289,6 +292,7 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
 
             escape_fail:
             VL_DA_FREE(entity_accumulator);
+            VL_DA_FREE(node->text);
             return VL_ERROR;
             
             escape_success:
