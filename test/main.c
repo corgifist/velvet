@@ -177,6 +177,8 @@ void tidy_test() {
 
 void document_test() {
     const char *input = VL_STRINGIFY(
+        <!-- HTML4 doctype just to test the parser capabilities-->
+        <!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
         <head>
             <!-- First comment -->
             <title>Hello, Velvet!</title>
@@ -201,6 +203,14 @@ void document_test() {
         printf("failed to initialize the document\n");
         return;
     }
+    printf("<!doctype ");
+    for (int i = 0; i < VL_DA_LENGTH(document.doctype); i++) {
+        printf("%s", document.doctype[i]);
+        if (i != VL_DA_LENGTH(document.doctype) - 1) {
+            printf(" ");
+        }
+    }
+    printf(">\n");
     vl_html_node_print(&document.root);
 }
 

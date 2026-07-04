@@ -3,7 +3,6 @@
 
 #include "velvet/support/da.h"
 #include "velvet/support/result.h"
-
 #include "velvet/support/api.h"
 
 struct vl_html_attribute {
@@ -24,6 +23,7 @@ struct vl_html_node {
 typedef struct vl_html_node vl_html_node_t;
 
 struct vl_html_document {
+    VL_DA(VL_DA_STRING) doctype;
     vl_html_node_t root;
 };
 

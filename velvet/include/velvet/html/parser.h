@@ -7,6 +7,8 @@
 #include "velvet/support/api.h"
 
 #define VL_HTML_PARSER_STOP -1
+#define VL_HTML_PARSER_CLOSE_NODE -2
+#define VL_HTML_PARSER_DOCTYPE_NODE -3
 #define VL_HTML_PARSER_LOOKAHEAD 4
 
 struct vl_html_parser {

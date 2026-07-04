@@ -3,7 +3,6 @@
 #include "html/lexer.h"
 #include "support/da.h"
 #include "support/result.h"
-#include "support/math.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -13,8 +12,6 @@
 
 #define VL_TOKEN_COMPARE(TOKEN_PTR, B) \
     VL_TOKEN_COMPARE_EX((TOKEN_PTR)->text, (TOKEN_PTR)->text_length, (B))
-
-#define VL_HTML_PARSER_CLOSE_NODE -2
 
 typedef struct {
     const char *k;
@@ -147,6 +144,8 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     static const char *close_tag_end = NULL;
     vl_html_token_t *current = parser->lookahead;
     if (VL_TOKEN_COMPARE(current, "/")) {
+        // parse closing node
+        // e.g. </div>
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         if (current->type != VL_HTML_TOKEN_TYPE_WORD) {
             return VL_ERROR;
@@ -157,6 +156,29 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         if (!VL_TOKEN_COMPARE(current, ">")) return VL_ERROR;
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         return VL_HTML_PARSER_CLOSE_NODE;
+    }
+    if (VL_TOKEN_COMPARE(current, "!")) {
+        // parse doctype node
+        // e.g. <!doctype html>
+        if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip !
+        if (!VL_TOKEN_COMPARE(current, "doctype")) return VL_ERROR;
+        if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip doctype
+        while (!VL_TOKEN_COMPARE(current, ">")) {
+            if (current->type != VL_HTML_TOKEN_TYPE_WORD && current->type != VL_HTML_TOKEN_TYPE_STRING) {
+                return VL_ERROR;
+            }
+            vl_html_attribute_t attribute = {0};
+            attribute.value = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
+            memcpy(attribute.value, current->text, current->text_length);
+            attribute.value[current->text_length] = '\0';
+            if (tokenize(parser) || skip_spaces(parser)) {
+                VL_DA_FREE(attribute.value);
+                return VL_ERROR;
+            }
+            VL_DA_APPEND(node->attributes, attribute);
+        }
+        if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
+        return VL_HTML_PARSER_DOCTYPE_NODE;
     }
     // printf("%i current: %.*s\n", current->type, current->text_length, current->text);
     if (current->type != VL_HTML_TOKEN_TYPE_WORD) return VL_ERROR;
@@ -330,7 +352,8 @@ vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node
     }
     if (skip_spaces(parser)) return VL_ERROR;
     if (VL_TOKEN_COMPARE(current, "<") && (current + 1)->type == VL_HTML_TOKEN_TYPE_WORD 
-            || VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "/")) {
+            || VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "/")
+            || VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "!")) {
         // parse html tag
         // <tag attr1="" attr2="">
         //     ...
@@ -344,7 +367,7 @@ vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node
 vl_result_t vl_html_parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {
     vl_result_t parse_result = vl_html_parser_get_ex(parser, node);
     // no more input left
-    if (parse_result == VL_HTML_PARSER_STOP) {
+    if (parse_result == VL_HTML_PARSER_STOP || parse_result == VL_HTML_PARSER_DOCTYPE_NODE) {
         return VL_SUCCESS;
     }
     // we should not get a closing node here

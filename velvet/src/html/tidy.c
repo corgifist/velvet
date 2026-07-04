@@ -13,7 +13,7 @@ static vl_html_node_t create_minimal_node(const char *tag) {
 
 vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
     if (!node) return VL_ERROR;
-    if (!node->tag) {
+    if (!node->tag && !node->text && node->children) {
         vl_html_node_t html_node = create_minimal_node("html");
         vl_html_node_t *head_node = NULL;
         vl_html_node_t *body_node = NULL;
@@ -50,7 +50,7 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
         *node = html_node;
         return VL_SUCCESS;
     }
-    if (strcmp(node->tag, "head") == 0) {
+    if (node->tag && strcmp(node->tag, "head") == 0) {
         vl_html_node_t html_node = create_minimal_node("html");
         vl_html_node_t body_node = create_minimal_node("body");
 
@@ -61,7 +61,7 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
         return VL_SUCCESS;
     }
 
-    if (strcmp(node->tag, "body") == 0) {
+    if (node->tag && strcmp(node->tag, "body") == 0) {
         vl_html_node_t html_node = create_minimal_node("html");
         vl_html_node_t head_node = create_minimal_node("head");
 
@@ -72,7 +72,7 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
         return VL_SUCCESS;
     }
 
-    if (strcmp(node->tag, "html") != 0) {
+    if (node->tag && strcmp(node->tag, "html") != 0) {
         vl_html_node_t html_node = create_minimal_node("html");
 
         vl_html_node_t head_node = create_minimal_node("head");

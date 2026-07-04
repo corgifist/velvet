@@ -39,6 +39,9 @@ typedef struct vl_da_header vl_da_header_t;
 #define VELVET_DA(TYPE) TYPE*
 #define VL_DA VELVET_DA
 
+// dynamic array of chars (simply char*)
+#define VL_DA_STRING VL_DA(char)
+
 #define VL_DA_DEFAULT_CAPACITY (8)
 
 /*
