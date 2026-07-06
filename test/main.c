@@ -205,15 +205,11 @@ void document_test() {
             </p>
         </div>
     );
-    vl_html_document_t document = {0};
-    if (vl_html_document_init(&document, input)) {
-        printf("failed to initialize the document\n");
-        return;
-    }
+    vl_html_document_t *document = vl_html_document_new(input); 
 
     vl_memory_print_allocations();
-    vl_html_document_print(&document);
-    vl_html_document_deinit(&document);
+    vl_html_document_print(document);
+    vl_html_document_free(document);
     vl_memory_print_allocations();
 }
 

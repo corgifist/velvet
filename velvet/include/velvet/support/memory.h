@@ -41,6 +41,8 @@ typedef struct vl_source_location vl_source_location_t;
     #define vl_free(...) vl_free_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 #endif // !defined(VL_FREE)
 
+#define VL_NEW(TYPE) vl_malloc(sizeof(TYPE))
+
 typedef void *(vl_malloc_t)(size_t size);
 typedef void *(vl_realloc_t)(void *mem, size_t size);
 typedef void (vl_free_t)(void *mem);

@@ -3,6 +3,7 @@
 
 #include "html/tidy.h"
 #include "support/da.h"
+#include "support/memory.h"
 #include "support/result.h"
 
 #include <stdio.h>
@@ -96,6 +97,15 @@ vl_result_t vl_html_node_deinit(vl_html_node_t *node) {
     if (node->text) VL_DA_FREE(node->text);
     node->text = NULL;
     return VL_SUCCESS;
+}
+
+vl_html_document_t *vl_html_document_new(const char *input) {
+    vl_html_document_t *document = VL_NEW(vl_html_document_t);
+    if (vl_html_document_init(document, input)) {
+        vl_free(document);
+        return NULL;
+    }
+    return document;
 }
 
 vl_result_t vl_html_document_init(vl_html_document_t *document, const char *input) {
@@ -197,4 +207,11 @@ vl_result_t vl_html_document_deinit(vl_html_document_t *document) {
         VL_DA_FREE(document->doctype);
     }
     return VL_SUCCESS;
+}
+
+vl_result_t vl_html_document_free(vl_html_document_t *document) {
+    if (!document) return VL_ERROR;
+    vl_result_t result = vl_html_document_deinit(document);
+    vl_free(document);
+    return result;
 }
