@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unicode/umachine.h>
-#include <unistd.h>
 
 #include "velvet/html/document.h"
 #include "velvet/html/tidy.h"
@@ -226,6 +225,28 @@ void memory_test() {
     vl_memory_print_allocations();
 }
 
+#include "velvet/os/window.h"
+#include "velvet/os/sleep.h"
+#include "velvet/support/feature.h"
+
+void window_test() {
+    printf("universal platform: %i\n", VL_FEATURE(UNIVERSAL_PLATFORM));
+    if (vl_os_window_init()) {
+        printf("failed to initialize vl_os_window\n");
+        return;
+    }
+
+    vl_os_window_t *window = vl_os_window_new("velvet");
+    if (!window) {
+        printf("failed to create vl_os_window\n");
+        return;
+    }
+
+    vl_os_sleep(3000);
+
+    vl_os_window_free(window);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -234,8 +255,9 @@ int main(int argc, const char *argv[]) {
     // parser_test();
     // empty_parser_test();
     // tidy_test();
-    document_test();
+    // document_test();
     // memory_test();
+    window_test();
 
     return 0;
 }
