@@ -18,8 +18,8 @@ if(BUILD_UNIVERSAL_PLATFORM)
     target_link_libraries(velvet PRIVATE glfw)
 endif()
 
-target_compile_definitions(velvet PRIVATE VELVET_EXPORT_SYMBOLS)
-target_compile_definitions(velvet PUBLIC VELVET_FEATURE_UNIVERSAL_PLATFORM=$<BOOL:${BUILD_UNIVERSAL_PLATFORM}>)
+target_compile_definitions(velvet PRIVATE VL_EXPORT_SYMBOLS)
+target_compile_definitions(velvet PUBLIC VL_FEATURE_UNIVERSAL_PLATFORM=$<BOOL:${BUILD_UNIVERSAL_PLATFORM}>)
 
 set_target_properties(velvet PROPERTIES
     C_VISIBILITY_PRESET hidden
