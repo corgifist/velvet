@@ -1,4 +1,5 @@
 #include "platform/universal/window.h"
+#include "os/window.h"
 #include "support/memory.h"
 #include "support/result.h"
 
@@ -25,6 +26,8 @@ vl_os_window_t *vl_os_window_universal_new(const char *title) {
         goto fail;
     }
     glfwShowWindow(handle);
+
+    // immediatly polling events to prevent half-broken windows from appearing
     glfwPollEvents();
     win->handle = handle;
 
@@ -33,6 +36,18 @@ vl_os_window_t *vl_os_window_universal_new(const char *title) {
     fail:
     vl_free(win);
     return NULL;
+}
+
+vl_result_t vl_os_window_universal_poll_events() {
+    glfwPollEvents();
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_os_window_universal_should_close(vl_os_window_t *window, bool *should_close) {
+    if (!window || !should_close) return VL_ERROR;
+    vl_os_window_universal_t *win = (vl_os_window_universal_t*) window;
+    *should_close = glfwWindowShouldClose(win->handle);
+    return VL_SUCCESS;
 }
 
 vl_result_t vl_os_window_universal_free(vl_os_window_t *window) {

@@ -32,6 +32,23 @@ vl_os_window_t *vl_os_window_new(const char *input) {
     return NULL;
 }
 
+vl_result_t vl_os_window_poll_events() {
+    if (!s_initialized) return VL_ERROR;
+#if VL_FEATURE(UNIVERSAL_PLATFORM)
+    return vl_os_window_universal_poll_events();
+#endif
+    printf("no platform for vl_os_window\n");
+    return VL_ERROR;
+}
+
+vl_result_t vl_os_window_should_close(vl_os_window_t *window, bool *should_close) {
+    if (!s_initialized) return VL_ERROR;
+#if VL_FEATURE(UNIVERSAL_PLATFORM)
+    return vl_os_window_universal_should_close(window, should_close);
+#endif
+
+}
+
 vl_result_t vl_os_window_free(vl_os_window_t *window) {
     if (!s_initialized) return VL_ERROR;
 #if VL_FEATURE(UNIVERSAL_PLATFORM)

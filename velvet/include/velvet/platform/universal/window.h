@@ -2,6 +2,8 @@
 #define VELVET_PLATFORM_UNIVERSAL_WINDOW_H
 
 #include "velvet/os/window.h"
+
+#include <stdbool.h>
 #include <GLFW/glfw3.h>
 
 struct vl_os_window_universal {
@@ -13,7 +15,11 @@ struct vl_os_window_universal {
 typedef struct vl_os_window_universal vl_os_window_universal_t;
 
 vl_result_t vl_os_window_universal_init();
+
 vl_os_window_t *vl_os_window_universal_new(const char *title);
+vl_result_t vl_os_window_universal_poll_events();
+vl_result_t vl_os_window_universal_should_close(vl_os_window_t *window, bool *should_close);
+
 vl_result_t vl_os_window_universal_free(vl_os_window_t *window);
 
 #endif // VELVET_PLATFORM_UNIVERSAL_WINDOW_H

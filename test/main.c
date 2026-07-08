@@ -242,7 +242,11 @@ void window_test() {
         return;
     }
 
-    vl_os_sleep(3000);
+    bool close;
+    while (!vl_os_window_should_close(window, &close) && !close) {
+        vl_os_window_poll_events();
+    }
+    printf("close: %i\n", close);
 
     vl_os_window_free(window);
 }
