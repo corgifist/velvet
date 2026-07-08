@@ -4,8 +4,6 @@
 #include "velvet/support/result.h"
 #include "velvet/support/api.h"
 
-#include <stdlib.h>
-
 #include <unicode/unistr.h>
 
 struct vl_html_lexer {

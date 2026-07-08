@@ -7,9 +7,7 @@
 
 #include "velvet/support/api.h"
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
+#include "velvet/common.h"
 
 struct vl_source_location {
     const char *file;

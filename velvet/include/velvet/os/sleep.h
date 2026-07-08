@@ -1,7 +1,7 @@
 #ifndef VELVET_OS_SLEEP_H
 #define VELVET_OS_SLEEP_H
 
-#include <stdint.h>
+#include "velvet/common.h"
 
 /**
  * sleep for a given amount of nanoseconds

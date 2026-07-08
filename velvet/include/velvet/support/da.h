@@ -5,10 +5,9 @@
 #ifndef VELVET_DA_H
 #define VELVET_DA_H
 
-#include <stddef.h>
-
-#include "memory.h"
-#include "api.h"
+#include "velvet/common.h"
+#include "velvet/support/memory.h"
+#include "velvet/support/api.h"
 
 /*
     velvet's dynamic array is fairly simple to understand using this graph

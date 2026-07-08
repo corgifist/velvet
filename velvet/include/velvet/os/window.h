@@ -1,9 +1,8 @@
 #ifndef VELVET_OS_WINDOW
 #define VELVET_OS_WINDOW
 
+#include "velvet/common.h"
 #include "velvet/support/result.h"
-
-#include <stdbool.h>
 
 struct vl_os_window {
     const char *title;

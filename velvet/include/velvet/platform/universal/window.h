@@ -2,8 +2,8 @@
 #define VELVET_PLATFORM_UNIVERSAL_WINDOW_H
 
 #include "velvet/os/window.h"
+#include "velvet/common.h"
 
-#include <stdbool.h>
 #include <GLFW/glfw3.h>
 
 struct vl_os_window_universal {
