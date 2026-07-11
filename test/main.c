@@ -3,9 +3,11 @@
 #include <stdlib.h>
 #include <unicode/umachine.h>
 
+#include "velvet/graphics/color.h"
+#include "velvet/graphics/presentation.h"
+#include "velvet/graphics/render.h"
 #include "velvet/html/document.h"
 #include "velvet/html/tidy.h"
-#include "velvet/support/api.h"
 #include "velvet/support/da.h"
 
 #include "velvet/html/parser.h"
@@ -241,13 +243,27 @@ void window_test() {
         printf("failed to create vl_os_window\n");
         return;
     }
+    vl_graphics_render_t *render = vl_graphics_render_new(window);
+    if (!render) {
+        printf("failed to create vl_graphics_render_t\n");
+        return;
+    }
+    printf("graphics vendor: %s\n", render->vendor);
+
+    vl_graphics_presentation_t *present = vl_graphics_presentation_new(window, render);
 
     bool close;
     while (!vl_os_window_should_close(window, &close) && !close) {
         vl_os_window_poll_events();
+
+        vl_graphics_presentation_begin(present);
+        vl_graphics_render_clear(render, VL_COLOR(1, 0, 0, 1));
+        vl_graphics_presentation_end(present);
     }
     printf("close: %i\n", close);
 
+    vl_graphics_presentation_free(present);
+    vl_graphics_render_free(render);
     vl_os_window_free(window);
 }
 

@@ -20,7 +20,7 @@ vl_result_t vl_os_window_universal_init() {
 vl_os_window_t *vl_os_window_universal_new(const char *title) {
     vl_os_window_universal_t *win = VL_NEW(vl_os_window_universal_t);
     if (!win) return NULL;
-    win->parent.title = title;
+    win->base.title = title;
     GLFWwindow *handle = glfwCreateWindow(640, 480, title, NULL, NULL);
     if (!handle) {
         goto fail;

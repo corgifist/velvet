@@ -1,13 +1,16 @@
+/*
+    platform/universal/window.h - implementation of vl_os_window using GLFW
+*/
+
 #ifndef VELVET_PLATFORM_UNIVERSAL_WINDOW_H
 #define VELVET_PLATFORM_UNIVERSAL_WINDOW_H
 
 #include "velvet/os/window.h"
-#include "velvet/common.h"
 
 #include <GLFW/glfw3.h>
 
 struct vl_os_window_universal {
-    vl_os_window_t parent;
+    vl_os_window_t base;
 
     GLFWwindow *handle;
 };

@@ -10,6 +10,7 @@ add_library(velvet ${Velvet_Sources} ${Velvet_Headers})
 
 target_include_directories(velvet PUBLIC include)
 target_include_directories(velvet PRIVATE include/velvet/)
+target_include_directories(velvet PRIVATE ${Velvet_Private_Include_Dirs})
 
 target_link_libraries(velvet PUBLIC PkgConfig::ICU)
 
