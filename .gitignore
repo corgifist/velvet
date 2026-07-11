@@ -10,3 +10,6 @@ out/
 
 # famous macOS .DS_Store
 .DS_Store
+
+# May contain sensitive information
+CMakeUserPresets.json

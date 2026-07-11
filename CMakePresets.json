@@ -2,7 +2,7 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "vcpkg_debug",
+      "name": "vcpkg",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
       }
