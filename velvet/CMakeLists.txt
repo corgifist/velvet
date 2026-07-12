@@ -4,6 +4,7 @@ add_subdirectory(src)
 
 option(BUILD_UNIVERSAL_PLATFORM "Build universal platform" ON)
 
+find_package(cglm CONFIG REQUIRED)
 pkg_search_module(ICU REQUIRED IMPORTED_TARGET icu-io icu-uc)
 
 add_library(velvet ${Velvet_Sources} ${Velvet_Headers})
@@ -13,6 +14,7 @@ target_include_directories(velvet PRIVATE include/velvet/)
 target_include_directories(velvet PRIVATE ${Velvet_Private_Include_Dirs})
 
 target_link_libraries(velvet PUBLIC PkgConfig::ICU)
+target_link_libraries(velvet PRIVATE cglm::cglm)
 
 if(BUILD_UNIVERSAL_PLATFORM)
     find_package(glfw3 CONFIG REQUIRED)

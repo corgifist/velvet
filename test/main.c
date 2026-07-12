@@ -4,6 +4,7 @@
 #include <unicode/umachine.h>
 
 #include "velvet/graphics/color.h"
+#include "velvet/graphics/geometry.h"
 #include "velvet/graphics/presentation.h"
 #include "velvet/graphics/render.h"
 #include "velvet/html/document.h"
@@ -248,7 +249,7 @@ void window_test() {
         printf("failed to create vl_graphics_render_t\n");
         return;
     }
-    printf("graphics vendor: %s\n", render->vendor);
+    printf("graphics vendor: %s\n", render->backend);
 
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(window, render);
 
@@ -257,7 +258,8 @@ void window_test() {
         vl_os_window_poll_events();
 
         vl_graphics_presentation_begin(present);
-        vl_graphics_render_clear(render, VL_COLOR(1, 0, 0, 1));
+        // vl_graphics_render_clear(render, VL_COLOR(1, 0, 0, 1));
+        vl_graphics_render_rect(render, VL_RECT_EX(0, 0, 640, 480), VL_COLOR(0, 1, 0, 1));
         vl_graphics_presentation_end(present);
     }
     printf("close: %i\n", close);

@@ -20,6 +20,15 @@ vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t fi
     return VL_ERROR;
 }
 
+vl_result_t vl_graphics_render_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_color_t fill) {
+    if (!render) return VL_ERROR;
+#if VL_FEATURE(UNIVERSAL_PLATFORM)
+    return vl_graphics_render_universal_rect(render, rect, fill);
+#endif
+    printf("no implementation for vl_graphics_render_rect\n");
+    return VL_ERROR;
+}
+
 vl_result_t vl_graphics_render_free(vl_graphics_render_t *render) {
     if (!render) return VL_ERROR;
 #if VL_FEATURE(UNIVERSAL_PLATFORM)
