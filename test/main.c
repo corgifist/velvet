@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unicode/umachine.h>
 
+#include "velvet/graphics/brush.h"
 #include "velvet/graphics/color.h"
 #include "velvet/graphics/geometry.h"
 #include "velvet/graphics/presentation.h"
@@ -252,18 +253,22 @@ void window_test() {
     printf("graphics vendor: %s\n", render->backend);
 
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(window, render);
+    vl_graphics_brush_t *white_brush = vl_graphics_brush_new_solid(render, VL_COLOR(1, 1, 1, 1));
 
     bool close;
     while (!vl_os_window_should_close(window, &close) && !close) {
         vl_os_window_poll_events();
 
         vl_graphics_presentation_begin(present);
-        // vl_graphics_render_clear(render, VL_COLOR(1, 0, 0, 1));
-        vl_graphics_render_rect(render, VL_RECT_EX(0, 0, 640, 480), VL_COLOR(0, 1, 0, 1));
+        vl_graphics_render_clear(render, VL_COLOR(1, 0, 0, 1));
+        vl_graphics_render_batch_begin(render);
+            vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 640, 100), VL_COLOR(1, 1, 1, 1));
+        vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
     printf("close: %i\n", close);
 
+    vl_graphics_brush_free(white_brush);
     vl_graphics_presentation_free(present);
     vl_graphics_render_free(render);
     vl_os_window_free(window);

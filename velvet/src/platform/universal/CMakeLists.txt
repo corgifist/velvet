@@ -3,6 +3,7 @@ set(Velvet_Sources
     src/platform/universal/window.c
     src/platform/universal/render.c
     src/platform/universal/presentation.c
+    src/platform/universal/brush.c
     src/platform/universal/glad/src/gl.c
     PARENT_SCOPE
 )

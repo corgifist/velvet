@@ -3,5 +3,7 @@ set(Velvet_Headers
     include/velvet/graphics/render.h
     include/velvet/graphics/color.h
     include/velvet/graphics/presentation.h
+    include/velvet/graphics/geometry.h
+    include/velvet/graphics/brush.h
     PARENT_SCOPE
 )

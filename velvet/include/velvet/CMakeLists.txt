@@ -6,6 +6,7 @@ add_subdirectory(graphics)
 
 set(Velvet_Headers
     include/velvet/velvet.h
+    include/velvet/common.h
     ${Velvet_Headers}
     PARENT_SCOPE
 )
