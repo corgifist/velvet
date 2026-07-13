@@ -1,5 +1,7 @@
 #include "platform/universal/window.h"
+#include "graphics/render.h"
 #include "os/window.h"
+#include "support/da.h"
 #include "support/memory.h"
 #include "support/result.h"
 
@@ -17,9 +19,29 @@ vl_result_t vl_os_window_universal_init() {
     return VL_SUCCESS;
 }
 
+typedef struct {
+    vl_os_window_t *window;
+    GLFWwindow *handle;
+} vl_window_handle_pair_t;
+
+static VL_DA(vl_window_handle_pair_t) s_pairs = NULL;
+
+static void callback_window_resize(GLFWwindow *window, int w, int h) {
+    if (!s_pairs) return;
+    for (int i = 0; i < VL_DA_LENGTH(s_pairs); i++) {
+        vl_window_handle_pair_t *pair = s_pairs + i;
+        if (pair->handle == window && pair->window->callback_resize) {
+            pair->window->callback_resize(pair->window, w, h);
+        }
+    }
+}
+
 vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     vl_os_window_universal_t *win = VL_NEW(vl_os_window_universal_t);
     if (!win) return NULL;
+    if (!s_pairs) {
+        s_pairs = VL_DA_INIT(vl_window_handle_pair_t);
+    }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -32,8 +54,17 @@ vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
 
     // immediately poll events to prevent half-broken window from appearing
     glfwPollEvents();
+
     win->base.title = title;
+    win->base.owned_renders = VL_DA_INIT(vl_graphics_render_t*);
+    win->base.io = (vl_os_window_io_t) {0};
     win->handle = handle;
+
+    *VL_DA_PUSH(s_pairs, vl_window_handle_pair_t) = (vl_window_handle_pair_t) {
+        (vl_os_window_t*) win, handle
+    };
+
+    glfwSetWindowSizeCallback(handle, callback_window_resize);
 
     return (vl_os_window_t*) win;
 
@@ -77,6 +108,7 @@ vl_result_t vl_os_window_universal_free(vl_os_window_t *window) {
     if (!window) return VL_ERROR;
     vl_os_window_universal_t *win = (vl_os_window_universal_t*) window;
     glfwDestroyWindow(win->handle);
+    VL_DA_FREE(win->base.owned_renders);
     vl_free(window);
     return VL_SUCCESS;
 }

@@ -176,6 +176,7 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "Brushes");
     render->ctx.UniformBlockBinding(render->batch_program, brushes_ubo, 0);
 
+    VL_DA_APPEND(win->owned_renders, render);
     return (vl_graphics_render_t*) render;
 
     fail:
@@ -290,6 +291,18 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     for (int i = 0; i < VL_DA_LENGTH(r->owned_brushes); i++) {
         ((vl_graphics_brush_universal_t*) r->owned_brushes[i])->brush_index = -1;
     }
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_graphics_render_universal_resize(vl_graphics_render_t *render, int w, int h) {
+    if (!render) return VL_ERROR;
+    vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
+    vl_os_window_universal_t *win = (vl_os_window_universal_t*) render->owner;
+    flat_ortho(w, h, r->proj_mat);
+
+    int fw, fh;
+    glfwGetFramebufferSize(win->handle, &fw, &fh);
+    r->ctx.Viewport(0, 0, fw, fh);
     return VL_SUCCESS;
 }
 
