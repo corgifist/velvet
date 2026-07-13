@@ -13,13 +13,6 @@ vl_graphics_brush_t *vl_graphics_brush_new_solid(vl_graphics_render_t *render, v
     return NULL;
 }
 
-vl_result_t vl_graphics_brush_solid_get_color(vl_graphics_brush_t *brush, vl_color_t *color) {
-    if (!brush || !color) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_brush_universal_solid_get_color(brush, color);
-#endif
-    return VL_ERROR;
-}
 
 vl_result_t vl_graphics_brush_free(vl_graphics_brush_t *brush) {
     if (!brush) return VL_ERROR;

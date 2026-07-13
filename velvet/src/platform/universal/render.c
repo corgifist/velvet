@@ -225,17 +225,16 @@ static int add_brush(vl_graphics_render_universal_t *render, Brush brush) {
 static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *brush) {
     if (!brush) return -1;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
-    vl_graphics_brush_universal_t *u = (vl_graphics_brush_universal_t*) brush;
+    int *saved_brush_index = (int*) (((vl_byte_t*) brush) - sizeof(int));
     int brush_index;
-    if (u->brush_index >= 0) {
-        brush_index = u->brush_index;
+    if (*saved_brush_index >= 0) {
+        brush_index = *saved_brush_index;
     } else {
-        vl_color_t brush_color;
-        vl_graphics_brush_solid_get_color(brush, &brush_color);
+        vl_color_t brush_color = ((vl_graphics_brush_solid_t*) brush)->color;
         brush_index = add_brush(r, (Brush) {
             1, {0}, {brush_color.r, brush_color.g, brush_color.b, brush_color.a}
         });
-        u->brush_index = brush_index;
+        *saved_brush_index = brush_index;
     }
     return brush_index;
 }
@@ -289,7 +288,8 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset / 7);
 
     for (int i = 0; i < VL_DA_LENGTH(r->owned_brushes); i++) {
-        ((vl_graphics_brush_universal_t*) r->owned_brushes[i])->brush_index = -1;
+        // reset brush's saved brush index
+        *((int*) (((vl_byte_t*) r->owned_brushes[i]) - sizeof(int))) = -1;
     }
     return VL_SUCCESS;
 }
