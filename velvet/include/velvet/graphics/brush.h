@@ -8,6 +8,7 @@
 
 enum vl_graphics_brush_type {
     VL_GRAPHICS_RENDER_BRUSH_SOLID = 1,
+    
 };
 
 typedef enum vl_graphics_brush_type vl_graphics_brush_type_t;

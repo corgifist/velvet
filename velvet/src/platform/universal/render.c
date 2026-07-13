@@ -134,7 +134,7 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     render->ctx.BufferData(GL_ARRAY_BUFFER, BATCH_MAX * (6 * sizeof(float) + sizeof(int)), NULL, GL_DYNAMIC_DRAW);
 
     render->batch_offset = 0;
-    render->batch_vertices = VL_DA_INIT_WITH_CAPACITY(float, BATCH_MAX * 6);
+    render->batch_vertices = VL_DA_INIT_WITH_CAPACITY(vl_graphics_vertex_t, BATCH_MAX);
     render->batch_active = false;
 
     render->ctx.GenBuffers(1, &render->brush_vbo);
@@ -206,14 +206,9 @@ static void batch_add_vertex(vl_graphics_render_t *render, float x, float y, int
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     if (!r) return;
     if (!r->batch_active) return;
-    r->batch_vertices[r->batch_offset++] = x;
-    r->batch_vertices[r->batch_offset++] = y;
-    // a hacky way of adding the brush index to the batch array but it works
-    memcpy(r->batch_vertices + (r->batch_offset++), &brush_index, sizeof(brush_index));
-    r->batch_vertices[r->batch_offset++] = color.r;
-    r->batch_vertices[r->batch_offset++] = color.g;
-    r->batch_vertices[r->batch_offset++] = color.b;
-    r->batch_vertices[r->batch_offset++] = color.a;
+    r->batch_vertices[r->batch_offset++] = (vl_graphics_vertex_t) {
+        x, y, brush_index, color
+    };
 }
 
 static int add_brush(vl_graphics_render_universal_t *render, Brush brush) {
@@ -269,14 +264,14 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->batch_active = false;
     if (r->batch_offset == 0) return VL_SUCCESS;
     ensure_render_context(r);
-    for (int i = 0; i < r->batch_offset; i += 7) {
-        vec4 v = {r->batch_vertices[i], r->batch_vertices[i + 1], 0, 1};
+    for (int i = 0; i < r->batch_offset; i++) {
+        vec4 v = {r->batch_vertices[i].x, r->batch_vertices[i].y, 0, 1};
         glm_mat4_mulv(r->proj_mat, v, v);
-        r->batch_vertices[i] = v[0];
-        r->batch_vertices[i + 1] = v[1];
+        r->batch_vertices[i].x = v[0];
+        r->batch_vertices[i].y = v[1];
     }
     r->ctx.BindBuffer(GL_ARRAY_BUFFER, r->batch_vbo);
-    r->ctx.BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(float), r->batch_vertices);
+    r->ctx.BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(vl_graphics_vertex_t), r->batch_vertices);
 
     r->ctx.BindBuffer(GL_UNIFORM_BUFFER, r->brush_vbo);
     r->ctx.BufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(int), &r->brush_offset);
@@ -285,7 +280,7 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->ctx.UseProgram(r->batch_program);
     r->ctx.BindVertexArray(r->batch_vao);
     r->ctx.BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo);
-    r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset / 7);
+    r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset);
 
     for (int i = 0; i < VL_DA_LENGTH(r->owned_brushes); i++) {
         // reset brush's saved brush index

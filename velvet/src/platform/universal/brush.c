@@ -18,7 +18,7 @@ vl_graphics_brush_t *vl_graphics_brush_universal_new_solid(vl_graphics_render_t 
     *brush_index_ptr = -1;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     *VL_DA_PUSH(r->owned_brushes, vl_graphics_brush_t*) = (vl_graphics_brush_t*) brush;
-    return (vl_graphics_brush_solid_t*) brush;
+    return (vl_graphics_brush_t*) brush;
 }
 
 vl_result_t vl_graphics_brush_universal_free(vl_graphics_brush_t *brush) {

@@ -16,13 +16,24 @@
 
 struct Brush;
 
+typedef VL_PACK(struct {
+    float x, y;
+    int brush_index;
+    union {
+        vl_color_t color;
+        struct {
+            float r, g, b, a;
+        };
+    };
+}) vl_graphics_vertex_t;
+
 struct vl_graphics_render_universal {
     vl_graphics_render_t base;
 
     GladGLContext ctx;
     GLuint batch_vbo, batch_vao;
     GLuint batch_program;
-    VL_DA(float) batch_vertices;
+    VL_DA(vl_graphics_vertex_t) batch_vertices;
     int batch_offset;
     bool batch_active;
 

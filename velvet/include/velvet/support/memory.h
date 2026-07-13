@@ -42,11 +42,11 @@ typedef struct vl_source_location vl_source_location_t;
 #define VL_NEW(TYPE) vl_malloc(sizeof(TYPE))
 
 #ifdef __GNUC__
-    #define VL_PACK(STRUCT) STRUCT __attribute__((__packed__))
+    #define VL_PACK(...) __VA_ARGS__ __attribute__((__packed__))
 #endif
 
 #ifdef _MSC_VER
-    #define VL_PACK(STRUCT) __pragma(pack(push, 1)) STRUCT __pragma(pack(pop))
+    #define VL_PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
 #endif
 
 typedef void *(vl_malloc_t)(size_t size);
