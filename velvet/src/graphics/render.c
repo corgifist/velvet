@@ -1,4 +1,5 @@
 #include "velvet/graphics/render.h"
+#include "graphics/brush.h"
 #include "platform/universal/render.h"
 #include "velvet/support/feature.h"
 
@@ -28,10 +29,10 @@ vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
     return VL_ERROR;
 }
 
-vl_result_t vl_graphics_render_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_color_t fill) {
+vl_result_t vl_graphics_render_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush) {
     if (!render) return VL_ERROR;
 #if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_batch_rect(render, rect, fill);
+    return vl_graphics_render_universal_batch_rect(render, rect, brush);
 #endif
     printf("no implementation for vl_graphics_render_rect\n");
     return VL_ERROR;

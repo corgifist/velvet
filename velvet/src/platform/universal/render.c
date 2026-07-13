@@ -1,6 +1,8 @@
 #include "platform/universal/render.h"
+#include "graphics/brush.h"
 #include "graphics/render.h"
 #include "platform/universal/window.h"
+#include "platform/universal/brush.h"
 #include "support/da.h"
 #include "support/memory.h"
 #include "os/window.h"
@@ -8,11 +10,11 @@
 #include "velvet.h"
 
 #include <GLFW/glfw3.h>
-#include <arm_neon.h>
 #include <cglm/mat4.h>
 #include <cglm/vec4.h>
 #include <glad/gl.h>
 #include <cglm/cam.h>
+#include <string.h>
 
 #define BATCH_MAX 256
 
@@ -33,25 +35,48 @@ static const char *s_batch_vertex_shader =
 "#version 330 core\n"
 VL_STRINGIFY(
 layout(location = 0) in vec2 aPos;
-layout(location = 1) in vec4 aColor;
+layout(location = 1) in int aBrushIndex;
 
-out vec4 vColor;
+flat out int vBrushIndex;
 
 void main() {
     gl_Position = vec4(aPos, 0.0, 1.0);
-    vColor = aColor;
+    vBrushIndex = aBrushIndex;
 }
 );
 
+#define BRUSH_MAX 16
+
+typedef VL_PACK(struct Brush {
+    int type;
+    vec3 pad;
+    vec4 color;
+}) Brush;
+
 static const char *s_batch_fragment_shader = 
 "#version 330 core\n"
+"#define BRUSH_SOLID 1\n"
 VL_STRINGIFY(
 out vec4 FragColor;
 
-in vec4 vColor;
+flat in int vBrushIndex;
+
+struct Brush {
+    int type;
+    vec4 color;
+};
+
+layout(std140) uniform Brushes {
+    int brush_count;
+    Brush brushes[BRUSH_MAX];
+};
 
 void main() {
-    FragColor = vColor;
+    vec4 color = vec4(1.0);
+    if (vBrushIndex < brush_count) {
+        color = brushes[vBrushIndex].color;
+    }
+    FragColor = color;
 }
 );
 
@@ -97,21 +122,29 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     glfwGetWindowSize(window->handle, &w, &h);
     render->ctx.Viewport(0, 0, fw, fh);
     flat_ortho(w, h, render->proj_mat);
-    printf("%i %i\n", w, h);
+    // printf("%i %i\n", w, h);
 
     render->ctx.GenBuffers(1, &render->batch_vbo);
     render->ctx.BindBuffer(GL_ARRAY_BUFFER, render->batch_vbo);
-    render->ctx.BufferData(GL_ARRAY_BUFFER, BATCH_MAX * 6 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-    
+    render->ctx.BufferData(GL_ARRAY_BUFFER, BATCH_MAX * (2 * sizeof(float) + sizeof(int)), NULL, GL_DYNAMIC_DRAW);
+
     render->batch_offset = 0;
     render->batch_vertices = VL_DA_INIT_WITH_CAPACITY(float, BATCH_MAX * 6);
     render->batch_active = false;
 
+    render->ctx.GenBuffers(1, &render->brush_vbo);
+    render->ctx.BindBuffer(GL_UNIFORM_BUFFER, render->brush_vbo);
+    render->ctx.BufferData(GL_UNIFORM_BUFFER, sizeof(int) + BRUSH_MAX * sizeof(Brush), NULL, GL_DYNAMIC_READ);
+    
+    render->brush_offset = 0;
+    render->brush_da = VL_DA_INIT_WITH_CAPACITY(Brush, BRUSH_MAX);
+    render->owned_brushes = VL_DA_INIT(vl_graphics_brush_t*);
+
     render->ctx.GenVertexArrays(1, &render->batch_vao);
     render->ctx.BindVertexArray(render->batch_vao);
-    render->ctx.VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), NULL);
+    render->ctx.VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float) + sizeof(int), NULL);
     render->ctx.EnableVertexAttribArray(0);
-    render->ctx.VertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*) (2 * sizeof(float)));
+    render->ctx.VertexAttribIPointer(1, sizeof(int), GL_INT, 2 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float)));
     render->ctx.EnableVertexAttribArray(1);
 
     GLint vertex_shader, fragment_shader;
@@ -132,6 +165,9 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
 
     render->ctx.DeleteShader(vertex_shader);
     render->ctx.DeleteShader(fragment_shader);
+
+    GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "Brushes");
+    render->ctx.UniformBlockBinding(render->batch_program, brushes_ubo, 0);
 
     return (vl_graphics_render_t*) render;
 
@@ -154,28 +190,45 @@ vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *rende
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     r->batch_offset = 0;
     r->batch_active = true;
+    r->brush_offset = 0;
     return VL_SUCCESS;
 }
 
-static void batch_add_vertex(vl_graphics_render_universal_t *render, float x, float y, vl_color_t color) {
+static void batch_add_vertex(vl_graphics_render_universal_t *render, float x, float y, int brush_index) {
     if (!render->batch_active) return;
     render->batch_vertices[render->batch_offset++] = x;
     render->batch_vertices[render->batch_offset++] = y;
-    render->batch_vertices[render->batch_offset++] = color.r;
-    render->batch_vertices[render->batch_offset++] = color.g;
-    render->batch_vertices[render->batch_offset++] = color.b;
-    render->batch_vertices[render->batch_offset++] = color.a;
+    // render->batch_vertices[render->batch_offset++] = brush_index;
+    memcpy(render->batch_vertices + (render->batch_offset++), &brush_index, sizeof(brush_index));
 }
 
-vl_result_t vl_graphics_render_universal_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_color_t fill) {
-    if (!render) return VL_ERROR;
+static int add_brush(vl_graphics_render_universal_t *render, Brush brush) {
+    if (!render->batch_active) return -1;
+    render->brush_da[render->brush_offset++] = brush;
+    return render->brush_offset - 1;
+}
+
+vl_result_t vl_graphics_render_universal_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush) {
+    if (!render || !brush) return VL_ERROR;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
-    batch_add_vertex(r, rect.x1, rect.y1, fill);
-    batch_add_vertex(r, rect.x2, rect.y1, fill);
-    batch_add_vertex(r, rect.x1, rect.y2, fill);
-    batch_add_vertex(r, rect.x2, rect.y1, fill);
-    batch_add_vertex(r, rect.x2, rect.y2, fill);
-    batch_add_vertex(r, rect.x1, rect.y2, fill);
+    vl_graphics_brush_universal_t *u = (vl_graphics_brush_universal_t*) brush;
+    int brush_index;
+    if (u->brush_index >= 0) {
+        brush_index = u->brush_index;
+    } else {
+        vl_color_t brush_color;
+        vl_graphics_brush_solid_get_color(brush, &brush_color);
+        brush_index = add_brush(r, (Brush) {
+            1, {0}, {brush_color.r, brush_color.g, brush_color.b, brush_color.a}
+        });
+        u->brush_index = brush_index;
+    }
+    batch_add_vertex(r, rect.x1, rect.y1, brush_index);
+    batch_add_vertex(r, rect.x2, rect.y1, brush_index);
+    batch_add_vertex(r, rect.x1, rect.y2, brush_index);
+    batch_add_vertex(r, rect.x2, rect.y1, brush_index);
+    batch_add_vertex(r, rect.x2, rect.y2, brush_index);
+    batch_add_vertex(r, rect.x1, rect.y2, brush_index);
     return VL_SUCCESS;
 }
 
@@ -185,9 +238,8 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->batch_active = false;
     if (r->batch_offset == 0) return VL_SUCCESS;
     ensure_render_context(r);
-    for (int i = 0; i < r->batch_offset; i += 6) {
+    for (int i = 0; i < r->batch_offset; i += 3) {
         vec4 v = {r->batch_vertices[i], r->batch_vertices[i + 1], 0, 1};
-        // printf("%0.2f %0.2f\n", r->batch_vertices[i], r->batch_vertices[i + 1]);
         glm_mat4_mulv(r->proj_mat, v, v);
         r->batch_vertices[i] = v[0];
         r->batch_vertices[i + 1] = v[1];
@@ -195,9 +247,18 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->ctx.BindBuffer(GL_ARRAY_BUFFER, r->batch_vbo);
     r->ctx.BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(float), r->batch_vertices);
 
+    r->ctx.BindBuffer(GL_UNIFORM_BUFFER, r->brush_vbo);
+    r->ctx.BufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(int), &r->brush_offset);
+    r->ctx.BufferSubData(GL_UNIFORM_BUFFER, sizeof(int) + 12, r->brush_offset * sizeof(Brush), r->brush_da);
+
     r->ctx.UseProgram(r->batch_program);
     r->ctx.BindVertexArray(r->batch_vao);
-    r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset / 6);
+    r->ctx.BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo);
+    r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset / 3);
+
+    for (int i = 0; i < VL_DA_LENGTH(r->owned_brushes); i++) {
+        ((vl_graphics_brush_universal_t*) r->owned_brushes[i])->brush_index = -1;
+    }
     return VL_SUCCESS;
 }
 

@@ -22,6 +22,7 @@ struct vl_graphics_brush {
 typedef struct vl_graphics_brush vl_graphics_brush_t;
 
 VL_API vl_graphics_brush_t *vl_graphics_brush_new_solid(struct vl_graphics_render *render, vl_color_t color);
+VL_API vl_result_t vl_graphics_brush_solid_get_color(vl_graphics_brush_t *brush, vl_color_t *color);
 VL_API vl_result_t vl_graphics_brush_free(vl_graphics_brush_t *brush);
 
 #endif // VELVET_GRAPHICS_BRUSH_H

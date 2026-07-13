@@ -13,6 +13,8 @@
 #include <glad/gl.h>
 #include <cglm/mat4.h>
 
+struct Brush;
+
 struct vl_graphics_render_universal {
     vl_graphics_render_t base;
 
@@ -23,6 +25,12 @@ struct vl_graphics_render_universal {
     int batch_offset;
     bool batch_active;
 
+    GLuint brush_vbo;
+    VL_DA(struct Brush) brush_da;
+    int brush_offset;
+
+    VL_DA(vl_graphics_brush_t*) owned_brushes;
+
     mat4 proj_mat;
 };
 
@@ -31,7 +39,7 @@ typedef struct vl_graphics_render_universal vl_graphics_render_universal_t;
 vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *window);
 vl_result_t vl_graphics_render_universal_clear(vl_graphics_render_t *render, vl_color_t fill);
 vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *render);
-vl_result_t vl_graphics_render_universal_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_color_t fill);
+vl_result_t vl_graphics_render_universal_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush);
 vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render);
 vl_result_t vl_graphics_render_universal_free(vl_graphics_render_t *render);
 
