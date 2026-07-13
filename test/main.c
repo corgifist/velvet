@@ -240,7 +240,7 @@ void window_test() {
         return;
     }
 
-    vl_os_window_t *window = vl_os_window_new("velvet");
+    vl_os_window_t *window = vl_os_window_new("velvet", 640, 480);
     if (!window) {
         printf("failed to create vl_os_window\n");
         return;

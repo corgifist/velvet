@@ -23,10 +23,10 @@ vl_result_t vl_os_window_init() {
     return VL_ERROR;
 }
 
-vl_os_window_t *vl_os_window_new(const char *input) {
+vl_os_window_t *vl_os_window_new(const char *input, int w, int h) {
     if (!s_initialized) return NULL;
 #if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return (vl_os_window_t*) vl_os_window_universal_new(input);
+    return (vl_os_window_t*) vl_os_window_universal_new(input, w, h);
 #endif
     printf("no platform for vl_os_window\n");
     return NULL;

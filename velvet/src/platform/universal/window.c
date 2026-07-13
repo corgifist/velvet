@@ -17,22 +17,22 @@ vl_result_t vl_os_window_universal_init() {
     return VL_SUCCESS;
 }
 
-vl_os_window_t *vl_os_window_universal_new(const char *title) {
+vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     vl_os_window_universal_t *win = VL_NEW(vl_os_window_universal_t);
     if (!win) return NULL;
-    win->base.title = title;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-    GLFWwindow *handle = glfwCreateWindow(640, 480, title, NULL, NULL);
+    GLFWwindow *handle = glfwCreateWindow(w, h, title, NULL, NULL);
     if (!handle) {
         goto fail;
     }
     glfwShowWindow(handle);
 
-    // immediatly polling events to prevent half-broken windows from appearing
+    // immediately poll events to prevent half-broken window from appearing
     glfwPollEvents();
+    win->base.title = title;
     win->handle = handle;
 
     return (vl_os_window_t*) win;
