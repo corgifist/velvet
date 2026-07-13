@@ -242,11 +242,11 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
 vl_result_t vl_graphics_render_universal_batch_quad_colored(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
     if (!render) return VL_ERROR;
     int brush_index = get_brush_index(render, brush);
-    batch_add_vertex(render, quad.x1, quad.y1, brush_index, colors.tl);
     batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr);
+    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl);
     batch_add_vertex(render, quad.x3, quad.y3, brush_index, colors.br);
+    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr);
     batch_add_vertex(render, quad.x1, quad.y1, brush_index, colors.tl);
-    batch_add_vertex(render, quad.x3, quad.y3, brush_index, colors.br);
     batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl);
     return VL_SUCCESS;
 }
@@ -254,11 +254,11 @@ vl_result_t vl_graphics_render_universal_batch_quad_colored(vl_graphics_render_t
 vl_result_t vl_graphics_render_universal_batch_rect_colored(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
     if (!render) return VL_ERROR;
     int brush_index = get_brush_index(render, brush);
-    batch_add_vertex(render, rect.x1, rect.y1, brush_index, colors.tl);
     batch_add_vertex(render, rect.x2, rect.y1, brush_index, colors.tr);
-    batch_add_vertex(render, rect.x1, rect.y2, brush_index, colors.br);
-    batch_add_vertex(render, rect.x2, rect.y1, brush_index, colors.tr);
+    batch_add_vertex(render, rect.x1, rect.y2, brush_index, colors.bl);
     batch_add_vertex(render, rect.x2, rect.y2, brush_index, colors.br);
+    batch_add_vertex(render, rect.x2, rect.y1, brush_index, colors.tr);
+    batch_add_vertex(render, rect.x1, rect.y1, brush_index, colors.tl);
     batch_add_vertex(render, rect.x1, rect.y2, brush_index, colors.bl);
     return VL_SUCCESS;
 }

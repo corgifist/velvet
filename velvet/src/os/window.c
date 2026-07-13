@@ -41,12 +41,20 @@ vl_result_t vl_os_window_poll_events() {
     return VL_ERROR;
 }
 
+vl_result_t vl_os_window_update_io(vl_os_window_t *window) {
+    if (!s_initialized) return VL_ERROR;
+#if VL_FEATURE(UNIVERSAL_PLATFORM)
+    return vl_os_window_universal_update_io(window);
+#endif
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_os_window_should_close(vl_os_window_t *window, bool *should_close) {
     if (!s_initialized) return VL_ERROR;
 #if VL_FEATURE(UNIVERSAL_PLATFORM)
     return vl_os_window_universal_should_close(window, should_close);
 #endif
-
+    return VL_SUCCESS;
 }
 
 vl_result_t vl_os_window_free(vl_os_window_t *window) {

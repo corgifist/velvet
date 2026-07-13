@@ -267,6 +267,7 @@ void window_test() {
     bool close;
     while (!vl_os_window_should_close(window, &close) && !close) {
         vl_os_window_poll_events();
+        vl_os_window_update_io(window);
 
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_BLACK);
@@ -276,13 +277,35 @@ void window_test() {
             // vl_graphics_render_batch_rect(render, VL_RECT_EX(200, 200, 250, 250), blue);
             vl_graphics_render_batch_quad_colored(render, VL_QUAD(
                  quad[0], quad[1], quad[2], quad[3]
-             ), NULL, VL_QUAD_COLORS(
+            ), NULL, VL_QUAD_COLORS(
                 VL_RED, VL_GREEN, VL_BLUE, VL_WHITE
-             ));
+            ));
+            vl_graphics_render_batch_rect_colored(render, VL_RECT(
+                VL_POINT(410, 200),
+                VL_POINT(610, 400)
+            ), NULL, VL_QUAD_COLORS(
+                VL_RED, VL_GREEN, 
+                VL_BLUE, VL_WHITE
+            ));
+            static int moving_quad = -1;
+            if (!window->io.mouse_down[VL_MOUSE_BUTTON_LEFT]) {
+                moving_quad = -1;
+            }
             for (int i = 0; i < sizeof(quad) / sizeof(*quad); i++) {
-                vl_graphics_render_batch_rect(render, VL_RECT(
-                    quad[i], VL_POINT(quad[i].x + 10, quad[i].y + 10)
-                ), white);
+                vl_rect_t rect = VL_RECT(
+                    VL_POINT(quad[i].x - 5, quad[i].y - 5), VL_POINT(quad[i].x + 5, quad[i].y + 5)
+                );
+                vl_graphics_brush_t *brush = white;
+                if (VL_POINT_IN_RECT(window->io.cursor, rect)) {
+                    brush = green;
+                    if (window->io.mouse_down[VL_MOUSE_BUTTON_LEFT] && moving_quad == -1) {
+                        moving_quad = i;
+                    }
+                }
+                vl_graphics_render_batch_rect(render, rect, brush);
+            }
+            if (moving_quad != -1) {
+                quad[moving_quad] = window->io.cursor;
             }
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);

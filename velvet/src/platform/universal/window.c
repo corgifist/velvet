@@ -47,6 +47,25 @@ vl_result_t vl_os_window_universal_poll_events() {
     return VL_SUCCESS;
 }
 
+vl_result_t vl_os_window_universal_update_io(vl_os_window_t *window) {
+    if (!window) return VL_ERROR;
+    vl_os_window_universal_t *win = (vl_os_window_universal_t*) window;
+
+    double dcx, dcy;
+    glfwGetCursorPos(win->handle, &dcx, &dcy);
+    window->io.cursor.x = (int) dcx;
+    window->io.cursor.y = (int) dcy;
+
+    window->io.mouse_down[VL_MOUSE_BUTTON_LEFT] = 
+        (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+    window->io.mouse_down[VL_MOUSE_BUTTON_RIGHT] =
+        (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+     window->io.mouse_down[VL_MOUSE_BUTTON_MIDDLE] =
+        (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
+
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_os_window_universal_should_close(vl_os_window_t *window, bool *should_close) {
     if (!window || !should_close) return VL_ERROR;
     vl_os_window_universal_t *win = (vl_os_window_universal_t*) window;
