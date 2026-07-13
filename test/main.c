@@ -253,23 +253,40 @@ void window_test() {
     printf("graphics vendor: %s\n", render->backend);
 
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(window, render);
+    vl_graphics_brush_t *white = vl_graphics_brush_new_solid(render, VL_COLOR(1, 1, 1, 1));
     vl_graphics_brush_t *green = vl_graphics_brush_new_solid(render, VL_COLOR(0, 1, 0, 1));
     vl_graphics_brush_t *blue = vl_graphics_brush_new_solid(render, VL_COLOR(0, 0, 1, 1));
+
+    static vl_point_t quad[] = {
+        VL_POINT(0, 0),
+        VL_POINT(300, 200),
+        VL_POINT(400, 300),
+        VL_POINT(200, 400)
+    };
 
     bool close;
     while (!vl_os_window_should_close(window, &close) && !close) {
         vl_os_window_poll_events();
 
         vl_graphics_presentation_begin(present);
-        vl_graphics_render_clear(render, VL_COLOR(1, 0, 0, 1));
+        vl_graphics_render_clear(render, VL_BLACK);
         vl_graphics_render_batch_begin(render);
-            vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 640, 100), green);
-            vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 480, 400, 400), green);
-            vl_graphics_render_batch_rect(render, VL_RECT_EX(200, 200, 250, 250), blue);
+            // vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 640, 100), green);
+            // vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 480, 400, 400), green);
+            // vl_graphics_render_batch_rect(render, VL_RECT_EX(200, 200, 250, 250), blue);
+            vl_graphics_render_batch_quad_colored(render, VL_QUAD(
+                 quad[0], quad[1], quad[2], quad[3]
+             ), NULL, VL_QUAD_COLORS(
+                VL_RED, VL_GREEN, VL_BLUE, VL_WHITE
+             ));
+            for (int i = 0; i < sizeof(quad) / sizeof(*quad); i++) {
+                vl_graphics_render_batch_rect(render, VL_RECT(
+                    quad[i], VL_POINT(quad[i].x + 10, quad[i].y + 10)
+                ), white);
+            }
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
-    printf("close: %i\n", close);
 
     vl_graphics_brush_free(blue);
     vl_graphics_brush_free(green);

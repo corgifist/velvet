@@ -5,6 +5,7 @@
 #ifndef VELVET_PLATFORM_UNIVERSAL_RENDER_H
 #define VELVET_PLATFORM_UNIVERSAL_RENDER_H
 
+#include "graphics/color.h"
 #include "velvet/support/da.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/os/window.h"
@@ -39,7 +40,8 @@ typedef struct vl_graphics_render_universal vl_graphics_render_universal_t;
 vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *window);
 vl_result_t vl_graphics_render_universal_clear(vl_graphics_render_t *render, vl_color_t fill);
 vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *render);
-vl_result_t vl_graphics_render_universal_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush);
+vl_result_t vl_graphics_render_universal_batch_quad_colored(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors);
+vl_result_t vl_graphics_render_universal_batch_rect_colored(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors);
 vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render);
 vl_result_t vl_graphics_render_universal_free(vl_graphics_render_t *render);
 

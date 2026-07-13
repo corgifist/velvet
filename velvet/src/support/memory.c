@@ -25,12 +25,12 @@ void *vl_malloc_(size_t size, vl_source_location_t loc) {
             .size = size,
             .location = loc
         };
+        s_enable_logging = false;
         if (!s_allocations) {
-            s_enable_logging = false;
             s_allocations = VL_DA_INIT(vl_memory_allocation_t);
-            s_enable_logging = true;
         }
         VL_DA_APPEND(s_allocations, allocation);
+        s_enable_logging = true;
     }
     return mem;
 }
@@ -63,12 +63,14 @@ void vl_free_(void *mem, vl_source_location_t loc) {
             s_enable_logging = true;
         }
         s_allocations_count--;
+        s_enable_logging = false;
         for (int i = 0; i < VL_DA_LENGTH(s_allocations); i++) {
             if (s_allocations[i].ptr == mem) {
                 VL_DA_DELETE(s_allocations, i);
                 break;
             }
         }
+        s_enable_logging = true;
     }
     free(mem);
 }

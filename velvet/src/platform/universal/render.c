@@ -1,5 +1,6 @@
 #include "platform/universal/render.h"
 #include "graphics/brush.h"
+#include "graphics/color.h"
 #include "graphics/render.h"
 #include "platform/universal/window.h"
 #include "platform/universal/brush.h"
@@ -36,12 +37,15 @@ static const char *s_batch_vertex_shader =
 VL_STRINGIFY(
 layout(location = 0) in vec2 aPos;
 layout(location = 1) in int aBrushIndex;
+layout(location = 2) in vec4 aColor;
 
 flat out int vBrushIndex;
+out vec4 vColor;
 
 void main() {
     gl_Position = vec4(aPos, 0.0, 1.0);
     vBrushIndex = aBrushIndex;
+    vColor = aColor;
 }
 );
 
@@ -60,6 +64,7 @@ VL_STRINGIFY(
 out vec4 FragColor;
 
 flat in int vBrushIndex;
+in vec4 vColor;
 
 struct Brush {
     int type;
@@ -72,9 +77,9 @@ layout(std140) uniform Brushes {
 };
 
 void main() {
-    vec4 color = vec4(1.0);
-    if (vBrushIndex < brush_count) {
-        color = brushes[vBrushIndex].color;
+    vec4 color = vColor;
+    if (vBrushIndex >= 0 && vBrushIndex < brush_count) {
+        color *= brushes[vBrushIndex].color;
     }
     FragColor = color;
 }
@@ -126,7 +131,7 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
 
     render->ctx.GenBuffers(1, &render->batch_vbo);
     render->ctx.BindBuffer(GL_ARRAY_BUFFER, render->batch_vbo);
-    render->ctx.BufferData(GL_ARRAY_BUFFER, BATCH_MAX * (2 * sizeof(float) + sizeof(int)), NULL, GL_DYNAMIC_DRAW);
+    render->ctx.BufferData(GL_ARRAY_BUFFER, BATCH_MAX * (6 * sizeof(float) + sizeof(int)), NULL, GL_DYNAMIC_DRAW);
 
     render->batch_offset = 0;
     render->batch_vertices = VL_DA_INIT_WITH_CAPACITY(float, BATCH_MAX * 6);
@@ -142,10 +147,12 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
 
     render->ctx.GenVertexArrays(1, &render->batch_vao);
     render->ctx.BindVertexArray(render->batch_vao);
-    render->ctx.VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float) + sizeof(int), NULL);
+    render->ctx.VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float) + sizeof(int), NULL);
     render->ctx.EnableVertexAttribArray(0);
-    render->ctx.VertexAttribIPointer(1, sizeof(int), GL_INT, 2 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float)));
+    render->ctx.VertexAttribIPointer(1, sizeof(int), GL_INT, 6 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float)));
     render->ctx.EnableVertexAttribArray(1);
+    render->ctx.VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float) + sizeof(int)));
+    render->ctx.EnableVertexAttribArray(2);
 
     GLint vertex_shader, fragment_shader;
     vertex_shader = compile_shader(&render->ctx, GL_VERTEX_SHADER, s_batch_vertex_shader);
@@ -194,12 +201,18 @@ vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *rende
     return VL_SUCCESS;
 }
 
-static void batch_add_vertex(vl_graphics_render_universal_t *render, float x, float y, int brush_index) {
-    if (!render->batch_active) return;
-    render->batch_vertices[render->batch_offset++] = x;
-    render->batch_vertices[render->batch_offset++] = y;
-    // render->batch_vertices[render->batch_offset++] = brush_index;
-    memcpy(render->batch_vertices + (render->batch_offset++), &brush_index, sizeof(brush_index));
+static void batch_add_vertex(vl_graphics_render_t *render, float x, float y, int brush_index, vl_color_t color) {
+    vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
+    if (!r) return;
+    if (!r->batch_active) return;
+    r->batch_vertices[r->batch_offset++] = x;
+    r->batch_vertices[r->batch_offset++] = y;
+    // a hacky way of adding the brush index to the batch array but it works
+    memcpy(r->batch_vertices + (r->batch_offset++), &brush_index, sizeof(brush_index));
+    r->batch_vertices[r->batch_offset++] = color.r;
+    r->batch_vertices[r->batch_offset++] = color.g;
+    r->batch_vertices[r->batch_offset++] = color.b;
+    r->batch_vertices[r->batch_offset++] = color.a;
 }
 
 static int add_brush(vl_graphics_render_universal_t *render, Brush brush) {
@@ -208,8 +221,8 @@ static int add_brush(vl_graphics_render_universal_t *render, Brush brush) {
     return render->brush_offset - 1;
 }
 
-vl_result_t vl_graphics_render_universal_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush) {
-    if (!render || !brush) return VL_ERROR;
+static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *brush) {
+    if (!brush) return -1;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     vl_graphics_brush_universal_t *u = (vl_graphics_brush_universal_t*) brush;
     int brush_index;
@@ -223,12 +236,30 @@ vl_result_t vl_graphics_render_universal_batch_rect(vl_graphics_render_t *render
         });
         u->brush_index = brush_index;
     }
-    batch_add_vertex(r, rect.x1, rect.y1, brush_index);
-    batch_add_vertex(r, rect.x2, rect.y1, brush_index);
-    batch_add_vertex(r, rect.x1, rect.y2, brush_index);
-    batch_add_vertex(r, rect.x2, rect.y1, brush_index);
-    batch_add_vertex(r, rect.x2, rect.y2, brush_index);
-    batch_add_vertex(r, rect.x1, rect.y2, brush_index);
+    return brush_index;
+}
+
+vl_result_t vl_graphics_render_universal_batch_quad_colored(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
+    if (!render) return VL_ERROR;
+    int brush_index = get_brush_index(render, brush);
+    batch_add_vertex(render, quad.x1, quad.y1, brush_index, colors.tl);
+    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr);
+    batch_add_vertex(render, quad.x3, quad.y3, brush_index, colors.br);
+    batch_add_vertex(render, quad.x1, quad.y1, brush_index, colors.tl);
+    batch_add_vertex(render, quad.x3, quad.y3, brush_index, colors.br);
+    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl);
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_graphics_render_universal_batch_rect_colored(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
+    if (!render) return VL_ERROR;
+    int brush_index = get_brush_index(render, brush);
+    batch_add_vertex(render, rect.x1, rect.y1, brush_index, colors.tl);
+    batch_add_vertex(render, rect.x2, rect.y1, brush_index, colors.tr);
+    batch_add_vertex(render, rect.x1, rect.y2, brush_index, colors.br);
+    batch_add_vertex(render, rect.x2, rect.y1, brush_index, colors.tr);
+    batch_add_vertex(render, rect.x2, rect.y2, brush_index, colors.br);
+    batch_add_vertex(render, rect.x1, rect.y2, brush_index, colors.bl);
     return VL_SUCCESS;
 }
 
@@ -238,7 +269,7 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->batch_active = false;
     if (r->batch_offset == 0) return VL_SUCCESS;
     ensure_render_context(r);
-    for (int i = 0; i < r->batch_offset; i += 3) {
+    for (int i = 0; i < r->batch_offset; i += 7) {
         vec4 v = {r->batch_vertices[i], r->batch_vertices[i + 1], 0, 1};
         glm_mat4_mulv(r->proj_mat, v, v);
         r->batch_vertices[i] = v[0];
@@ -254,7 +285,7 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->ctx.UseProgram(r->batch_program);
     r->ctx.BindVertexArray(r->batch_vao);
     r->ctx.BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo);
-    r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset / 3);
+    r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset / 7);
 
     for (int i = 0; i < VL_DA_LENGTH(r->owned_brushes); i++) {
         ((vl_graphics_brush_universal_t*) r->owned_brushes[i])->brush_index = -1;
