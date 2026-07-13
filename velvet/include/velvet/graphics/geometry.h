@@ -24,6 +24,9 @@ struct vl_rect {
 
 typedef struct vl_rect vl_rect_t;
 
+#define VL_POINT_IN_RECT(P, R) \
+    (((P).x > (R).x1 && (P).x < (R).x2) && ((P).y > (R).y1 && (P).y < (R).y2))
+
 struct vl_quad {
     union {
         struct {
