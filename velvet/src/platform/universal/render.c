@@ -224,6 +224,10 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "BrushData");
     render->ctx.UniformBlockBinding(render->batch_program, brushes_ubo, 0);
 
+    GLint max_texture_size;
+    render->ctx.GetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+    printf("max texture size: %i\n", max_texture_size);
+
     VL_DA_APPEND(win->owned_renders, render);
     return (vl_graphics_render_t*) render;
 
@@ -377,6 +381,11 @@ vl_result_t vl_graphics_render_universal_resize(vl_graphics_render_t *render, in
 
 vl_result_t vl_graphics_render_universal_free(vl_graphics_render_t *render) {
     if (!render) return VL_ERROR;
+    vl_graphics_render_universal_t *u = (vl_graphics_render_universal_t*) render;
+    VL_DA_FREE(u->batch_vertices);
+    VL_DA_FREE(u->brush_da);
+    VL_DA_FREE(u->stops_da);
+    VL_DA_FREE(u->owned_brushes);
     vl_free(render);
     return VL_SUCCESS;
 }

@@ -234,7 +234,7 @@ void memory_test() {
 #include "velvet/os/sleep.h"
 #include "velvet/support/feature.h"
 
-void graphics_resize(vl_os_window_t *window, int w, int h) {
+void window_resize (vl_os_window_t *window, int w, int h) {
     for (int i = 0; i < VL_DA_LENGTH(window->owned_renders); i++) {
         printf("%i %i\n", w, h);
         vl_graphics_render_resize(window->owned_renders[i], w, h);
@@ -253,7 +253,7 @@ void window_test() {
         printf("failed to create vl_os_window\n");
         return;
     }
-    window->callback_resize = graphics_resize;
+    window->callback_resize = window_resize;
     vl_graphics_render_t *render = vl_graphics_render_new(window);
     if (!render) {
         printf("failed to create vl_graphics_render_t\n");
@@ -337,9 +337,12 @@ void window_test() {
 
     vl_graphics_brush_free(blue);
     vl_graphics_brush_free(green);
+    vl_graphics_brush_free(white);
+    vl_graphics_brush_free(gradient);
     vl_graphics_presentation_free(present);
     vl_graphics_render_free(render);
     vl_os_window_free(window);
+    vl_memory_print_allocations();
 }
 
 int main(int argc, const char *argv[]) {
