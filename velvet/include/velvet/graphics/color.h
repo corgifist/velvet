@@ -31,4 +31,16 @@ typedef struct vl_quad_colors vl_quad_colors_t;
 #define VL_QUAD_WHITE \
     VL_QUAD_COLORS(VL_WHITE, VL_WHITE, VL_WHITE, VL_WHITE)
 
+struct vl_gradient_stop {
+    float percentage;
+    vl_color_t color;
+};
+
+typedef struct vl_gradient_stop vl_gradient_stop_t;
+
+#define VL_GRADIENT_STOP(P, COLOR) \
+    ((vl_gradient_stop_t) {.percentage = (float) (P), .color = (COLOR)})
+#define VL_GRADIENT_STOP_EX(P, R, G, B, A) \
+    ((vl_gradient_stop_t) {.percentage = (float) (P), .color = VL_COLOR(R, G, B, A)})
+
 #endif // VELVET_GRAPHICS_COLOR_H

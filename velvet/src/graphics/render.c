@@ -57,6 +57,13 @@ vl_result_t vl_graphics_render_batch_rect(vl_graphics_render_t *render, vl_rect_
     return vl_graphics_render_universal_batch_rect_colored(render, rect, brush, VL_QUAD_WHITE);
 }
 
+vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, vl_point_t point, int size, vl_color_t color) {
+    return vl_graphics_render_batch_rect_colored(render, VL_RECT(
+        VL_POINT(point.x - (float) size / 2, point.y - (float) size / 2),
+        VL_POINT(point.x + (float) size / 2, point.y + (float) size / 2)
+    ), NULL, VL_QUAD_COLORS(color, color, color, color));
+}
+
 vl_result_t vl_graphics_render_batch_end(vl_graphics_render_t *render) {
     if (!render) return VL_ERROR;
 #if VL_FEATURE(UNIVERSAL_PLATFORM)

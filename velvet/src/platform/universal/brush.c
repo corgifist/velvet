@@ -22,7 +22,7 @@ vl_graphics_brush_t *vl_graphics_brush_universal_new_solid(vl_graphics_render_t 
     return (vl_graphics_brush_t*) brush;
 }
 
-vl_graphics_brush_t *vl_graphics_brush_universal_new_linear_gradient(vl_graphics_render_t *render, vl_graphics_brush_gradient_stop_t *stops, size_t stops_count) {
+vl_graphics_brush_t *vl_graphics_brush_universal_new_linear_gradient(vl_graphics_render_t *render, vl_gradient_stop_t *stops, size_t stops_count) {
     if (!render) return NULL;
     vl_graphics_brush_linear_gradient_t *brush = vl_malloc(sizeof(int) + sizeof(vl_graphics_brush_linear_gradient_t));
     if (!brush) return NULL;
@@ -30,7 +30,7 @@ vl_graphics_brush_t *vl_graphics_brush_universal_new_linear_gradient(vl_graphics
     brush = (vl_graphics_brush_linear_gradient_t*) (((vl_byte_t*) brush) + sizeof(int));
     brush->base.type = VL_GRAPHICS_RENDER_BRUSH_LINEAR_GRADIENT;
     brush->base.owner = render;
-    brush->stops = VL_DA_INIT_WITH_CAPACITY(vl_graphics_brush_gradient_stop_t, stops_count);
+    brush->stops = VL_DA_INIT_WITH_CAPACITY(vl_gradient_stop_t, stops_count);
     for (size_t i = 0; i < stops_count; i++) {
         VL_DA_APPEND(brush->stops, stops[i]);
     }

@@ -266,7 +266,7 @@ void window_test() {
     vl_graphics_brush_t *green = vl_graphics_brush_new_solid(render, VL_COLOR(0, 1, 0, 1));
     vl_graphics_brush_t *blue = vl_graphics_brush_new_solid(render, VL_COLOR(0, 0, 1, 1));
 
-    vl_graphics_brush_gradient_stop_t stops[] = {
+    vl_gradient_stop_t stops[] = {
         VL_GRADIENT_STOP(0.2, VL_RED),
         VL_GRADIENT_STOP(0.5, VL_GREEN),
         VL_GRADIENT_STOP(0.8, VL_BLUE)
@@ -327,6 +327,7 @@ void window_test() {
             if (moving_quad != -1) {
                 quad[moving_quad] = window->io.cursor;
             }
+            vl_graphics_render_batch_point(render, VL_POINT(500, 100), sinf(angle) * 6, VL_RED);
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
         angle += 0.01;
