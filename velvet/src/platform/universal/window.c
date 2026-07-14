@@ -24,6 +24,7 @@ typedef struct {
     GLFWwindow *handle;
 } vl_window_handle_pair_t;
 
+static VL_DA(vl_os_window_t*) s_windows = NULL;
 static VL_DA(vl_window_handle_pair_t) s_pairs = NULL;
 
 static void callback_window_resize(GLFWwindow *window, int w, int h) {
@@ -41,6 +42,7 @@ vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     if (!win) return NULL;
     if (!s_pairs) {
         s_pairs = VL_DA_INIT(vl_window_handle_pair_t);
+        s_windows = VL_DA_INIT(vl_os_window_t*);
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -63,6 +65,7 @@ vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     *VL_DA_PUSH(s_pairs, vl_window_handle_pair_t) = (vl_window_handle_pair_t) {
         (vl_os_window_t*) win, handle
     };
+    *VL_DA_PUSH(s_windows, vl_os_window_t*) = (vl_os_window_t*) win;
 
     glfwSetWindowSizeCallback(handle, callback_window_resize);
 
@@ -73,13 +76,8 @@ vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     return NULL;
 }
 
-vl_result_t vl_os_window_universal_poll_events() {
-    glfwPollEvents();
-    return VL_SUCCESS;
-}
-
-vl_result_t vl_os_window_universal_update_io(vl_os_window_t *window) {
-    if (!window) return VL_ERROR;
+static void update_window_io(vl_os_window_t *window) {
+    if (!window) return;
     vl_os_window_universal_t *win = (vl_os_window_universal_t*) window;
 
     double dcx, dcy;
@@ -93,7 +91,16 @@ vl_result_t vl_os_window_universal_update_io(vl_os_window_t *window) {
         (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
      window->io.mouse_down[VL_MOUSE_BUTTON_MIDDLE] =
         (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
+}
 
+vl_result_t vl_os_window_universal_poll_events() {
+    if (!s_windows) return VL_ERROR;
+    glfwPollEvents();
+    for (int i = 0; i < VL_DA_LENGTH(s_windows); i++) {
+        if (s_windows[i]) {
+            update_window_io(s_windows[i]);
+        }
+    }
     return VL_SUCCESS;
 }
 
@@ -108,6 +115,11 @@ vl_result_t vl_os_window_universal_free(vl_os_window_t *window) {
     if (!window) return VL_ERROR;
     vl_os_window_universal_t *win = (vl_os_window_universal_t*) window;
     glfwDestroyWindow(win->handle);
+    for (int i = 0; i < VL_DA_LENGTH(s_windows); i++) {
+        if (s_windows[i] == window) {
+            s_windows[i] = NULL;
+        }
+    }
     VL_DA_FREE(win->base.owned_renders);
     vl_free(window);
     return VL_SUCCESS;

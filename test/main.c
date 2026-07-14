@@ -284,7 +284,6 @@ void window_test() {
     float angle = 0;
     while (!vl_os_window_should_close(window, &close) && !close) {
         vl_os_window_poll_events();
-        vl_os_window_update_io(window);
 
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_BLACK);
