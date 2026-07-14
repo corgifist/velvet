@@ -267,13 +267,13 @@ void window_test() {
 
     VL_DA(vl_graphics_brush_gradient_stop_t) stops = VL_DA_INIT(vl_graphics_brush_gradient_stop_t);
     *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
-        0, VL_RED
+        0.3, VL_RED
     };
     *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
         0.5, VL_GREEN
     };
     *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
-        1, VL_BLUE
+        0.7, VL_BLUE
     };
     vl_graphics_brush_t *gradient = vl_graphics_brush_new_linear_gradient(render, stops);
 

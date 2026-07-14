@@ -102,10 +102,16 @@ void main() {
             int first_stop = brushes[vBrushIndex].brush_data.y;
             int stops_count = brushes[vBrushIndex].brush_data.z;
             vec4 gradient_color = stops[first_stop].color;
-            for (int i = 0; i < stops_count - 1; i++) {
-                if (vST.x > stops[i].percentage && vST.x < stops[i + 1].percentage) {
-                    gradient_color = mix(stops[i].color, stops[i + 1].color, (vST.x - stops[i].percentage) / (stops[i + 1].percentage - stops[i].percentage));
-                    break;
+            if (vST.x < stops[first_stop].percentage) {
+                gradient_color = stops[first_stop].color;
+            } else if (vST.x > stops[first_stop + stops_count - 1].percentage) {
+                gradient_color = stops[first_stop + stops_count - 1].color;
+            } else {
+                for (int i = 0; i < stops_count - 1; i++) {
+                    if (vST.x > stops[i].percentage && vST.x < stops[i + 1].percentage) {
+                        gradient_color = mix(stops[i].color, stops[i + 1].color, (vST.x - stops[i].percentage) / (stops[i + 1].percentage - stops[i].percentage));
+                        break;
+                    }
                 }
             }
             color *= gradient_color;
