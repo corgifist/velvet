@@ -101,15 +101,22 @@ void main() {
         } else if (brushes[vBrushIndex].brush_data.x == BRUSH_LINEAR_GRADIENT) {
             int first_stop = brushes[vBrushIndex].brush_data.y;
             int stops_count = brushes[vBrushIndex].brush_data.z;
+            int direction_mask = brushes[vBrushIndex].brush_data.w;
+            vec2 begin = brushes[vBrushIndex].color.xy;
+            vec2 end = brushes[vBrushIndex].color.zw;
+            vec2 diff = end - begin;
+            float denom = dot(diff, diff);
+            float phase = (denom > 0.0) ? dot(vST - begin, diff) : 0.0;
+            phase = clamp(phase, 0.0, 1.0);
             vec4 gradient_color = stops[first_stop].color;
-            if (vST.x < stops[first_stop].percentage) {
+            if (phase < stops[first_stop].percentage) {
                 gradient_color = stops[first_stop].color;
-            } else if (vST.x > stops[first_stop + stops_count - 1].percentage) {
+            } else if (phase > stops[first_stop + stops_count - 1].percentage) {
                 gradient_color = stops[first_stop + stops_count - 1].color;
             } else {
                 for (int i = 0; i < stops_count - 1; i++) {
-                    if (vST.x > stops[i].percentage && vST.x < stops[i + 1].percentage) {
-                        gradient_color = mix(stops[i].color, stops[i + 1].color, (vST.x - stops[i].percentage) / (stops[i + 1].percentage - stops[i].percentage));
+                    if (phase > stops[i].percentage && phase < stops[i + 1].percentage) {
+                        gradient_color = mix(stops[i].color, stops[i + 1].color, (phase - stops[i].percentage) / (stops[i + 1].percentage - stops[i].percentage));
                         break;
                     }
                 }
@@ -267,12 +274,15 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
     if (*saved_brush_index >= 0) {
         brush_index = *saved_brush_index;
     } else {
-        if (brush->type == VL_GRAPHICS_RENDER_BRUSH_SOLID) {
+        switch (brush->type) {
+        case VL_GRAPHICS_RENDER_BRUSH_SOLID: {
             vl_color_t brush_color = ((vl_graphics_brush_solid_t*) brush)->color;
             brush_index = add_brush(r, (Brush) {
                 {1, 0, 0, 0}, {brush_color.r, brush_color.g, brush_color.b, brush_color.a}
             });
-        } else if (brush->type == VL_GRAPHICS_RENDER_BRUSH_LINEAR_GRADIENT) {
+            break;
+        }
+        case VL_GRAPHICS_RENDER_BRUSH_LINEAR_GRADIENT: {
             vl_graphics_brush_linear_gradient_t *l = (vl_graphics_brush_linear_gradient_t*) brush;
             int gradient_begin_index = r->stops_offset;
             for (int i = 0; i < VL_DA_LENGTH(l->stops); i++) {
@@ -285,8 +295,11 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
                 r->stops_offset++;
             }
             brush_index = add_brush(r, (Brush) {
-                {2, gradient_begin_index, VL_DA_LENGTH(l->stops), 0}, {0}
+                {2, gradient_begin_index, VL_DA_LENGTH(l->stops), 0},
+                {l->start.x, l->start.y, l->end.x, l->end.y}
             });
+            break;
+        }
         }
     }
     if (brush_index >= 0) {

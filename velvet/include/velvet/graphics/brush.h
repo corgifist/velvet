@@ -5,6 +5,7 @@
 #include "velvet/support/da.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
+#include "velvet/graphics/geometry.h"
 #include "velvet/graphics/color.h"
 
 enum vl_graphics_brush_type {
@@ -37,15 +38,23 @@ struct vl_graphics_brush_gradient_stop {
 
 typedef struct vl_graphics_brush_gradient_stop vl_graphics_brush_gradient_stop_t;
 
+#define VL_GRADIENT_STOP(P, COLOR) \
+    ((vl_graphics_brush_gradient_stop_t) {.percentage = (float) (P), .color = (COLOR)})
+#define VL_GRADIENT_STOP_EX(P, R, G, B, A) \
+    ((vl_graphics_brush_gradient_stop_t) {.percentage = (float) (P), .color = VL_COLOR(R, G, B, A)})
+
 struct vl_graphics_brush_linear_gradient {
     vl_graphics_brush_t base;
     VL_DA(vl_graphics_brush_gradient_stop_t) stops;
+
+    // start and end points make up the gradient axis
+    vl_point_t start, end; // [0..1]
 };
 
 typedef struct vl_graphics_brush_linear_gradient vl_graphics_brush_linear_gradient_t;
 
 VL_API vl_graphics_brush_t *vl_graphics_brush_new_solid(struct vl_graphics_render *render, vl_color_t color);
-VL_API vl_graphics_brush_t *vl_graphics_brush_new_linear_gradient(struct vl_graphics_render *render, VL_DA(vl_graphics_brush_gradient_stop_t) stops);
+VL_API vl_graphics_brush_t *vl_graphics_brush_new_linear_gradient(struct vl_graphics_render *render, vl_graphics_brush_gradient_stop_t *stops, size_t stops_count);
 VL_API vl_result_t vl_graphics_brush_free(vl_graphics_brush_t *brush);
 
 #endif // VELVET_GRAPHICS_BRUSH_H

@@ -1,3 +1,4 @@
+#include <math.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -265,17 +266,12 @@ void window_test() {
     vl_graphics_brush_t *green = vl_graphics_brush_new_solid(render, VL_COLOR(0, 1, 0, 1));
     vl_graphics_brush_t *blue = vl_graphics_brush_new_solid(render, VL_COLOR(0, 0, 1, 1));
 
-    VL_DA(vl_graphics_brush_gradient_stop_t) stops = VL_DA_INIT(vl_graphics_brush_gradient_stop_t);
-    *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
-        0.3, VL_RED
+    vl_graphics_brush_gradient_stop_t stops[] = {
+        VL_GRADIENT_STOP(0.2, VL_RED),
+        VL_GRADIENT_STOP(0.5, VL_GREEN),
+        VL_GRADIENT_STOP(0.8, VL_BLUE)
     };
-    *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
-        0.5, VL_GREEN
-    };
-    *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
-        0.7, VL_BLUE
-    };
-    vl_graphics_brush_t *gradient = vl_graphics_brush_new_linear_gradient(render, stops);
+    vl_graphics_brush_t *gradient = vl_graphics_brush_new_linear_gradient(render, stops, sizeof(stops) / sizeof(*stops));
 
     static vl_point_t quad[] = {
         VL_POINT(0, 0),
@@ -285,6 +281,7 @@ void window_test() {
     };
 
     bool close;
+    float angle = 0;
     while (!vl_os_window_should_close(window, &close) && !close) {
         vl_os_window_poll_events();
         vl_os_window_update_io(window);
@@ -325,13 +322,17 @@ void window_test() {
                         moving_quad = i;
                     }
                 }
-                // vl_graphics_render_batch_rect(render, rect, brush);
+                vl_graphics_render_batch_rect(render, rect, brush);
             }
             if (moving_quad != -1) {
                 quad[moving_quad] = window->io.cursor;
             }
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
+        angle += 0.01;
+        vl_graphics_brush_linear_gradient_t *l = (vl_graphics_brush_linear_gradient_t*) gradient;
+        l->start = VL_POINT(cosf(angle) / 2, sinf(angle) / 2);
+        l->end = VL_POINT_SUB(VL_POINT(1, 1), l->start);
     }
 
     vl_graphics_brush_free(blue);
