@@ -35,8 +35,7 @@ typedef struct vl_da_header vl_da_header_t;
     simply expands to TYPE*
     used strictly for pointing that some pointer is a dynamic array
 */
-#define VELVET_DA(TYPE) TYPE*
-#define VL_DA VELVET_DA
+#define VL_DA(TYPE) TYPE*
 
 // dynamic array of chars (simply char*)
 #define VL_DA_STRING VL_DA(char)

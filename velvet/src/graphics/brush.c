@@ -1,5 +1,6 @@
 #include "graphics/brush.h"
 
+#include "graphics/render.h"
 #include "platform/universal/brush.h"
 #include "support/feature.h"
 #include "support/memory.h"
@@ -13,6 +14,13 @@ vl_graphics_brush_t *vl_graphics_brush_new_solid(vl_graphics_render_t *render, v
     return NULL;
 }
 
+vl_graphics_brush_t *vl_graphics_brush_new_linear_gradient(vl_graphics_render_t *render, VL_DA(vl_graphics_brush_gradient_stop_t) stops) {
+    if (!render || !stops) return NULL;
+#if VL_FEATURE(UNIVERSAL_PLATFORM)
+    return vl_graphics_brush_universal_new_linear_gradient(render, stops);
+#endif
+    return NULL;
+}
 
 vl_result_t vl_graphics_brush_free(vl_graphics_brush_t *brush) {
     if (!brush) return VL_ERROR;

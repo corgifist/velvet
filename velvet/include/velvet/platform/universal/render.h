@@ -15,6 +15,7 @@
 #include <cglm/mat4.h>
 
 struct Brush;
+struct GradientStop;
 
 typedef VL_PACK(struct {
     float x, y;
@@ -25,6 +26,7 @@ typedef VL_PACK(struct {
             float r, g, b, a;
         };
     };
+    float s, t;
 }) vl_graphics_vertex_t;
 
 struct vl_graphics_render_universal {
@@ -40,6 +42,9 @@ struct vl_graphics_render_universal {
     GLuint brush_vbo;
     VL_DA(struct Brush) brush_da;
     int brush_offset;
+
+    VL_DA(struct GradientStop) stops_da;
+    int stops_offset;
 
     VL_DA(vl_graphics_brush_t*) owned_brushes;
 

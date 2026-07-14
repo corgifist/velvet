@@ -265,6 +265,18 @@ void window_test() {
     vl_graphics_brush_t *green = vl_graphics_brush_new_solid(render, VL_COLOR(0, 1, 0, 1));
     vl_graphics_brush_t *blue = vl_graphics_brush_new_solid(render, VL_COLOR(0, 0, 1, 1));
 
+    VL_DA(vl_graphics_brush_gradient_stop_t) stops = VL_DA_INIT(vl_graphics_brush_gradient_stop_t);
+    *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
+        0, VL_RED
+    };
+    *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
+        0.5, VL_GREEN
+    };
+    *VL_DA_PUSH(stops, vl_graphics_brush_gradient_stop_t) = (vl_graphics_brush_gradient_stop_t) {
+        1, VL_BLUE
+    };
+    vl_graphics_brush_t *gradient = vl_graphics_brush_new_linear_gradient(render, stops);
+
     static vl_point_t quad[] = {
         VL_POINT(0, 0),
         VL_POINT(300, 200),
@@ -295,6 +307,9 @@ void window_test() {
                 VL_RED, VL_GREEN, 
                 VL_BLUE, VL_WHITE
             ));
+            vl_graphics_render_batch_rect(render, VL_RECT_EX(
+                300, 300, 500, 500
+            ), gradient);
             static int moving_quad = -1;
             if (!window->io.mouse_down[VL_MOUSE_BUTTON_LEFT]) {
                 moving_quad = -1;
@@ -310,7 +325,7 @@ void window_test() {
                         moving_quad = i;
                     }
                 }
-                vl_graphics_render_batch_rect(render, rect, brush);
+                // vl_graphics_render_batch_rect(render, rect, brush);
             }
             if (moving_quad != -1) {
                 quad[moving_quad] = window->io.cursor;
