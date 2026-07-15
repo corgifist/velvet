@@ -345,6 +345,19 @@ void window_test() {
     vl_memory_print_allocations();
 }
 
+void document_tidy_test() {
+    vl_html_document_t *document = vl_html_document_new(VL_STRINGIFY(
+        <body>
+
+        </body>
+    ));
+    if (vl_html_tidy_document(document)) {
+        printf("vl_html_tidy_document error");
+        return;
+    }
+    vl_html_document_print(document);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -355,7 +368,8 @@ int main(int argc, const char *argv[]) {
     // tidy_test();
     // document_test();
     // memory_test();
-    window_test();
+    // window_test();
+    document_tidy_test();
 
     return 0;
 }

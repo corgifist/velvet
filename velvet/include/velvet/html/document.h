@@ -35,7 +35,6 @@ VL_API vl_result_t vl_html_attribute_deinit(vl_html_attribute_t *attribute);
 VL_API vl_result_t vl_html_node_init(vl_html_node_t *node);
 VL_API vl_result_t vl_html_node_print(vl_html_node_t *node);
 VL_API vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent);
-
 VL_API vl_result_t vl_html_node_deinit(vl_html_node_t *node);
 
 VL_API vl_html_document_t *vl_html_document_new(const char *input);

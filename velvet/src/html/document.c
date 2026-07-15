@@ -183,7 +183,7 @@ vl_result_t vl_html_document_init(vl_html_document_t *document, const char *inpu
 
 vl_result_t vl_html_document_print(vl_html_document_t *document) {
     if (!document) return VL_ERROR;
-    if (document->doctype) {
+    if (document->doctype && VL_DA_LENGTH(document->doctype) > 0) {
         printf("<!doctype ");
         for (int i = 0; i < VL_DA_LENGTH(document->doctype); i++) {
             printf("%s", document->doctype[i]);

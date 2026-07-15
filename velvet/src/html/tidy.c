@@ -11,6 +11,18 @@ static vl_html_node_t create_minimal_node(const char *tag) {
     return html_node;
 }
 
+vl_result_t vl_html_tidy_document(vl_html_document_t *document) {
+    if (!document) return VL_ERROR;
+    if (vl_html_tidy_node(&document->root)) return VL_ERROR;
+    if (!document->doctype || (document->doctype && VL_DA_LENGTH(document->doctype) == 0)) {
+        if (!document->doctype) {
+            document->doctype = VL_DA_INIT_WITH_CAPACITY(VL_DA_STRING, 1);
+        }
+        *VL_DA_PUSH(document->doctype, VL_DA_STRING) = VL_DA_INIT_FROM_STRING("html");
+    }
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
     if (!node) return VL_ERROR;
     if (!node->tag && !node->text && node->children) {
