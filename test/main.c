@@ -358,6 +358,18 @@ void document_tidy_test() {
     vl_html_document_print(document);
 }
 
+#include "velvet/support/ht.h"
+
+void ht_test() {
+    VL_HT(int, float) int_map = VL_HT_NEW(int, float);
+    vl_memory_print_allocations();
+    int k = 5;
+    float v = 3.14;
+    VL_HT_PUT(int_map, k, v);
+    printf("%0.2f\n", *VL_HT_GET(int_map, k, float));
+    VL_HT_FREE(int_map);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -369,7 +381,8 @@ int main(int argc, const char *argv[]) {
     // document_test();
     // memory_test();
     // window_test();
-    document_tidy_test();
+    // document_tidy_test();
+    ht_test();
 
     return 0;
 }
