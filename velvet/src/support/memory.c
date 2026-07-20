@@ -2,6 +2,7 @@
 #include "support/da.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <memory.h>
 
 static size_t s_allocations_count = 0;
 static bool s_enable_logging = true;
@@ -18,6 +19,7 @@ void *vl_malloc_(size_t size, vl_source_location_t loc) {
     // printf("allocating %zu bytes in %s at %s:%i\n", size, loc.function, loc.file, loc.line);
     void *mem = malloc(size);
     if (!mem) return NULL;
+    memset(mem, 0, size);
     if (s_enable_logging) {
         s_allocations_count++;
         vl_memory_allocation_t allocation = {
@@ -46,6 +48,9 @@ void *vl_realloc_(void *mem, size_t size, vl_source_location_t loc) {
     if (s_enable_logging) {
         for (int i = 0; i < VL_DA_LENGTH(s_allocations); i++) {
             if (s_allocations[i].ptr == mem) {
+                if (size > s_allocations[i].size) {
+                    memset(VL_PTR_FORWARD(new_mem, s_allocations[i].size), 0, size - s_allocations[i].size);
+                }
                 s_allocations[i].ptr = new_mem;
                 s_allocations[i].size = size;
             }

@@ -361,12 +361,16 @@ void document_tidy_test() {
 #include "velvet/support/ht.h"
 
 void ht_test() {
-    VL_HT(int, float) int_map = VL_HT_NEW(int, float);
+    VL_HT(int, int) int_map = VL_HT_NEW(int, int);
     vl_memory_print_allocations();
-    int k = 5;
-    float v = 3.14;
-    VL_HT_PUT(int_map, k, v);
-    printf("%0.2f\n", *VL_HT_GET(int_map, k, float));
+    for (int i = 0; i < 100; i++) {
+        VL_HT_PUSH(int_map, int, i, int, i * 100);
+    }
+    vl_ht_entry_t it = VL_HT_ENTRY();
+    int index = 0;
+    while (vl_ht_iterate(int_map, &it)) {
+        printf("%i %zu %zu %i %i\n", index++, it.__index, it.hash, *((int*) it.key), *((int*) it.value));
+    }
     VL_HT_FREE(int_map);
 }
 

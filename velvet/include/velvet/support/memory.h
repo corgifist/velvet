@@ -61,6 +61,9 @@ typedef uint8_t vl_byte_t;
 #define VL_PTR_BACKWARD(PTR, OFFSET) \
     ((void*) ((vl_byte_t*) (PTR)) - (OFFSET))
 
+#define VL_PTR_DEREF(PTR, TYPE) \
+    (*((TYPE*) (PTR)))
+
 VL_API void *vl_malloc_(size_t size, vl_source_location_t loc);
 VL_API void *vl_realloc_(void *mem, size_t size, vl_source_location_t loc);
 VL_API void vl_free_(void *mem, vl_source_location_t loc);
