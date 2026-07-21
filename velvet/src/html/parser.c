@@ -6,6 +6,7 @@
 #include "support/result.h"
 #include "support/str.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -38,6 +39,12 @@ static const vl_html_parser_escape_t s_escapes[] = {
     ESCAPE("gt", ">"),
     ESCAPE("quot", "\""),
     ESCAPE("apos", "'"),
+};
+
+static const char *s_short_tags[] = {
+    "meta",
+    "link",
+    "img"
 };
 
 static vl_result_t tokenize(vl_html_parser_t *parser) {
@@ -248,6 +255,13 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     VL_DA_HEADER(node->tag)->count = current->text_length + 1;
     memcpy(node->tag, current->text, current->text_length);
     node->tag[VL_DA_LENGTH(node->tag)] = '\0';
+    bool short_tag = false;
+    for (int i = 0; i < sizeof(s_short_tags) / sizeof(*s_short_tags); i++) {
+        if (strcmp(node->tag, s_short_tags[i]) == 0) {
+            short_tag = true;
+            break;
+        }
+    }
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip tag name and spaces
     // parsing node open
     while (!VL_TOKEN_COMPARE(current, ">")) {
@@ -300,7 +314,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
 
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
     vl_html_node_t tmp_node = {0};
-    while (true) {
+    while (true && !short_tag) {
         if (vl_html_node_init(&tmp_node)) return VL_ERROR;
         vl_result_t parse_result = vl_html_parser_get_ex(parser, &tmp_node);
         // printf("%i\n", parse_result);

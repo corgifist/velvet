@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unicode/umachine.h>
 
+#include "large_test.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/graphics/color.h"
 #include "velvet/graphics/geometry.h"
@@ -382,21 +383,8 @@ void ht_test() {
 }
 
 void large_document_test() {
-    FILE *f = fopen("test/large_test.html", "rb");
-    printf("f: %p\n", f);
-    fseek(f, 0, SEEK_END);
-    size_t len = ftell(f);
-    fseek(f, -len, SEEK_END);
-    char *content = vl_malloc(len + 1);
-    int c;
-    int i = 0;
-    while ((c = fgetc(f)) > 0) {
-        content[i++] = (char) c;
-    }
-    content[len] = '\0';
-    printf("%.*s...\n", 32, content);
     vl_error_pool_t ep = {0};
-    vl_html_document_t *doc = vl_html_document_new_with_ep(content, &ep);
+    vl_html_document_t *doc = vl_html_document_new_with_ep(s_large_test, &ep);
     if (!doc) {
         printf("failed to parse large document\n");
         vl_error_pool_dump(&ep);
@@ -443,7 +431,7 @@ int main(int argc, const char *argv[]) {
     // da_stress_test();
     // icu_test();
     // lexer_test();
-    parser_test();
+    // parser_test();
     // empty_parser_test();
     // tidy_test();
     // document_test();
@@ -451,7 +439,7 @@ int main(int argc, const char *argv[]) {
     // window_test();
     // document_tidy_test();
     // ht_test();
-    // large_document_test();
+    large_document_test();
     // error_pool_test();
     // parser_quote_test();
 
