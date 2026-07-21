@@ -86,10 +86,13 @@ void vl_memory_print_allocations() {
         return;
     } 
     printf("total of %zu memory allocations:\n", VL_DA_LENGTH(s_allocations));
+    size_t allocated = 0;
     for (int i = 0; i < VL_DA_LENGTH(s_allocations); i++) {
         vl_memory_allocation_t *alloc = s_allocations + i;
         printf("%zu bytes in %s at %s:%i\n", alloc->size, alloc->location.function, alloc->location.file, alloc->location.line);
+        allocated += alloc->size;
     }
+    printf("allocated total of %zu bytes (%0.2f kilobytes; %0.2f megabytes)\n", allocated, (float) allocated / 1024.0f, (float) allocated / 1024.0f / 1024.0f);
 }
 
 void vl_memory_set_enable_logging(bool logging) {

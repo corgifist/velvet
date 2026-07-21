@@ -82,10 +82,11 @@ VL_API void *vl_ht_get(void *ht, void *key, size_t key_hash);
 VL_API vl_result_t vl_ht_free(void *ht, vl_free_t free, vl_source_location_t loc);
 
 struct vl_ht_entry {
-    size_t __index; // used internally in vl_ht_iterate
     vl_hash_t hash;
     void *key;
     void *value;
+
+    size_t __index; // used internally in vl_ht_iterate
 };
 
 typedef struct vl_ht_entry vl_ht_entry_t;

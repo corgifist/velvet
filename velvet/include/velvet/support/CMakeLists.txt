@@ -7,5 +7,8 @@ set(Velvet_Headers
     include/velvet/support/result.h
     include/velvet/support/api.h
     include/velvet/support/math.h
+    include/velvet/support/ht.h
+    include/velvet/support/hash.h
+    include/velvet/support/error_pool.h
     PARENT_SCOPE
 )

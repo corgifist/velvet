@@ -1,3 +1,4 @@
+
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
@@ -14,6 +15,7 @@
 #include "velvet/support/da.h"
 
 #include "velvet/html/parser.h"
+#include "velvet/support/error_pool.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/result.h"
 #include "velvet/velvet.h"
@@ -374,6 +376,42 @@ void ht_test() {
     VL_HT_FREE(int_map);
 }
 
+void large_document_test() {
+    FILE *f = fopen("test/large_test.html", "rb");
+    printf("f: %p\n", f);
+    fseek(f, 0, SEEK_END);
+    size_t len = ftell(f);
+    fseek(f, -len, SEEK_END);
+    char *content = vl_malloc(len + 1);
+    int c;
+    int i = 0;
+    while ((c = fgetc(f)) > 0) {
+        content[i++] = (char) c;
+    }
+    content[len] = '\0';
+    printf("%.*s...\n", 32, content);
+    vl_html_document_t *doc = vl_html_document_new(content);
+    if (!doc) {
+        printf("failed to parse large document\n");
+        return;
+    }
+    vl_html_document_print(doc);
+}
+
+void error_pool_test() {
+    vl_error_pool_t ep = VL_ERROR_POOL();
+    vl_error_pool_append(&ep, 1, 1, "Hello, PI World! %0.2f", 3.14f);
+    vl_error_pool_append(&ep, 17, 32, "unexpected symbol '%c'", 'A');
+
+    vl_error_t err = VL_ERROR();
+    while (vl_error_pool_iterate(&ep, &err)) {
+        printf("%zu:%zu: %s\n", err.line, err.pos, err.message);
+    }
+    vl_memory_print_allocations();
+    vl_error_pool_deinit(&ep);
+    vl_memory_print_allocations();
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -386,7 +424,9 @@ int main(int argc, const char *argv[]) {
     // memory_test();
     // window_test();
     // document_tidy_test();
-    ht_test();
+    // ht_test();
+    // large_document_test();
+    error_pool_test();
 
     return 0;
 }
