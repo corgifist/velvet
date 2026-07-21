@@ -5,6 +5,7 @@
 #include "velvet/html/document.h"
 
 #include "velvet/support/api.h"
+#include "velvet/support/error_pool.h"
 
 #define VL_HTML_PARSER_STOP -1
 #define VL_HTML_PARSER_CLOSE_NODE -2
@@ -15,6 +16,8 @@ struct vl_html_parser {
     vl_html_lexer_t lexer;
 
     vl_html_token_t lookahead[VL_HTML_PARSER_LOOKAHEAD];
+
+    vl_error_pool_t *ep;
 };
 
 typedef struct vl_html_parser vl_html_parser_t;

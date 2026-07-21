@@ -38,7 +38,9 @@ typedef struct vl_error_pool vl_error_pool_t;
 #define VL_ERROR_POOL() \
     ((vl_error_pool_t) {0})
 
-#define vl_error_pool_init(...) vl_error_pool_init_(__VA_ARGS__, VL_SOURCE_LOCATION)
+
+#define vl_error_pool_new() vl_error_pool_new_(VL_SOURCE_LOCATION_HERE)
+VL_API vl_error_pool_t *vl_error_pool_new_(vl_source_location_t loc);
 
 /**
  * Initialize the error pool
@@ -48,7 +50,9 @@ typedef struct vl_error_pool vl_error_pool_t;
  *
  * @return @ref vl_result_t code
  */
+#define vl_error_pool_init(...) vl_error_pool_init_(__VA_ARGS__, VL_SOURCE_LOCATION)
 VL_API vl_result_t vl_error_pool_init_(vl_error_pool_t *pool, vl_source_location_t loc);
+
 
 #define vl_error_pool_append(...) vl_error_pool_append_(VL_SOURCE_LOCATION_HERE, __VA_ARGS__)
 
@@ -63,6 +67,8 @@ VL_API vl_result_t vl_error_pool_append_(vl_source_location_t loc, vl_error_pool
 
 VL_API vl_error_t *vl_error_pool_iterate(vl_error_pool_t *pool, vl_error_t *error);
 
+VL_API vl_result_t vl_error_pool_dump(vl_error_pool_t *pool);
+
 /**
  * Deinitialize the error pool and deallocate the pool's memory
  *
@@ -70,5 +76,7 @@ VL_API vl_error_t *vl_error_pool_iterate(vl_error_pool_t *pool, vl_error_t *erro
  * @return @ref vl_result_t code
  */
 VL_API vl_result_t vl_error_pool_deinit(vl_error_pool_t *pool);
+
+VL_API vl_result_t vl_error_pool_free(vl_error_pool_t *pool);
 
 #endif // VELVET_SUPPORT_ERROR_POOL_H

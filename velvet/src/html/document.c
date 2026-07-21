@@ -3,6 +3,7 @@
 
 #include "html/tidy.h"
 #include "support/da.h"
+#include "support/error_pool.h"
 #include "support/memory.h"
 #include "support/result.h"
 
@@ -100,21 +101,27 @@ vl_result_t vl_html_node_deinit(vl_html_node_t *node) {
 }
 
 vl_html_document_t *vl_html_document_new(const char *input) {
+    return vl_html_document_new_with_ep(input, NULL);
+}
+
+vl_html_document_t *vl_html_document_new_with_ep(const char *input, vl_error_pool_t *ep) {
     vl_html_document_t *document = VL_NEW(vl_html_document_t);
-    if (vl_html_document_init(document, input)) {
+    if (vl_html_document_init_with_ep(document, input, ep)) {
         vl_free(document);
         return NULL;
     }
     return document;
 }
 
-vl_result_t vl_html_document_init(vl_html_document_t *document, const char *input) {
+
+vl_result_t vl_html_document_init_with_ep(vl_html_document_t *document, const char *input, vl_error_pool_t *ep) {
     if (!document || !input) return VL_ERROR;
     document->doctype = VL_DA_INIT(VL_DA_STRING);
     vl_html_node_t root_node = {0};
     vl_html_node_t tmp_node = {0};
     if (vl_html_node_init(&tmp_node)) return VL_ERROR;
     vl_html_parser_t parser = {0};
+    parser.ep = ep;
     if (vl_html_parser_init(&parser, input)) {
         goto failure;
     }

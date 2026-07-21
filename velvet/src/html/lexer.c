@@ -1,4 +1,5 @@
 #include "html/lexer.h"
+#include "support/error_pool.h"
 #include "support/memory.h"
 #include "support/result.h"
 
@@ -30,7 +31,11 @@ vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
     return VL_SUCCESS;
 }
 
-static void lexer_advance(vl_html_lexer_t *lexer) {
+static vl_result_t lexer_advance(vl_html_lexer_t *lexer) {
+    if (lexer->raw_pos > lexer->raw_length) {
+        vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, "lexer EOF");
+        return VL_ERROR;
+    }
     do { 
         U8_NEXT(lexer->text, lexer->raw_pos, lexer->raw_length, lexer->c);
         if (lexer->c >= 0) { 
@@ -39,6 +44,7 @@ static void lexer_advance(vl_html_lexer_t *lexer) {
             break;
         }
     } while (lexer->c < 0 && lexer->raw_pos < lexer->raw_length);
+    return VL_SUCCESS;
 }
 
 
@@ -50,13 +56,13 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
     do { \
         token->type = TYPE; \
         token->line = lexer->line; \
-        token->inline_pos = lexer->raw_pos - U8_LENGTH(lexer->c); \
+        token->inline_pos = lexer->inline_pos; \
         token->text = (BEGIN); \
         token->text_length = (END) - (BEGIN); \
     } while (0)
 
 #define ADVANCE() \
-    lexer_advance(lexer)
+    if (lexer_advance(lexer)) return VL_ERROR;
 
     // end of input
     if (lexer->c == -2) {
@@ -91,6 +97,9 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
         ADVANCE(); // skip ' or "
         while ((double_quote && lexer->c != '\"') || (!double_quote && lexer->c != '\'')) {
             if (lexer->c < 0) {
+                vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, 
+                    double_quote ? "unterminated double-quoted string" 
+                        : "unterminated single-quoted string");
                 return VL_ERROR;
             }
             string_end += U8_LENGTH(lexer->c);

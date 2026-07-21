@@ -211,8 +211,13 @@ void document_test() {
             </p>
         </div>
     );
-    vl_html_document_t *document = vl_html_document_new(input); 
-
+    vl_error_pool_t ep = {0};
+    vl_html_document_t *document = vl_html_document_new_with_ep(input, &ep);
+    if (!document) {
+        printf("failed to parse document\n");
+        vl_error_pool_dump(&ep);
+        return;
+    }
     vl_memory_print_allocations();
     vl_html_document_print(document);
     vl_html_document_free(document);
@@ -390,9 +395,11 @@ void large_document_test() {
     }
     content[len] = '\0';
     printf("%.*s...\n", 32, content);
-    vl_html_document_t *doc = vl_html_document_new(content);
+    vl_error_pool_t ep = {0};
+    vl_html_document_t *doc = vl_html_document_new_with_ep(content, &ep);
     if (!doc) {
         printf("failed to parse large document\n");
+        vl_error_pool_dump(&ep);
         return;
     }
     vl_html_document_print(doc);
@@ -412,6 +419,25 @@ void error_pool_test() {
     vl_memory_print_allocations();
 }
 
+void parser_quote_test() {
+    const char *input = VL_STRINGIFY(
+        <body>
+            Alice's friend
+        </body>
+        <footer>
+            Bob's friend
+        </footer>
+    );
+
+    vl_error_pool_t *ep = vl_error_pool_new();
+    vl_html_document_t *doc = vl_html_document_new_with_ep(input, ep);
+    if (!doc) {
+        vl_error_pool_dump(ep);
+        return;
+    }
+    vl_html_document_print(doc);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -426,7 +452,9 @@ int main(int argc, const char *argv[]) {
     // document_tidy_test();
     // ht_test();
     // large_document_test();
-    error_pool_test();
+    // error_pool_test();
+    parser_quote_test();
+
 
     return 0;
 }

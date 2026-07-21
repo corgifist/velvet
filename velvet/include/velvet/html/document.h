@@ -1,6 +1,7 @@
 #ifndef VELVET_HTML_DOCUMENT_H
 #define VELVET_HTML_DOCUMENT_H
 
+#include "velvet/support/error_pool.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/da.h"
 #include "velvet/support/result.h"
@@ -38,7 +39,9 @@ VL_API vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int inde
 VL_API vl_result_t vl_html_node_deinit(vl_html_node_t *node);
 
 VL_API vl_html_document_t *vl_html_document_new(const char *input);
+VL_API vl_html_document_t *vl_html_document_new_with_ep(const char *input, vl_error_pool_t *ep);
 VL_API vl_result_t vl_html_document_init(vl_html_document_t *document, const char *input);
+VL_API vl_result_t vl_html_document_init_with_ep(vl_html_document_t *document, const char *input, vl_error_pool_t *ep);
 VL_API vl_result_t vl_html_document_print(vl_html_document_t *document);
 VL_API vl_result_t vl_html_document_deinit(vl_html_document_t *document);
 VL_API vl_result_t vl_html_document_free(vl_html_document_t *document);

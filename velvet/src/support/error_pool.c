@@ -14,6 +14,14 @@
     #define VL_VA_COPY(D, S) va_copy(D, S)
 #endif
 
+vl_error_pool_t *vl_error_pool_new_(vl_source_location_t loc) {
+    vl_error_pool_t *pool = VL_NEW(vl_error_pool_t);
+    if (vl_error_pool_init_(pool, loc)) {
+        vl_free(pool);
+    }
+    return pool;
+}
+
 vl_result_t vl_error_pool_init_(vl_error_pool_t *pool, vl_source_location_t loc) {
     if (!pool) return VL_ERROR;
     pool->count = pool->__offset = 0;
@@ -42,6 +50,7 @@ static void *vl_error_pool_push(vl_error_pool_t *pool, void *mem, size_t mem_len
 }
 
 vl_result_t vl_error_pool_append_(vl_source_location_t loc, vl_error_pool_t *pool, size_t line, size_t pos, const char *format, ...) {
+    if (!pool) return VL_ERROR;
     if (!pool->buffer) {
         if (vl_error_pool_init_(pool, loc)) return VL_ERROR;
     }
@@ -76,9 +85,25 @@ vl_error_t *vl_error_pool_iterate(vl_error_pool_t *pool, vl_error_t *error) {
     return error;
 }
 
+vl_result_t vl_error_pool_dump(vl_error_pool_t *pool) {
+    if (!pool) return VL_ERROR;
+    vl_error_t error = VL_ERROR();
+    while (vl_error_pool_iterate(pool, &error)) {
+        printf("%zu:%zu: %s\n", error.line, error.pos, error.message);
+    }
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_error_pool_deinit(vl_error_pool_t *pool) {
     if (!pool) return VL_ERROR;
     vl_free(pool->buffer);
     memset(pool, 0, sizeof(*pool));
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_error_pool_free(vl_error_pool_t *pool) {
+    if (!pool) return VL_ERROR;
+    if (vl_error_pool_deinit(pool)) return VL_ERROR;
+    vl_free(pool);
     return VL_SUCCESS;
 }

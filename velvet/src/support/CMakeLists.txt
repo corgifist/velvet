@@ -5,5 +5,6 @@ set(Velvet_Sources
     src/support/ht.c
     src/support/hash.c
     src/support/error_pool.c
+    src/support/str.c
     PARENT_SCOPE
 )

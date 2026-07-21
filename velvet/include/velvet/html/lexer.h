@@ -1,6 +1,7 @@
 #ifndef VELVET_HTML_LEXER_H
 #define VELVET_HTML_LEXER_H
 
+#include "velvet/support/error_pool.h"
 #include "velvet/support/result.h"
 #include "velvet/support/api.h"
 
@@ -13,6 +14,8 @@ struct vl_html_lexer {
 
     size_t raw_pos, pos, inline_pos, line;
     UChar32 c;
+
+    vl_error_pool_t *ep;
 };
 
 typedef struct vl_html_lexer vl_html_lexer_t;
@@ -37,11 +40,12 @@ typedef struct vl_html_token vl_html_token_t;
 
 /**
  * initialize a given vl_html_lexer instance
+ * @remark to be able to retrieve lexing errors set lexer->ep field
  *
- * @param lexer a pointer to the vl_html_lexer instance
- * @param text a utf-8 null-terminated string to be duplicated into lexer
+ * @param lexer a pointer to the vl_html_lexer_
+ * @param text a utf-8 null-terminated string to be copied to lexer->text
  * @see vl_html_lexer
- * @return vl_result code
+ * @return vl_result_t code
  */
 
 VL_API vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text);

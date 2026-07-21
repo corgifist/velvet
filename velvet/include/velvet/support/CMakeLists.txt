@@ -10,5 +10,6 @@ set(Velvet_Headers
     include/velvet/support/ht.h
     include/velvet/support/hash.h
     include/velvet/support/error_pool.h
+    include/velvet/support/str.h
     PARENT_SCOPE
 )

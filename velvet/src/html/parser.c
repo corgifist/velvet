@@ -2,16 +2,22 @@
 #include "html/document.h"
 #include "html/lexer.h"
 #include "support/da.h"
+#include "support/error_pool.h"
 #include "support/result.h"
+#include "support/str.h"
 
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
+#include <unicode/stringoptions.h>
 #include <unicode/urename.h>
 #include <unicode/ustring.h>
+#include <unicode/utypes.h>
+
 
 #define VL_TOKEN_COMPARE_EX(A, A_LENGTH, B) \
-    ((A_LENGTH == sizeof(B) - 1) && (!memcmp(A, B, A_LENGTH)))
+    ((A_LENGTH == sizeof(B) - 1) && (!vl_nstrcicmp(A, B, A_LENGTH)))
 
 #define VL_TOKEN_COMPARE(TOKEN_PTR, B) \
     VL_TOKEN_COMPARE_EX((TOKEN_PTR)->text, (TOKEN_PTR)->text_length, (B))
@@ -35,7 +41,11 @@ static vl_result_t tokenize(vl_html_parser_t *parser) {
     for (int i = 1; i < VL_HTML_PARSER_LOOKAHEAD; i++) {
         parser->lookahead[i - 1] = parser->lookahead[i];
     }
-    return vl_html_lexer_get(&parser->lexer, parser->lookahead + VL_HTML_PARSER_LOOKAHEAD - 1) == VL_ERROR;
+    vl_result_t result = vl_html_lexer_get(&parser->lexer, parser->lookahead + VL_HTML_PARSER_LOOKAHEAD - 1);
+    if (result) {
+        vl_error_pool_append(parser->ep, 0, 0, "vl_html_lexer_get failed");
+    }
+    return result;
 }
 
 static vl_result_t skip_spaces(vl_html_parser_t *parser) {
@@ -72,6 +82,9 @@ static vl_result_t skip_spaces(vl_html_parser_t *parser) {
 vl_result_t vl_html_parser_init(vl_html_parser_t *parser, const char *input) {
     if (!parser || !input) return VL_ERROR;
     vl_html_lexer_t lexer = {0};
+    if (parser->ep) {
+        lexer.ep = parser->ep;
+    }
     if (vl_html_lexer_init(&lexer, input)) return VL_ERROR;
     if (vl_html_parser_init_with_lexer(parser, lexer)) return VL_ERROR;
     return VL_SUCCESS;
@@ -80,6 +93,10 @@ vl_result_t vl_html_parser_init(vl_html_parser_t *parser, const char *input) {
 vl_result_t vl_html_parser_init_with_lexer(vl_html_parser_t *parser, vl_html_lexer_t lexer) {
     if (!parser || !lexer.text) return VL_ERROR;
     parser->lexer = lexer;
+    if (!parser->ep) {
+        // parser can inherit lexer's error pool if parser->ep is NULL
+        parser->ep = lexer.ep;
+    }
     memset(parser->lookahead, 0, sizeof(parser->lookahead));
     for (int i = 0; i < VL_HTML_PARSER_LOOKAHEAD; i++) {
         if (vl_html_lexer_get(&parser->lexer, parser->lookahead + i)) {
@@ -93,11 +110,14 @@ vl_result_t vl_html_parser_init_with_lexer(vl_html_parser_t *parser, vl_html_lex
 static vl_result_t collect_escaped_string(vl_html_parser_t *parser, VL_DA(char)* text, bool include_quotes) {
     if (!parser || !text || !*text) return VL_ERROR;
     vl_html_token_t *current = parser->lookahead;
-    if (current->type != VL_HTML_TOKEN_TYPE_STRING) return VL_ERROR;
+    if (current->type != VL_HTML_TOKEN_TYPE_STRING) {
+        vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected string");
+        return VL_ERROR;
+    }
     VL_DA(char) escape_accumulator = NULL;
     int limit = current->text_length - (!include_quotes);
     for (int i = !include_quotes; i < limit; i++) {
-        if (current->text[i] == '&' && (i + 1) < limit) {
+        if (current->text[i] == '&' && current->text[i + 1] != ' ' && (i + 1) < limit) {
             if (!escape_accumulator) {
                 escape_accumulator = VL_DA_INIT(char);
             }
@@ -105,7 +125,7 @@ static vl_result_t collect_escaped_string(vl_html_parser_t *parser, VL_DA(char)*
             while (current->text[i] != ';') {
                 if (i >= limit) {
                     for (int j = 0; j < VL_DA_LENGTH(escape_accumulator); j++) {
-                        *VL_DA_PUSH(text, char) = escape_accumulator[j];
+                        *VL_DA_PUSH(*text, char) = escape_accumulator[j];
                     }
                     goto end;
                 }
@@ -151,12 +171,16 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         // e.g. </div>
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         if (current->type != VL_HTML_TOKEN_TYPE_WORD) {
+            vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected word while parsing closing node");
             return VL_ERROR;
         }
         close_tag_begin = current->text;
         close_tag_end = current->text + current->text_length;
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
-        if (!VL_TOKEN_COMPARE(current, ">")) return VL_ERROR;
+        if (!VL_TOKEN_COMPARE(current, ">")) {
+            vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected '>' while parsing closing node");
+            return VL_ERROR;
+        }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         return VL_HTML_PARSER_CLOSE_NODE;
     }
@@ -164,10 +188,14 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         // parse doctype node
         // e.g. <!doctype html>
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip !
-        if (!VL_TOKEN_COMPARE(current, "doctype")) return VL_ERROR;
+        if (!VL_TOKEN_COMPARE(current, "doctype")) {
+            vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected 'doctype' while parsing doctype");
+            return VL_ERROR;
+        }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip doctype
         while (!VL_TOKEN_COMPARE(current, ">")) {
             if (current->type != VL_HTML_TOKEN_TYPE_WORD && current->type != VL_HTML_TOKEN_TYPE_STRING) {
+                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected word or string while parsing doctype");
                 return VL_ERROR;
             }
             vl_html_attribute_t attribute = {0};
@@ -184,7 +212,10 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         return VL_HTML_PARSER_DOCTYPE_NODE;
     }
     // printf("%i current: %.*s\n", current->type, current->text_length, current->text);
-    if (current->type != VL_HTML_TOKEN_TYPE_WORD) return VL_ERROR;
+    if (current->type != VL_HTML_TOKEN_TYPE_WORD) {
+        vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected word while parsing node");
+        return VL_ERROR;
+    }
     node->tag = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
     VL_DA_HEADER(node->tag)->count = current->text_length + 1;
     memcpy(node->tag, current->text, current->text_length);
@@ -199,7 +230,10 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             // parse short node
             // e.g. <meta content="..." />
             if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip /
-            if (!VL_TOKEN_COMPARE(current, ">")) return VL_ERROR;
+            if (!VL_TOKEN_COMPARE(current, ">")) {
+                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected '>' while parsing node");
+                return VL_ERROR;
+            }
             if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
             return VL_SUCCESS;
         }
@@ -222,11 +256,15 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         if (current->type != VL_HTML_TOKEN_TYPE_STRING) {
+            vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected string while parsing node attribute value");
             if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
             continue;
         }
         attribute.value = VL_DA_INIT(char);
-        if (collect_escaped_string(parser, &attribute.value, false)) return VL_ERROR;
+        if (collect_escaped_string(parser, &attribute.value, false)) {
+            vl_error_pool_append(parser->ep, current->line, current->inline_pos, "failed to parse node attribute value");
+            return VL_ERROR;
+        }
 
         append_attribute:
         VL_DA_APPEND(node->attributes, attribute);
@@ -249,9 +287,11 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         if (parse_result == VL_HTML_PARSER_CLOSE_NODE) {
             if (vl_html_node_deinit(&tmp_node)) return VL_ERROR;
             if (VL_DA_LENGTH(node->tag) - 1 != close_tag_end - close_tag_begin) {
+                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismatch");
                 return VL_ERROR;
             }
             if (memcmp(node->tag, close_tag_begin, VL_DA_LENGTH(node->tag) - 1) != 0) {
+                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismath");
                 return VL_ERROR;
             }
             return VL_SUCCESS;
@@ -293,6 +333,7 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             escape_fail:
             VL_DA_FREE(entity_accumulator);
             VL_DA_FREE(node->text);
+            vl_error_pool_append(parser->ep, current->line, current->inline_pos, "failed to process html string entity");
             return VL_ERROR;
             
             escape_success:
@@ -370,6 +411,7 @@ vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node
 
 vl_result_t vl_html_parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {
     vl_result_t parse_result = vl_html_parser_get_ex(parser, node);
+    vl_html_token_t *current = parser->lookahead;
     // no more input left
     if (parse_result == VL_HTML_PARSER_STOP) {
         return VL_SUCCESS;
@@ -380,6 +422,7 @@ vl_result_t vl_html_parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {
     }
     // we should not get a closing node here
     if (parse_result == VL_HTML_PARSER_CLOSE_NODE) {
+        vl_error_pool_append(parser->ep, current->line, current->inline_pos, "unexpected close node");
         return VL_ERROR;
     }
     return parse_result;
