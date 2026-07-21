@@ -90,27 +90,6 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
         return VL_SUCCESS;
     }
 
-    if (lexer->c == '\"' || lexer->c == '\'') {
-        bool double_quote = (lexer->c == '"');
-        const char *string_begin = cursor - U8_LENGTH(lexer->c);
-        const char *string_end = cursor;
-        ADVANCE(); // skip ' or "
-        while ((double_quote && lexer->c != '\"') || (!double_quote && lexer->c != '\'')) {
-            if (lexer->c < 0) {
-                vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, 
-                    double_quote ? "unterminated double-quoted string" 
-                        : "unterminated single-quoted string");
-                return VL_ERROR;
-            }
-            string_end += U8_LENGTH(lexer->c);
-            ADVANCE();
-        }
-        ADVANCE(); // skip ' or "
-        string_end += 1; // include closing double quote
-        SET_TOKEN(VL_HTML_TOKEN_TYPE_STRING, string_begin, string_end);
-        return VL_SUCCESS;
-    }
-
     SET_TOKEN(VL_HTML_TOKEN_TYPE_SYMBOL, cursor - U8_LENGTH(lexer->c), cursor);
     ADVANCE();
 

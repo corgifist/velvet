@@ -23,8 +23,7 @@ typedef struct vl_html_lexer vl_html_lexer_t;
 enum vl_html_token_type {
     VL_HTML_TOKEN_TYPE_STOP = 0,
     VL_HTML_TOKEN_TYPE_SYMBOL,
-    VL_HTML_TOKEN_TYPE_WORD,
-    VL_HTML_TOKEN_TYPE_STRING
+    VL_HTML_TOKEN_TYPE_WORD
 };
 
 typedef enum vl_html_token_type vl_html_token_type_t;

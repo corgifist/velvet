@@ -105,7 +105,7 @@ void lexer_test() {
 void parser_test() {
     vl_html_parser_t parser;
     const char *input = VL_STRINGIFY(
-        <div attr="Hello &amp;" attr2='World'>
+        <div attr="Hello &quot; &apos; but not &quots; & quot; & quot ; &amp ;" attr2='World'>
             Text Node 1
             <p>Hello, Velvet! &apos;  5 &gt; 4</p>
             <checkbox selected/>
@@ -443,7 +443,7 @@ int main(int argc, const char *argv[]) {
     // da_stress_test();
     // icu_test();
     // lexer_test();
-    // parser_test();
+    parser_test();
     // empty_parser_test();
     // tidy_test();
     // document_test();
@@ -453,7 +453,7 @@ int main(int argc, const char *argv[]) {
     // ht_test();
     // large_document_test();
     // error_pool_test();
-    parser_quote_test();
+    // parser_quote_test();
 
 
     return 0;
