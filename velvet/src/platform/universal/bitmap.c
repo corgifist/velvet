@@ -1,0 +1,62 @@
+#include "velvet/platform/universal/bitmap.h"
+#include "graphics/bitmap.h"
+#include "platform/context.h"
+#include "velvet/platform/universal/render.h"
+
+GLint get_internal_format(vl_graphics_bitmap_format_t format) {
+    switch (format) {
+    case VL_GRAPHICS_BITMAP_FORMAT_RGBA8:
+        return GL_RGBA;
+    default: {
+        return GL_RGBA;
+    }
+    }
+}
+
+GLint get_format(vl_graphics_bitmap_format_t format) {
+    switch (format) {
+    case VL_GRAPHICS_BITMAP_FORMAT_RGBA8:
+        return GL_RGBA;
+    default: {
+        return GL_RGBA;
+    }
+    }
+}
+
+GLint get_type(vl_graphics_bitmap_format_t format) {
+    switch (format) {
+    case VL_GRAPHICS_BITMAP_FORMAT_RGBA8:
+        return GL_UNSIGNED_BYTE;
+    default: {
+        return GL_UNSIGNED_BYTE;
+    }
+    }
+}
+
+vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *render, 
+        size_t width, size_t height, vl_graphics_bitmap_format_t format, void *data) {
+    if (!render) return NULL;
+    vl_graphics_bitmap_universal_t *bitmap = VL_NEW(vl_graphics_bitmap_universal_t);
+    if (!bitmap) return NULL;
+    vl_graphics_render_universal_t *r = ((vl_graphics_render_universal_t*) render);
+    r->ctx.GenTextures(1, &bitmap->handle);
+    r->ctx.BindTexture(GL_TEXTURE_2D, bitmap->handle);
+    r->ctx.TexImage2D(
+        GL_TEXTURE_BINDING_1D, 0, get_internal_format(format), 
+            width, height, 0, get_format(format), get_type(format), data);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    return (vl_graphics_bitmap_t*) bitmap;
+}
+
+vl_result_t vl_graphics_bitmap_universal_free(vl_graphics_bitmap_t *bitmap) {
+    if (!bitmap || !bitmap->owner || !bitmap->owner->context 
+        || bitmap->owner->context->types.graphics_render != VL_PLATFORM_CONTEXT_UNIVERSAL) return VL_ERROR;
+    vl_graphics_bitmap_universal_t *b = (vl_graphics_bitmap_universal_t*) bitmap;
+    vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) bitmap->owner;
+    r->ctx.DeleteTextures(1, &b->handle);
+    vl_free(b);
+    return VL_SUCCESS;
+}

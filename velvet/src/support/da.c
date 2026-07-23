@@ -79,6 +79,6 @@ void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc) {
 void vl_da_free(VL_DA(void) *da, vl_source_location_t loc) {
     if (!da || !*da) return;
     vl_da_header_t *header = VL_DA_HEADER(*da);
-    vl_afree(header->allocator, *da);
+    vl_afree(header->allocator, header);
     *da = NULL;
 }

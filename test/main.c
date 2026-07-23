@@ -432,6 +432,49 @@ void parser_quote_test() {
     vl_html_document_print(doc);
 }
 
+#include "velvet/support/managed_assert.h"
+
+void bitmap_test() {
+    uint8_t pixels[64 * 64 * 4];
+    for (int y = 0; y < 64; y++) {
+        for (int x = 0; x < 64; x++) {
+            pixels[(y * 64 * 4) + x * 4] = (uint8_t) (((float) x) / 64.0f);
+            pixels[(y * 64 * 4) + x * 4 + 1] = (uint8_t) (((float) x) / 64.0f);
+            pixels[(y * 64 * 4) + x * 4 + 2] = (uint8_t) (((float) x) / 64.0f);
+            pixels[(y * 64 * 4) + x * 4 + 3] = (uint8_t) (((float) x) / 64.0f);
+        }
+    }
+
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_TYPES());
+    VL_ASSERT(ctx);
+
+    vl_os_window_t *win = vl_os_window_new(ctx, "Bitmap test", 640, 480);
+    VL_ASSERT(win);
+
+    vl_graphics_render_t *render = vl_graphics_render_new(win);
+    VL_ASSERT(render);
+
+    vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, render);
+    VL_ASSERT(present);
+
+    bool close;
+    while (!vl_os_window_should_close(win, &close) && !close) {
+        vl_os_window_poll_events(ctx);
+
+        vl_graphics_presentation_begin(present);
+        vl_graphics_render_batch_begin(render);
+            // do something
+        vl_graphics_render_batch_end(render);
+        vl_graphics_presentation_end(present);
+    }
+
+    vl_graphics_presentation_free(present);
+    vl_graphics_render_free(render);
+    vl_os_window_free(win);
+    vl_platform_context_free(ctx);
+    vl_memory_print_allocations();
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -444,11 +487,11 @@ int main(int argc, const char *argv[]) {
     // memory_test();
     // window_test();
     // document_tidy_test();
-    ht_test();
+    // ht_test();
     // large_document_test();
     // error_pool_test();
     // parser_quote_test();
-
+    bitmap_test();
 
     return 0;
 }

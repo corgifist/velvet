@@ -7,6 +7,7 @@
 #include "velvet/support/memory.h"
 #include "velvet/graphics/geometry.h"
 #include "velvet/graphics/color.h"
+#include "velvet/graphics/bitmap.h"
 
 enum vl_platform_context_type {
     VL_PLATFORM_CONTEXT_UNIVERSAL = 0
@@ -65,6 +66,12 @@ typedef struct vl_graphics_brush* (*vl_ctx_graphics_brush_new_solid)(struct vl_g
 typedef struct vl_graphics_brush* (*vl_ctx_graphics_brush_new_linear_gradient)(struct vl_graphics_render *render, vl_gradient_stop_t *stops, size_t stops_count);
 typedef vl_result_t (*vl_ctx_graphics_brush_free)(struct vl_graphics_brush *brush);
 
+// velvet/graphics/bitmap.h
+struct vl_graphics_bitmap;
+typedef struct vl_graphics_bitmap* (*vl_ctx_graphics_bitmap_new)(struct vl_graphics_render *render, 
+    size_t width, size_t height, enum vl_graphics_bitmap_format format, void *data);
+typedef vl_result_t (*vl_ctx_graphics_bitmap_free)(struct vl_graphics_bitmap *bitmap);
+
 struct vl_platform_context {
     vl_platform_context_types_t types;
 
@@ -91,6 +98,9 @@ struct vl_platform_context {
     vl_ctx_graphics_brush_new_solid graphics_brush_new_solid;
     vl_ctx_graphics_brush_new_linear_gradient graphics_brush_new_linear_gradient;
     vl_ctx_graphics_brush_free graphics_brush_free;
+
+    vl_ctx_graphics_bitmap_new graphics_bitmap_new;
+    vl_ctx_graphics_bitmap_free graphics_bitmap_free;
 };
 
 typedef struct vl_platform_context vl_platform_context_t;

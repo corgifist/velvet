@@ -5,5 +5,6 @@ set(Velvet_Headers
     include/velvet/platform/universal/presentation.h
     include/velvet/platform/universal/brush.h
     include/velvet/platform/universal/sleep.h
+    include/velvet/platform/universal/bitmap.h
     PARENT_SCOPE
 )
