@@ -1,6 +1,7 @@
 #include "platform/universal/window.h"
 #include "graphics/render.h"
 #include "os/window.h"
+#include "support/allocator.h"
 #include "support/da.h"
 #include "support/memory.h"
 #include "support/result.h"
@@ -47,8 +48,8 @@ vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     vl_os_window_universal_t *win = VL_NEW(vl_os_window_universal_t);
     if (!win) return NULL;
     if (!s_pairs) {
-        s_pairs = VL_DA_INIT_WITH_ALLOCATOR(vl_window_handle_pair_t, malloc);
-        s_windows = VL_DA_INIT_WITH_ALLOCATOR(vl_os_window_t*, malloc);
+        s_pairs = VL_DA_INIT_WITH_ALLOCATOR(vl_window_handle_pair_t, VL_ALLOCATOR_STDLIB());
+        s_windows = VL_DA_INIT_WITH_ALLOCATOR(vl_os_window_t*, VL_ALLOCATOR_STDLIB());
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);

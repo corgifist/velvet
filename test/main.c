@@ -383,6 +383,7 @@ void ht_test() {
     while (vl_ht_iterate(int_map, &it)) {
         printf("%i %zu %zu %i %i\n", index++, it.__index, it.hash, *((int*) it.key), *((int*) it.value));
     }
+    vl_memory_print_allocations();
     VL_HT_FREE(int_map);
 }
 
@@ -441,9 +442,9 @@ int main(int argc, const char *argv[]) {
     // tidy_test();
     // document_test();
     // memory_test();
-    window_test();
+    // window_test();
     // document_tidy_test();
-    // ht_test();
+    ht_test();
     // large_document_test();
     // error_pool_test();
     // parser_quote_test();

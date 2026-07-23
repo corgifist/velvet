@@ -11,5 +11,6 @@ set(Velvet_Headers
     include/velvet/support/hash.h
     include/velvet/support/error_pool.h
     include/velvet/support/str.h
+    include/velvet/support/allocator.h
     PARENT_SCOPE
 )

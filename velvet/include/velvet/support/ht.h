@@ -9,12 +9,14 @@
 #include "velvet/support/result.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/hash.h"
+#include "velvet/support/allocator.h"
 
 typedef size_t (*vl_ht_hash_func_t)(void* mem, size_t mem_length); 
 
 #define VL_HT_DEFAULT_CAPACITY 8
 
 struct vl_ht_header {
+    vl_allocator_t allocator;
     size_t key_size, value_size;
     size_t count, capacity;
     vl_ht_hash_func_t hash_func;
@@ -29,7 +31,7 @@ typedef struct vl_ht_header vl_ht_header_t;
     VL_HT_NEW_WITH_CAPACITY(KEY, VALUE, VL_HT_DEFAULT_CAPACITY)
 
 #define VL_HT_NEW_WITH_CAPACITY(KEY, VALUE, CAPACITY) \
-    VL_HT_NEW_WITH_CAPACITY_AND_ALLOCATOR(KEY, VALUE, CAPACITY, NULL)
+    VL_HT_NEW_WITH_CAPACITY_AND_ALLOCATOR(KEY, VALUE, CAPACITY, VL_ALLOCATOR_DEFAULT())
 
 #define VL_HT_NEW_WITH_CAPACITY_AND_ALLOCATOR(KEY, VALUE, CAPACITY, ALLOCATOR) \
     VL_HT_NEW_WITH_CAPACITY_AND_ALLOCATOR_AND_HASH_FUNC(KEY, VALUE, CAPACITY, ALLOCATOR, NULL)
@@ -38,29 +40,20 @@ typedef struct vl_ht_header vl_ht_header_t;
     (vl_ht_new(sizeof(VALUE), sizeof(VALUE), (size_t) (CAPACITY), (#KEY), HASH_FUNC, ALLOCATOR, VL_SOURCE_LOCATION_HERE))
 
 #define VL_HT_PUT(HT, KEY, VALUE) \
-    VL_HT_PUT_WITH_ALLOCATOR(HT, KEY, VALUE, NULL)
-
-#define VL_HT_PUT_WITH_ALLOCATOR(HT, KEY, VALUE, REALLOC) \
-    (vl_ht_put(&(HT), &(KEY), &(VALUE), sizeof(KEY), sizeof(VALUE), REALLOC, VL_SOURCE_LOCATION_HERE))
+    (vl_ht_put(&(HT), &(KEY), &(VALUE), sizeof(KEY), sizeof(VALUE), VL_SOURCE_LOCATION_HERE))
 
 #define VL_HT_PUSH(HT, KEY_TYPE, KEY, VALUE_TYPE, VALUE) \
-    VL_HT_PUSH_WITH_ALLOCATOR(HT, KEY_TYPE, KEY, VALUE_TYPE, VALUE, NULL)
-
-#define VL_HT_PUSH_WITH_ALLOCATOR(HT, KEY_TYPE, KEY, VALUE_TYPE, VALUE, REALLOC) \
     do { \
         KEY_TYPE __k = (KEY); \
         VALUE_TYPE __v = (VALUE); \
-        VL_HT_PUT_WITH_ALLOCATOR(HT, __k, __v, REALLOC); \
+        VL_HT_PUT(HT, __k, __v); \
     } while (0)
 
 #define VL_HT_GET(HT, KEY, VALUE_TYPE) \
     ((VALUE_TYPE*) vl_ht_get((HT), &(KEY), sizeof(KEY)))
 
 #define VL_HT_FREE(HT) \
-    VL_HT_FREE_WITH_ALLOCATOR(HT, NULL)
-
-#define VL_HT_FREE_WITH_ALLOCATOR(HT, FREE) \
-    (vl_ht_free((HT), (FREE), VL_SOURCE_LOCATION_HERE))
+    (vl_ht_free((HT), VL_SOURCE_LOCATION_HERE))
 
 #define VL_HT_HEADER(HT) \
     ((vl_ht_header_t*) VL_PTR_BACKWARD(HT, sizeof(vl_ht_header_t)))
@@ -72,14 +65,14 @@ typedef struct vl_ht_header vl_ht_header_t;
     VL_PTR_FORWARD(HT, VL_HT_ENTRY_SIZE(HT) * (INDEX))
 
 VL_API void *vl_ht_new(size_t key_size, size_t value_size, size_t capacity, 
-    const char *key_type, vl_ht_hash_func_t hash_func, vl_malloc_t malloc, vl_source_location_t loc);
+    const char *key_type, vl_ht_hash_func_t hash_func, vl_allocator_t allocator, vl_source_location_t loc);
 
 VL_API void *vl_ht_put(void **ht, void *key, void *value, size_t key_size, size_t value_size, 
-    vl_realloc_t realloc, vl_source_location_t loc);
+                                                                            vl_source_location_t loc);
 
 VL_API void *vl_ht_get(void *ht, void *key, size_t key_hash);
 
-VL_API vl_result_t vl_ht_free(void *ht, vl_free_t free, vl_source_location_t loc);
+VL_API vl_result_t vl_ht_free(void *ht, vl_source_location_t loc);
 
 struct vl_ht_entry {
     vl_hash_t hash;

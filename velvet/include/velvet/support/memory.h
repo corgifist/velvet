@@ -50,9 +50,9 @@ typedef struct vl_source_location vl_source_location_t;
     #define VL_PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
 #endif
 
-typedef void *(vl_malloc_t)(size_t size);
-typedef void *(vl_realloc_t)(void *mem, size_t size);
-typedef void (vl_free_t)(void *mem);
+typedef void *(*vl_malloc_t)(size_t size);
+typedef void *(*vl_realloc_t)(void *mem, size_t size);
+typedef void (*vl_free_t)(void *mem);
 
 typedef uint8_t vl_byte_t;
 

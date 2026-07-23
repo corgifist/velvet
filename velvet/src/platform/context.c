@@ -1,4 +1,5 @@
 #include "velvet/platform/context.h"
+#include "support/allocator.h"
 #include "support/da.h"
 #include "velvet/support/feature.h"
 
@@ -84,7 +85,7 @@ vl_platform_context_t *vl_platform_context_new_(vl_platform_context_types_t type
     if (init_os_sleep(ctx, &types)) goto drop;
     if (init_graphics(ctx, &types)) goto drop;
     if (init_graphics_presentation(ctx, &types)) goto drop;
-    if (!s_contexts) s_contexts = VL_DA_INIT_WITH_ALLOCATOR(vl_platform_context_t*, malloc);
+    if (!s_contexts) s_contexts = VL_DA_INIT_WITH_ALLOCATOR(vl_platform_context_t*, VL_ALLOCATOR_STDLIB());
     VL_DA_APPEND(s_contexts, ctx);
     return ctx;
 

@@ -8,6 +8,7 @@
 #include "velvet/common.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/api.h"
+#include "velvet/support/allocator.h"
 
 /*
     velvet's dynamic array is fairly simple to understand using this graph
@@ -25,6 +26,7 @@
 */
 
 struct vl_da_header {
+    vl_allocator_t allocator;
     size_t count, capacity;
     size_t element_size;
 };
@@ -48,27 +50,26 @@ typedef struct vl_da_header vl_da_header_t;
 */
 #define VL_DA_INIT(TYPE) \
     VL_DA_INIT_WITH_CAPACITY(TYPE, VL_DA_DEFAULT_CAPACITY)
-#define VL_DA_NEW VL_DA_INIT
 
 /*
     initializes a dynamic array of type TYPE with initial capacity of CAPACITY 
     using the default memory allocator
 */
 #define VL_DA_INIT_WITH_CAPACITY(TYPE, CAPACITY) \
-    VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, NULL)
+    VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, VL_ALLOCATOR_DEFAULT())
 
 #define VL_DA_INIT_WITH_ALLOCATOR(TYPE, ALLOCATOR) \
     VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, VL_DA_DEFAULT_CAPACITY, ALLOCATOR)
 
-#define VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, MALLOC) \
-    (vl_da_init(sizeof(TYPE), CAPACITY, VL_SOURCE_LOCATION_HERE, MALLOC))
+#define VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, ALLOCATOR) \
+    (vl_da_init(sizeof(TYPE), CAPACITY, VL_SOURCE_LOCATION_HERE, (ALLOCATOR)))
 
 
 #define VL_DA_INIT_FROM_STRING(STRING) \
-    VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, NULL)
+    VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, VL_ALLOCATOR_DEFAULT())
 
-#define VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, MALLOC) \
-    (vl_da_init_from_string(STRING, VL_SOURCE_LOCATION_HERE, MALLOC))
+#define VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, ALLOCATOR) \
+    (vl_da_init_from_string(STRING, VL_SOURCE_LOCATION_HERE, ALLOCATOR))
 
 /*
     appends VALUE to the dynamic array DA
@@ -81,10 +82,7 @@ typedef struct vl_da_header vl_da_header_t;
     instead, you should use *VL_DA_PUSH(DA, int) = 5
 */
 #define VL_DA_APPEND(DA, VALUE) \
-    VL_DA_APPEND_WITH_ALLOCATOR(DA, VALUE, NULL)
-
-#define VL_DA_APPEND_WITH_ALLOCATOR(DA, VALUE, REALLOC) \
-    (vl_da_append((void**) &(DA), (void*) &(VALUE), sizeof(VALUE), VL_SOURCE_LOCATION_HERE, REALLOC))
+    (vl_da_append((void**) &(DA), (void*) &(VALUE), sizeof(VALUE), VL_SOURCE_LOCATION_HERE))
 
 /*
     appends an empty element to the dynamic array DA
@@ -97,10 +95,7 @@ typedef struct vl_da_header vl_da_header_t;
     instead of int and `123` you can use anything you like
 */
 #define VL_DA_PUSH(DA, TYPE) \
-    VL_DA_PUSH_WITH_ALLOCATOR(DA, TYPE, NULL)
-
-#define VL_DA_PUSH_WITH_ALLOCATOR(DA, TYPE, REALLOC) \
-    (TYPE*) (vl_da_append((VL_DA(void)*) &(DA), NULL, 0, VL_SOURCE_LOCATION_HERE, REALLOC))
+    (TYPE*) (vl_da_append((VL_DA(void)*) &(DA), NULL, 0, VL_SOURCE_LOCATION_HERE))
 
 /*
     deletes element at index INDEX from dynamic array DA
@@ -108,10 +103,7 @@ typedef struct vl_da_header vl_da_header_t;
     to save memory
 */
 #define VL_DA_DELETE(DA, INDEX) \
-    VL_DA_DELETE_WITH_ALLOCATOR(DA, INDEX, NULL)
-
-#define VL_DA_DELETE_WITH_ALLOCATOR(DA, INDEX, REALLOC) \
-    (vl_da_delete((VL_DA(void)*) &(DA), (INDEX), VL_SOURCE_LOCATION_HERE, REALLOC))
+    (vl_da_delete((VL_DA(void)*) &(DA), (INDEX), VL_SOURCE_LOCATION_HERE))
 
 /*
     returns a pointer to the header of the dynamic array
@@ -127,13 +119,10 @@ typedef struct vl_da_header vl_da_header_t;
     dispose the dynamic array using default deallocator
 */
 #define VL_DA_FREE(DA) \
-    VL_DA_FREE_WITH_ALLOCATOR(DA, NULL)
-
-#define VL_DA_FREE_WITH_ALLOCATOR(DA, FREE) \
-    vl_da_free((VL_DA(void)*) &(DA), VL_SOURCE_LOCATION_HERE, FREE)
+    vl_da_free((VL_DA(void)*) &(DA), VL_SOURCE_LOCATION_HERE)
 
 /*
-    VL_API void *vl_da_init(size_t element_size, size_t capacity);
+    VL_API void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc, vl_allocator_t allocator);
 
     NOTICE: using vl_da_init directly is not recommended
             instead, use VL_DA_INIT macro
@@ -141,15 +130,17 @@ typedef struct vl_da_header vl_da_header_t;
     allocates and returns a dynamic array with the given parameters
     returns NULL if allocating memory fails
 */
-VL_API void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc, vl_malloc_t malloc);
+VL_API void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc, vl_allocator_t allocator);
 
 /**
  * initializes a dynamic array and copies the content of const char *string into it
  *
- * @param string source string
+ * @param string a source string
+ * @param loc a location from which vl_da_init_from_string is called
+ * @param allocator a dynamic memory allocator
  * @return pointer to the created dynamic array
  */
-VL_API void *vl_da_init_from_string(const char *string, vl_source_location_t loc, vl_malloc_t malloc);
+VL_API void *vl_da_init_from_string(const char *string, vl_source_location_t loc, vl_allocator_t allocator);
 
 /*
     VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size);  
@@ -166,7 +157,7 @@ VL_API void *vl_da_init_from_string(const char *string, vl_source_location_t loc
              VL_DA(int) reserved_array = array; // at this point array == reserved_array
              *VL_DA_PUSH(array, int) = 5; // at this point it's not guaranteed that array == reserved_array
 */
-VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_source_location_t loc, vl_realloc_t realloc);
+VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_source_location_t loc);
 
 
 /*
@@ -180,7 +171,7 @@ VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_sour
 
     WARNING: shrinking the capacity of da changes the value of *da
 */
-VL_API void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc, vl_realloc_t realloc);
+VL_API void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc);
 
 
 /**
@@ -189,6 +180,6 @@ VL_API void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc
  *
  * @param da pointer to the dynamic array to be deallocated
  */
-VL_API void vl_da_free(VL_DA(void) *da, vl_source_location_t loc, vl_free_t free);
+VL_API void vl_da_free(VL_DA(void) *da, vl_source_location_t loc);
 
 #endif // VELVET_DA_H
