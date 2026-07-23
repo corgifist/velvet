@@ -4,6 +4,7 @@ endif()
 
 set(Velvet_Sources
     ${Velvet_Sources}
+    src/platform/context.c
     PARENT_SCOPE
 )
 

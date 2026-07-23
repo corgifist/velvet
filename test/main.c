@@ -13,6 +13,7 @@
 #include "velvet/graphics/render.h"
 #include "velvet/html/document.h"
 #include "velvet/html/tidy.h"
+#include "velvet/platform/context.h"
 #include "velvet/support/da.h"
 
 #include "velvet/html/parser.h"
@@ -251,12 +252,10 @@ void window_resize (vl_os_window_t *window, int w, int h) {
 
 void window_test() {
     printf("universal platform: %i\n", VL_FEATURE(UNIVERSAL_PLATFORM));
-    if (vl_os_window_init()) {
-        printf("failed to initialize vl_os_window\n");
-        return;
-    }
 
-    vl_os_window_t *window = vl_os_window_new("velvet", 640, 480);
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_TYPES());
+
+    vl_os_window_t *window = vl_os_window_new(ctx, "velvet", 640, 480);
     if (!window) {
         printf("failed to create vl_os_window\n");
         return;
@@ -270,6 +269,10 @@ void window_test() {
     printf("graphics vendor: %s\n", render->backend);
 
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(window, render);
+    if (!present) {
+        printf("failed to create vl_graphics_presentation_t\n");
+        return;
+    }
     vl_graphics_brush_t *white = vl_graphics_brush_new_solid(render, VL_COLOR(1, 1, 1, 1));
     vl_graphics_brush_t *green = vl_graphics_brush_new_solid(render, VL_COLOR(0, 1, 0, 1));
     vl_graphics_brush_t *blue = vl_graphics_brush_new_solid(render, VL_COLOR(0, 0, 1, 1));
@@ -291,7 +294,7 @@ void window_test() {
     bool close;
     float angle = 0;
     while (!vl_os_window_should_close(window, &close) && !close) {
-        vl_os_window_poll_events();
+        vl_os_window_poll_events(ctx);
 
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_BLACK);
@@ -350,6 +353,7 @@ void window_test() {
     vl_graphics_presentation_free(present);
     vl_graphics_render_free(render);
     vl_os_window_free(window);
+    vl_platform_context_free(ctx);
     vl_memory_print_allocations();
 }
 
@@ -391,6 +395,7 @@ void large_document_test() {
         return;
     }
     vl_html_document_print(doc);
+    vl_memory_print_allocations();
 }
 
 void error_pool_test() {
@@ -436,10 +441,10 @@ int main(int argc, const char *argv[]) {
     // tidy_test();
     // document_test();
     // memory_test();
-    // window_test();
+    window_test();
     // document_tidy_test();
     // ht_test();
-    large_document_test();
+    // large_document_test();
     // error_pool_test();
     // parser_quote_test();
 

@@ -3,5 +3,7 @@ set(Velvet_Headers
     include/velvet/platform/universal/window.h
     include/velvet/platform/universal/render.h
     include/velvet/platform/universal/presentation.h
+    include/velvet/platform/universal/brush.h
+    include/velvet/platform/universal/sleep.h
     PARENT_SCOPE
 )

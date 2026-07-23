@@ -39,7 +39,8 @@ typedef struct vl_source_location vl_source_location_t;
     #define vl_free(...) vl_free_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 #endif // !defined(VL_FREE)
 
-#define VL_NEW(TYPE) vl_malloc(sizeof(TYPE))
+#define VL_NEW_VA_EXPAND(TYPE, LOC, ...) vl_malloc(sizeof(TYPE), LOC)
+#define VL_NEW(...) VL_NEW_VA_EXPAND(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 
 #ifdef __GNUC__
     #define VL_PACK(...) __VA_ARGS__ __attribute__((__packed__))

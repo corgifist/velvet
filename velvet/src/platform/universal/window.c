@@ -8,6 +8,8 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 
+static bool s_initialized = false;
+
 vl_result_t vl_os_window_universal_init() {
     int result = glfwInit();
     if (result != GLFW_TRUE) {
@@ -16,6 +18,7 @@ vl_result_t vl_os_window_universal_init() {
         printf("%s\n", desc);
         return VL_ERROR;
     }
+    s_initialized = true;
     return VL_SUCCESS;
 }
 
@@ -38,6 +41,9 @@ static void callback_window_resize(GLFWwindow *window, int w, int h) {
 }
 
 vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
+    if (!s_initialized) {
+        if (vl_os_window_universal_init()) return NULL;
+    }
     vl_os_window_universal_t *win = VL_NEW(vl_os_window_universal_t);
     if (!win) return NULL;
     if (!s_pairs) {

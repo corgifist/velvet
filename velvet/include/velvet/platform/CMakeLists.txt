@@ -5,5 +5,6 @@ endif()
 
 set(Velvet_Headers
     ${Velvet_Headers}
+    include/velvet/platform/context.h
     PARENT_SCOPE
 )

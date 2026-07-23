@@ -5,6 +5,7 @@ set(Velvet_Sources
     src/platform/universal/presentation.c
     src/platform/universal/brush.c
     src/platform/universal/glad/src/gl.c
+    src/platform/universal/sleep.c
     PARENT_SCOPE
 )
 

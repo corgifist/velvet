@@ -56,4 +56,7 @@ typedef struct vl_quad vl_quad_t;
     ((vl_quad_t) {.x1 = ((float) (X1)), .y1 = ((float) (Y1)), .x2 = ((float) (X2)), .y2 = ((float) (Y2)), \
                     .x3 = ((float) (X3)), .y3 = ((float) (Y3)), .x4 = ((float) (X4)), .y4 = ((float) (Y4))})
 
+#define VL_RECT_TO_QUAD(RECT) \
+        VL_QUAD(RECT.p1, VL_POINT(RECT.p2.x, RECT.p1.y), RECT.p2, VL_POINT(RECT.p1.x, RECT.p2.y))
+
 #endif // VELVET_GRAPHICS_GEOMETRY_H

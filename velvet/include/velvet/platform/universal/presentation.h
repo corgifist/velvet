@@ -12,6 +12,7 @@
 
 struct vl_graphics_presentation_universal {
     vl_graphics_presentation_t base;
+    bool active;
 };
 
 typedef struct vl_graphics_presentation_universal vl_graphics_presentation_universal_t;

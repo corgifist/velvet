@@ -2,42 +2,33 @@
 #include "graphics/brush.h"
 #include "graphics/color.h"
 #include "graphics/geometry.h"
+#include "platform/context.h"
 #include "platform/universal/render.h"
 #include "support/result.h"
 #include "velvet/support/feature.h"
 
 vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window) {
-    if (!window) return NULL;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_new(window);
-#endif // VL_FEATURE(UNIVERSAL_PLATFORM)
-    printf("no implementation for vl_graphics_render_new\n");
-    return NULL;
+    if (!window || !vl_platform_context_valid(window->context) || !window->context->graphics_render_new) return NULL;
+    vl_graphics_render_t *render = window->context->graphics_render_new(window);
+    if (render) {
+        render->context = window->context;
+    }
+    return render;
 }
 
 vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t fill) {
-    if (!render) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_clear(render, fill);
-#endif
-    printf("no implementation for vl_graphics_render_fill\n");
-    return VL_ERROR;
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_clear) return VL_ERROR;
+    return render->context->graphics_render_clear(render, fill);
 }
 
 vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
-    if (!render) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_batch_begin(render);
-#endif 
-    return VL_ERROR;
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_begin) return VL_ERROR;
+    return render->context->graphics_render_batch_begin(render);
 }
 
 vl_result_t vl_graphics_render_batch_quad_colored(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
-    if (!render) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_batch_quad_colored(render, quad, brush, colors);
-#endif 
-    return VL_ERROR;
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_quad_colored) return VL_ERROR;
+    return render->context->graphics_render_batch_quad_colored(render, quad, brush, colors);
 }
 
 vl_result_t vl_graphics_render_batch_quad(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush) {
@@ -45,16 +36,11 @@ vl_result_t vl_graphics_render_batch_quad(vl_graphics_render_t *render, vl_quad_
 }
 
 vl_result_t vl_graphics_render_batch_rect_colored(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
-    if (!render) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_batch_rect_colored(render, rect, brush, colors);
-#endif
-    printf("no implementation for vl_graphics_render_rect\n");
-    return VL_ERROR;
+    return vl_graphics_render_batch_quad_colored(render, VL_RECT_TO_QUAD(rect), brush, colors);
 }
 
 vl_result_t vl_graphics_render_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush) {
-    return vl_graphics_render_universal_batch_rect_colored(render, rect, brush, VL_QUAD_WHITE);
+    return vl_graphics_render_batch_rect_colored(render, rect, brush, VL_QUAD_WHITE);
 }
 
 vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, vl_point_t point, int size, vl_color_t color) {
@@ -65,26 +51,16 @@ vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, vl_poin
 }
 
 vl_result_t vl_graphics_render_batch_end(vl_graphics_render_t *render) {
-    if (!render) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_batch_end(render);
-#endif 
-    return VL_ERROR;
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_end) return VL_ERROR;
+    return render->context->graphics_render_batch_end(render);
 }
 
 vl_result_t vl_graphics_render_resize(vl_graphics_render_t *render, int w, int h) {
-    if (!render) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_resize(render, w, h);
-#endif
-    return VL_ERROR;
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_resize) return VL_ERROR;
+    return render->context->graphics_render_resize(render, w ,h);
 }
 
 vl_result_t vl_graphics_render_free(vl_graphics_render_t *render) {
-    if (!render) return VL_ERROR;
-#if VL_FEATURE(UNIVERSAL_PLATFORM)
-    return vl_graphics_render_universal_free(render);
-#endif // VL_FEATURE(UNIVERSAL_PLATFORM)
-    printf("no implementation for vl_graphics_render_free\n");
-    return VL_ERROR;
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_free) return VL_ERROR;
+    return render->context->graphics_render_free(render);
 }

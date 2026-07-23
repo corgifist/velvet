@@ -6,7 +6,9 @@
 #define VELVET_PLATFORM_UNIVERSAL_WINDOW_H
 
 #include "velvet/os/window.h"
+#include "velvet/platform/context.h"
 
+#define GLFW_INCLUDE_NONE // we're using glad loader
 #include <GLFW/glfw3.h>
 
 struct vl_os_window_universal {

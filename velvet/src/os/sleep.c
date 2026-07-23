@@ -1,19 +1,6 @@
 #include "os/sleep.h"
-#include "support/platform.h"
 
-#if VL_PLATFORM(WINDOWS)
-    // for Sleep()
-    #define WIN32_LEAN_AND_MEAN
-    #include <windows.h>
-#else
-    // for usleep()
-    #include <unistd.h>
-#endif // VL_PLATFORM(WINDOWS)
-
-void vl_os_sleep(uint32_t nanoseconds) {
-#if VL_PLATFORM(WINDOWS)
-    Sleep(nanoseconds);
-#else
-    usleep(nanoseconds * 1000);
-#endif
+void vl_os_sleep(vl_platform_context_t *context, uint32_t nanoseconds) {
+    if (!context || !context->os_sleep) return;
+    return context->os_sleep(nanoseconds);
 }

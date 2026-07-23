@@ -1,6 +1,7 @@
 #ifndef VELVET_GRAPHICS_GRAPHICS_H
 #define VELVET_GRAPHICS_GRAPHICS_H
 
+#include "velvet/platform/context.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
@@ -11,6 +12,8 @@
 struct vl_graphics_render {
     vl_os_window_t *owner;
     const char *backend;
+
+    vl_platform_context_t *context;
 };
 typedef struct vl_graphics_render vl_graphics_render_t;
 
