@@ -397,6 +397,8 @@ void large_document_test() {
     }
     vl_html_document_print(doc);
     vl_memory_print_allocations();
+    vl_html_document_free(doc);
+    vl_memory_print_allocations();
 }
 
 void error_pool_test() {
@@ -475,6 +477,29 @@ void bitmap_test() {
     vl_memory_print_allocations();
 }
 
+void memory_allocator_test() {
+    VL_DA(int) arr = VL_DA_INIT(int);
+    for (int i = 0; i < 100; i++) {
+        VL_DA_APPEND(arr, i);
+    }
+    for (int i = 0; i < VL_DA_LENGTH(arr); i++) {
+        printf("arr[%i] = %i\n", i, arr[i]);
+    }
+    vl_memory_print_allocations();
+}
+
+void malloc_test() {
+    int *ptrs[] = {
+        VL_NEW(int), VL_NEW(int), VL_NEW(int), VL_NEW(int), VL_NEW(int)
+    };
+    for (int i = 0; i < VL_ARR_SIZE(ptrs); i++) {
+        printf("allocated %p\n", ptrs[i]);
+    }
+    vl_free(ptrs[0]);
+    vl_free(ptrs[2]);
+    vl_memory_print_allocations();
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -488,10 +513,12 @@ int main(int argc, const char *argv[]) {
     // window_test();
     // document_tidy_test();
     // ht_test();
-    // large_document_test();
+    large_document_test();
     // error_pool_test();
     // parser_quote_test();
-    bitmap_test();
+    // bitmap_test();
+    // memory_allocator_test();
+    // malloc_test();
 
     return 0;
 }

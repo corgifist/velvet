@@ -7,7 +7,9 @@
 static void *vl_da_grow(VL_DA(void) da, vl_source_location_t loc, vl_allocator_t *allocator) {
     if (!da) return NULL;
     vl_da_header_t *header = VL_DA_HEADER(da);
-    header->capacity *= 2;
+    // https://rcoh.me/posts/notes-on-cpython-list-internals/
+    header->capacity = (size_t) header->capacity + (header->capacity >> 3) +
+        (header->capacity < 9 ? 3 : 6);
     header = vl_arealloc(*allocator, header, sizeof(vl_da_header_t) + header->element_size * header->capacity, loc);
     return (void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t));
 }

@@ -23,23 +23,23 @@ typedef struct vl_source_location vl_source_location_t;
 
 #if !defined(VL_MALLOC)
     #define VL_MALLOC vl_malloc_
-    #define vl_malloc_va_expand(SIZE, SRC_LOC, ...) vl_malloc_(SIZE, SRC_LOC)
+    #define vl_malloc_va_expand(SIZE, SRC_LOC, ...) VL_MALLOC(SIZE, SRC_LOC)
     #define vl_malloc(...) vl_malloc_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 #endif // !defined(VL_MALLOC)
 
 #if !defined(VL_REALLOC)
     #define VL_REALLOC vl_realloc_
-    #define vl_realloc_va_expand(PTR, NEW_SIZE, SRC_LOC, ...) vl_realloc_(PTR, NEW_SIZE, SRC_LOC)
+    #define vl_realloc_va_expand(PTR, NEW_SIZE, SRC_LOC, ...) VL_REALLOC(PTR, NEW_SIZE, SRC_LOC)
     #define vl_realloc(...) vl_realloc_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 #endif // !defined(VL_REALLOC)
 
 #if !defined(VL_FREE)
     #define VL_FREE vl_free_
-    #define vl_free_va_expand(PTR, SRC_LOC, ...) vl_free_(PTR, SRC_LOC)
+    #define vl_free_va_expand(PTR, SRC_LOC, ...) VL_FREE(PTR, SRC_LOC)
     #define vl_free(...) vl_free_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 #endif // !defined(VL_FREE)
 
-#define VL_NEW_VA_EXPAND(TYPE, LOC, ...) vl_malloc(sizeof(TYPE), LOC)
+#define VL_NEW_VA_EXPAND(TYPE, LOC, ...) ((TYPE*) vl_malloc(sizeof(TYPE), LOC))
 #define VL_NEW(...) VL_NEW_VA_EXPAND(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 
 #ifdef __GNUC__
@@ -65,12 +65,14 @@ typedef uint8_t vl_byte_t;
 #define VL_PTR_DEREF(PTR, TYPE) \
     (*((TYPE*) (PTR)))
 
+#define VL_ARR_SIZE(ARR) \
+    (sizeof((ARR)) / sizeof(*(ARR)))
+
 VL_API void *vl_malloc_(size_t size, vl_source_location_t loc);
 VL_API void *vl_realloc_(void *mem, size_t size, vl_source_location_t loc);
 VL_API void vl_free_(void *mem, vl_source_location_t loc);
 
 VL_API void vl_memory_print_allocations();
-VL_API void vl_memory_set_enable_logging(bool logging);
 VL_API size_t vl_memory_allocations_count();
 
 #endif // VELVET_MEMORY_H
