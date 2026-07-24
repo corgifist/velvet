@@ -14,12 +14,17 @@ struct vl_source_location {
     const char *function;
     int line;
     const char *comment;
+
+    const char *__type; // used internally in VL_NEW
 };
 
 typedef struct vl_source_location vl_source_location_t;
 
-#define VL_SOURCE_LOCATION(COMMENT) ((vl_source_location_t) {.file = __FILE__, .function = __func__, .line = __LINE__, .comment = (COMMENT)})
+#define VL_SOURCE_LOCATION(COMMENT) ((vl_source_location_t) {.file = __FILE__, .function = __func__, .line = __LINE__, .comment = (COMMENT), .__type = NULL})
 #define VL_SOURCE_LOCATION_HERE VL_SOURCE_LOCATION(NULL)
+
+#define VL_SOURCE_LOCATION_FORCE_TYPE(LOC, __TYPE) \
+    ((vl_source_location_t) {.file = (LOC).file, .function = (LOC).function, .line = (LOC).line, .comment = (LOC).comment, .__type = (__TYPE)})
 
 #if !defined(VL_MALLOC)
     #define VL_MALLOC vl_malloc_
@@ -39,7 +44,7 @@ typedef struct vl_source_location vl_source_location_t;
     #define vl_free(...) vl_free_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 #endif // !defined(VL_FREE)
 
-#define VL_NEW_VA_EXPAND(TYPE, LOC, ...) ((TYPE*) vl_malloc(sizeof(TYPE), LOC))
+#define VL_NEW_VA_EXPAND(TYPE, LOC, ...) ((TYPE*) vl_malloc(sizeof(TYPE), VL_SOURCE_LOCATION_FORCE_TYPE(LOC, #TYPE)))
 #define VL_NEW(...) VL_NEW_VA_EXPAND(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 
 #ifdef __GNUC__
