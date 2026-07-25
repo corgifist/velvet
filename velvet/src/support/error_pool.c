@@ -44,7 +44,7 @@ static void vl_error_pool_ensure_capacity(vl_error_pool_t *pool, size_t mem_len,
 static void *vl_error_pool_push(vl_error_pool_t *pool, void *mem, size_t mem_len, vl_source_location_t loc) {
     if (!pool->buffer) return NULL;
     vl_error_pool_ensure_capacity(pool, mem_len, loc);
-    memcpy(pool->buffer + pool->__offset, mem, mem_len);
+    if (mem) memcpy(pool->buffer + pool->__offset, mem, mem_len);
     pool->__offset += mem_len;
     return pool->buffer + pool->__offset - mem_len;
 }
@@ -63,6 +63,10 @@ vl_result_t vl_error_pool_append_(vl_source_location_t loc, vl_error_pool_t *poo
     vl_error_pool_ensure_capacity(pool, formatted_len + 1, loc);
     pool->__offset += vsnprintf(pool->buffer + pool->__offset, pool->__capacity - pool->__offset, format, va2);
     pool->buffer[pool->__offset++] = '\0';
+    while (pool->__offset % sizeof(size_t) != 0) {
+        vl_error_pool_push(pool, NULL, 1, loc);
+    }
+    // printf("offset: %zu; formatted_len: %zu\n", pool->__offset, formatted_len);
     va_end(va1);
     va_end(va2);
     return VL_SUCCESS;
@@ -80,6 +84,9 @@ vl_error_t *vl_error_pool_iterate(vl_error_pool_t *pool, vl_error_t *error) {
         error->__offset++;
     }
     error->__offset++; // skip '\0'
+    while (error->__offset % sizeof(size_t) != 0) {
+        error->__offset++;
+    }
     // printf("error->__offset: %zu\n", error->__offset);
     error->message = begin;
     return error;

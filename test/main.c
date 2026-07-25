@@ -540,9 +540,9 @@ int main(int argc, const char *argv[]) {
     // document_tidy_test();
     // ht_test();
     // large_document_test();
-    // error_pool_test();
+    error_pool_test();
     // parser_quote_test();
-    bitmap_test();
+    // bitmap_test();
     // memory_allocator_test();
     // malloc_test();
     // html_realloc_test();
