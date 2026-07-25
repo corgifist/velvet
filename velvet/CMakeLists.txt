@@ -1,6 +1,11 @@
-set(CMAKE_BUILD_TYPE Debug)
 add_subdirectory(include)
 add_subdirectory(src)
+
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
+    option(USE_ASAN "Use AddressSanitizer (ON for debug builds)" ON)
+else()
+    option(USE_ASAN "Use AddressSanitizer (ON for debug builds)" OFF)
+endif()
 
 option(BUILD_UNIVERSAL_PLATFORM "Build universal platform" ON)
 
@@ -23,6 +28,17 @@ endif()
 
 target_compile_definitions(velvet PRIVATE VL_EXPORT_SYMBOLS)
 target_compile_definitions(velvet PUBLIC VL_FEATURE_UNIVERSAL_PLATFORM=$<BOOL:${BUILD_UNIVERSAL_PLATFORM}>)
+
+# https://felsoci.sk/blog/using-address-sanitizer-asan-in-a-cmake-project.html
+if(USE_ASAN)
+  set(
+    CMAKE_C_FLAGS
+    "${CMAKE_C_FLAGS} -fsanitize=undefined -fsanitize=address"
+  )
+  target_link_options(velvet
+    BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address
+  )
+endif()
 
 set_target_properties(velvet PROPERTIES
     C_VISIBILITY_PRESET hidden

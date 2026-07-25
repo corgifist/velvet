@@ -14,8 +14,9 @@
 vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
     if (!lexer) return VL_ERROR;
     lexer->raw_length = strlen(text);
-    lexer->text = vl_malloc(lexer->raw_length);
+    lexer->text = vl_malloc(lexer->raw_length + 1);
     memcpy(lexer->text, text, lexer->raw_length);
+    lexer->text[lexer->raw_length] = '\0';
     size_t count = 0, i = 0;
     lexer->c = 0;
     do {
@@ -32,11 +33,11 @@ vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
 }
 
 static vl_result_t lexer_advance(vl_html_lexer_t *lexer) {
-    if (lexer->raw_pos > lexer->raw_length) {
-        vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, "lexer EOF");
-        return VL_ERROR;
-    }
     do { 
+        if (lexer->raw_pos > lexer->raw_length) {
+            vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, "lexer EOF");
+            return VL_ERROR;
+        }
         U8_NEXT(lexer->text, lexer->raw_pos, lexer->raw_length, lexer->c);
         if (lexer->c >= 0) { 
             lexer->pos++;

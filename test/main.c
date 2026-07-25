@@ -14,6 +14,7 @@
 #include "velvet/html/document.h"
 #include "velvet/html/tidy.h"
 #include "velvet/platform/context.h"
+#include "velvet/support/allocator.h"
 #include "velvet/support/da.h"
 
 #include "velvet/html/parser.h"
@@ -21,6 +22,7 @@
 #include "velvet/support/memory.h"
 #include "velvet/support/result.h"
 #include "velvet/velvet.h"
+#include "velvet/support/managed_assert.h"
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
@@ -50,11 +52,15 @@ void da_test() {
 }
 
 void da_stress_test() {
-    VL_DA(int) da = VL_DA_INIT(int);
+    VL_DA(int) da = VL_DA_INIT_WITH_ALLOCATOR(int, VL_ALLOCATOR_DEFAULT());
+    vl_da_header_t *header = VL_DA_HEADER(da);
+    VL_ASSERT(da);
     srand(time(NULL));
     for (int i = 0; i < 100; ++i) {
+        header = VL_DA_HEADER(da);
         *VL_DA_PUSH(da, int) = rand();
     }
+    vl_memory_print_allocations();
     printf("the numbers are:\n");
     for (int i = 0; i < 100; i++) {
         printf("%i\n", da[i]);
@@ -64,6 +70,8 @@ void da_stress_test() {
         VL_DA_DELETE(da, 0);
     }
     printf("deleted all numbers except one: %i\n", da[0]);
+    VL_DA_FREE(da);
+    vl_memory_print_allocations();
 }
 
 #include <unicode/utf8.h>
@@ -434,8 +442,6 @@ void parser_quote_test() {
     vl_html_document_print(doc);
 }
 
-#include "velvet/support/managed_assert.h"
-
 void bitmap_test() {
     uint8_t pixels[64 * 64 * 4];
     for (int y = 0; y < 64; y++) {
@@ -500,6 +506,23 @@ void malloc_test() {
     vl_memory_print_allocations();
 }
 
+void html_realloc_test() {
+    const char *input = VL_STRINGIFY(
+        <body>
+            <p>
+                <p/> <p/> <p/> <p/> <p/> <p/> <p/> <p/> <p/> <p/> <p/> <p/> <p/> <p/>
+            </p>
+        </body>
+    );
+    vl_error_pool_t ep = {0};
+    vl_html_document_t *doc = vl_html_document_new_with_ep(input, &ep);
+    if (!doc) {
+        vl_error_pool_dump(&ep);
+        return;
+    }
+    vl_html_document_print(doc);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -519,6 +542,7 @@ int main(int argc, const char *argv[]) {
     // bitmap_test();
     // memory_allocator_test();
     // malloc_test();
+    // html_realloc_test();
 
     return 0;
 }

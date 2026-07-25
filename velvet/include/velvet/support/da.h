@@ -25,7 +25,9 @@
     header points here         array points here   third_item points here
 */
 
+#define VL_DA_MAGIC ((uint64_t) 5930775908981165142)
 struct vl_da_header {
+    uint64_t magic;
     vl_allocator_t allocator;
     size_t count, capacity;
     size_t element_size;
@@ -112,6 +114,9 @@ typedef struct vl_da_header vl_da_header_t;
 #define VL_DA_HEADER(DA) \
     ((vl_da_header_t*) (((vl_byte_t*) DA) - sizeof(vl_da_header_t)))
 
+#define VL_DA_MAGIC_MATCHES(DA) \
+    (VL_DA_HEADER(DA)->magic == VL_DA_MAGIC)
+
 #define VL_DA_LENGTH(DA) \
     (VL_DA_HEADER(DA)->count)
 
@@ -181,5 +186,7 @@ VL_API void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc
  * @param da pointer to the dynamic array to be deallocated
  */
 VL_API void vl_da_free(VL_DA(void) *da, vl_source_location_t loc);
+
+VL_API void vl_da_dump_header(vl_da_header_t *header);
 
 #endif // VELVET_DA_H

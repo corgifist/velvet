@@ -14,14 +14,18 @@ struct vl_allocator {
 
 typedef struct vl_allocator vl_allocator_t;
 
+void *vl_zeroing_malloc(size_t size);
+void *vl_zeroing_realloc(void *mem, size_t new_size);
+void vl_zeroing_free(void *mem);
+
 #define VL_ALLOCATOR(MALLOC, REALLOC, FREE) \
     ((vl_allocator_t) {.malloc = (MALLOC), .realloc = (REALLOC), .free = (FREE)})
 
+#define VL_ALLOCATOR_STDLIB() \
+    VL_ALLOCATOR(vl_zeroing_malloc, vl_zeroing_realloc, vl_zeroing_free)
+
 #define VL_ALLOCATOR_DEFAULT() \
     VL_ALLOCATOR(NULL, NULL, NULL)
-
-#define VL_ALLOCATOR_STDLIB() \
-    VL_ALLOCATOR(malloc, realloc, free)
 
 #define VL_ALLOCATOR_MALLOC_VA_EXPAND(ALLOCATOR, SIZE, LOC, ...) \
     ((ALLOCATOR).malloc ? (ALLOCATOR).malloc((SIZE)) : vl_malloc((SIZE), (LOC)))

@@ -87,14 +87,12 @@ vl_result_t vl_html_node_deinit(vl_html_node_t *node) {
         }
         VL_DA_FREE(node->attributes);
     }
-    node->attributes = NULL;
     if (node->children) {
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
             vl_html_node_deinit(node->children + i);
         }
         VL_DA_FREE(node->children);
     }
-    node->children = NULL;
     if (node->text) VL_DA_FREE(node->text);
     node->text = NULL;
     return VL_SUCCESS;

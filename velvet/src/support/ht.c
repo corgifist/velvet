@@ -11,7 +11,7 @@
     size_t size = sizeof(vl_ht_header_t) + (sizeof(bool) + sizeof(vl_hash_t) + key_size + value_size) * capacity;
     header = vl_amalloc(allocator, size, loc);
     VL_ASSERT(header && "out of memory (malloc returned NULL)");
-    memset(header, size, 0);
+    memset(header, 0, size);
     header->allocator = allocator;
     header->count = 0;
     header->capacity = capacity;

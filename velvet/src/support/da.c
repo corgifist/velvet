@@ -4,14 +4,13 @@
 #include "support/memory.h"
 #include <string.h>
 
-static void *vl_da_grow(VL_DA(void) da, vl_source_location_t loc, vl_allocator_t *allocator) {
-    if (!da) return NULL;
-    vl_da_header_t *header = VL_DA_HEADER(da);
+static void vl_da_grow(vl_da_header_t **hp, vl_source_location_t loc, vl_allocator_t *allocator) {
+    if (!hp || !*hp) return;
+    vl_da_header_t *header = *hp;
     // https://rcoh.me/posts/notes-on-cpython-list-internals/
     header->capacity = (size_t) header->capacity + (header->capacity >> 3) +
         (header->capacity < 9 ? 3 : 6);
-    header = vl_arealloc(*allocator, header, sizeof(vl_da_header_t) + header->element_size * header->capacity, loc);
-    return (void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t));
+    *hp = vl_arealloc(*allocator, header, sizeof(vl_da_header_t) + header->element_size * header->capacity, loc);
 }
 
 static void *vl_da_shrink(VL_DA(void) da, vl_source_location_t loc, vl_allocator_t *allocator) {
@@ -19,7 +18,7 @@ static void *vl_da_shrink(VL_DA(void) da, vl_source_location_t loc, vl_allocator
     vl_da_header_t *header = VL_DA_HEADER(da);
     header->capacity /= 2;
     header = vl_arealloc(*allocator, header, sizeof(vl_da_header_t) + header->element_size * header->capacity, loc);
-    return (void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t));
+    return VL_PTR_FORWARD(header, sizeof(vl_da_header_t));
 }
 
 void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc, vl_allocator_t allocator) {
@@ -31,6 +30,8 @@ void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc,
     header->count = 0;
     header->capacity = capacity;
     header->element_size = element_size;
+    header->allocator = allocator;
+    header->magic = VL_DA_MAGIC;
     return mem + sizeof(vl_da_header_t);
 }
 
@@ -45,33 +46,35 @@ void *vl_da_init_from_string(const char *string, vl_source_location_t loc, vl_al
 }
 
 void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_source_location_t loc) {
+    if (!da || !*da) return NULL;
+    VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));
     vl_da_header_t *header = VL_DA_HEADER(*da);
     if (item) VL_ASSERT((element_size == header->element_size) && "mismatching DA types");
-    if (header->count >= header->capacity) {
-        *da = vl_da_grow(*da, loc, &header->allocator);
-        header = VL_DA_HEADER(*da);
-        VL_ASSERT(header && "couldn't grow da in vl_da_append"); 
+    while (header->count >= header->capacity) {
+        vl_da_grow(&header, loc, &header->allocator);
+        *da = VL_PTR_FORWARD(header, sizeof(vl_da_header_t));
+        VL_ASSERT(*da && "couldn't grow da in vl_da_append"); 
     }
-    if (item) memcpy((void*) (((vl_byte_t*) *da) + header->element_size * header->count), item, element_size);
-    ++header->count;
-    return (void*) (((vl_byte_t*) *da) + header->element_size * (header->count - 1));
+    void *target_ptr = VL_PTR_FORWARD(*da, header->element_size * header->count++);
+    if (item) memcpy(target_ptr, item, element_size);
+    return target_ptr;
 }
 
 void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc) {
-    if (!da) return;
-    if (!(*da)) return;
+    if (!da || !*da) return;
+    VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));
     vl_da_header_t *header = VL_DA_HEADER(*da);
     VL_ASSERT((index >= 0 && index < header->count) && "out of bounds call to vl_da_delete");
-    header->count--;
-    if (index == header->count) {
-        memset((void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t) + header->element_size * index), 0, header->element_size);
+    if (index == header->count - 1) {
+        memset(VL_PTR_FORWARD(*da, header->element_size * (header->count - 1)), 0, header->element_size);
     } else {
-        for (int i = index + 1; i < header->count + 1; i++) {
-            memcpy((void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t) + header->element_size * (i - 1)),
-                (void*) (((vl_byte_t*) header) + sizeof(vl_da_header_t) + header->element_size * i),
+        for (int i = index + 1; i < header->count; i++) {
+            memmove(VL_PTR_FORWARD(*da, header->element_size * (i - 1)),
+                    VL_PTR_FORWARD(*da, header->element_size * i),
                     header->element_size);
         }
     }
+    header->count--;
     if (header->count <= header->capacity / 2 && header->capacity / 2 >= VL_DA_DEFAULT_CAPACITY) {
         *da = vl_da_shrink(*da, loc, &header->allocator);
         VL_ASSERT(VL_DA_HEADER(*da) && "couldn't shrink da in vl_da_delete");
@@ -81,6 +84,22 @@ void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc) {
 void vl_da_free(VL_DA(void) *da, vl_source_location_t loc) {
     if (!da || !*da) return;
     vl_da_header_t *header = VL_DA_HEADER(*da);
+    if (!header) return;
+    VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));
     vl_afree(header->allocator, header);
     *da = NULL;
+}
+
+void vl_da_dump_header(vl_da_header_t *header) {
+    printf("-- header: %p --\n", header);
+    if (!header) {
+        printf("header is NULL\n");
+        printf("---------------------\n");
+        return;
+    }
+    printf("magic: %llu == %llu\n", header->magic, VL_DA_MAGIC);
+    printf("count: %zu\n", header->count);
+    printf("capacity: %zu\n", header->capacity);
+    printf("element size: %zu\n", header->element_size);
+    printf("---------------------\n");
 }

@@ -25,6 +25,21 @@ vl_result_t vl_html_tidy_document(vl_html_document_t *document) {
 
 vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
     if (!node) return VL_ERROR;
+    if (node->tag) {
+        if (strcmp(node->tag, "html") == 0) {
+            bool head_found = false;
+            bool body_found = false;
+            for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
+                if (node->children[i].tag && strcmp(node->children[i].tag, "head") == 0) {
+                    head_found = true;
+                }
+                if (node->children[i].tag && strcmp(node->children[i].tag, "body") == 0) {
+                    body_found = true;
+                }
+            }
+            if (head_found && body_found) return VL_SUCCESS;
+        }
+    }
     if (!node->tag && !node->text && node->children) {
         vl_html_node_t html_node = create_minimal_node("html");
         vl_html_node_t *head_node = NULL;

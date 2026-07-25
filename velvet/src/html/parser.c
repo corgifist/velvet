@@ -122,6 +122,9 @@ static vl_result_t collect_escaped_string(vl_html_parser_t *parser, VL_DA(char)*
     vl_html_token_t *current = parser->lookahead;
     bool double_quote = VL_TOKEN_COMPARE(current, "\"");
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip quote
+    if (include_quotes) {
+        *VL_DA_PUSH(*text, char) = (double_quote ? '"' : '\'');
+    }
     VL_DA(char) escape_accumulator = NULL;
     int limit = strlen(s_escapes->k);
     for (int i = 1; i < sizeof(s_escapes) / sizeof(*s_escapes); i++) {
@@ -193,6 +196,9 @@ static vl_result_t collect_escaped_string(vl_html_parser_t *parser, VL_DA(char)*
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip closing quote
     end:
     if (escape_accumulator) VL_DA_FREE(escape_accumulator);
+    if (include_quotes) {
+        *VL_DA_PUSH(*text, char) = (double_quote ? '"' : '\'');
+    }
     return VL_SUCCESS;
 }
 
@@ -233,15 +239,24 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
                 vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected word or string while parsing doctype");
                 return VL_ERROR;
             }
-            vl_html_attribute_t attribute = {0};
-            attribute.value = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
-            memcpy(attribute.value, current->text, current->text_length);
-            attribute.value[current->text_length] = '\0';
-            if (tokenize(parser) || skip_spaces(parser)) {
-                VL_DA_FREE(attribute.value);
-                return VL_ERROR;
+            if (current->type == VL_HTML_TOKEN_TYPE_WORD) {
+                vl_html_attribute_t attribute = {0};
+                attribute.value = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
+                memcpy(attribute.value, current->text, current->text_length);
+                attribute.value[current->text_length] = '\0';
+                if (tokenize(parser) || skip_spaces(parser)) {
+                    VL_DA_FREE(attribute.value);
+                    return VL_ERROR;
+                }
+                VL_DA_APPEND(node->attributes, attribute);
+            } else {
+                VL_DA(char) doctype_string = VL_DA_INIT(char);
+                collect_escaped_string(parser, &doctype_string, true);
+                vl_html_attribute_t attribute = {0};
+                attribute.value = doctype_string;
+                VL_DA_APPEND(node->attributes, attribute);
             }
-            VL_DA_APPEND(node->attributes, attribute);
+
         }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
         return VL_HTML_PARSER_DOCTYPE_NODE;
@@ -252,9 +267,9 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         return VL_ERROR;
     }
     node->tag = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
-    VL_DA_HEADER(node->tag)->count = current->text_length + 1;
+    VL_DA_HEADER(node->tag)->count = current->text_length;
     memcpy(node->tag, current->text, current->text_length);
-    node->tag[VL_DA_LENGTH(node->tag)] = '\0';
+    node->tag[current->text_length] = '\0';
     bool short_tag = false;
     for (int i = 0; i < sizeof(s_short_tags) / sizeof(*s_short_tags); i++) {
         if (strcmp(node->tag, s_short_tags[i]) == 0) {
@@ -307,6 +322,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             vl_error_pool_append(parser->ep, current->line, current->inline_pos, "failed to parse node attribute value");
             return VL_ERROR;
         }
+        *VL_DA_PUSH(attribute.value, char) = '\0';
 
         append_attribute:
         VL_DA_APPEND(node->attributes, attribute);
@@ -328,16 +344,22 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         }
         if (parse_result == VL_HTML_PARSER_CLOSE_NODE) {
             if (vl_html_node_deinit(&tmp_node)) return VL_ERROR;
-            if (VL_DA_LENGTH(node->tag) - 1 != close_tag_end - close_tag_begin) {
-                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismatch");
+            if (VL_DA_LENGTH(node->tag) != close_tag_end - close_tag_begin) {
+                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismatch (%s and %.*s)", 
+                    node->tag, close_tag_end - close_tag_begin, close_tag_begin);
                 return VL_ERROR;
             }
             if (memcmp(node->tag, close_tag_begin, VL_DA_LENGTH(node->tag) - 1) != 0) {
-                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismath");
+                vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismath (%s and %.*s)", 
+                    node->tag, close_tag_end - close_tag_begin, close_tag_begin);
                 return VL_ERROR;
             }
             return VL_SUCCESS;
         }
+        // printf("---------------------------\n");
+        // vl_html_node_print(&tmp_node);
+        vl_da_header_t *child_header = VL_DA_HEADER(node->children);
+        // vl_da_dump_header(child_header);
         VL_DA_APPEND(node->children, tmp_node);
     }
 
