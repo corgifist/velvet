@@ -48,7 +48,8 @@ struct vl_graphics_render_universal {
 
     VL_DA(vl_graphics_brush_t*) owned_brushes;
 
-    GLuint active_texture;
+    vl_graphics_brush_bitmap_t *active_bitmap;
+    GLuint sampler;
 
     mat4 proj_mat;
 };

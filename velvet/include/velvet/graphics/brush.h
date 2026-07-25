@@ -17,11 +17,19 @@ enum vl_graphics_brush_type {
 
 typedef enum vl_graphics_brush_type vl_graphics_brush_type_t;
 
-struct vl_graphics_render;
+enum vl_graphics_brush_extend_mode {
+    VL_GRAPHICS_BRUSH_EXTEND_CLAMP = 0,
+    VL_GRAPHICS_BRUSH_EXTEND_WRAP,
+    VL_GRAPHICS_BRUSH_EXTEND_MIRROR
+};
 
+typedef enum vl_graphics_brush_extend_mode vl_graphics_brush_extend_mode_t;
+
+struct vl_graphics_render;
 struct vl_graphics_brush {
     vl_graphics_brush_type_t type;
     struct vl_graphics_render *owner;
+    vl_graphics_brush_extend_mode_t extend_x, extend_y;
 };
 
 typedef struct vl_graphics_brush vl_graphics_brush_t;
@@ -43,9 +51,17 @@ struct vl_graphics_brush_linear_gradient {
 
 typedef struct vl_graphics_brush_linear_gradient vl_graphics_brush_linear_gradient_t;
 
+enum vl_graphics_brush_bitmap_filter {
+    VL_GRAPHICS_BRUSH_BITMAP_FILTER_LINEAR = 0,
+    VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST
+};
+
+typedef enum vl_graphics_brush_bitmap_filter vl_graphics_brush_bitmap_filter_t;
+
 struct vl_graphics_brush_bitmap {
     vl_graphics_brush_t base;
     vl_graphics_bitmap_t *bitmap;
+    vl_graphics_brush_bitmap_filter_t filter;
 };
 
 typedef struct vl_graphics_brush_bitmap vl_graphics_brush_bitmap_t;

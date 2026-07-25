@@ -232,6 +232,8 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     render->ctx.Uniform1i(sampler_location, 0);
     render->ctx.UseProgram(0);
 
+    render->ctx.GenSamplers(1, &render->sampler);
+
     GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "BrushData");
     render->ctx.UniformBlockBinding(render->batch_program, brushes_ubo, 0);
 
@@ -263,7 +265,7 @@ vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *rende
     r->batch_active = true;
     r->brush_offset = 0;
     r->stops_offset = 0;
-    r->active_texture = 0;
+    r->active_bitmap = NULL;
     return VL_SUCCESS;
 }
 
@@ -319,7 +321,7 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
         case VL_GRAPHICS_RENDER_BRUSH_BITMAP: {
             vl_graphics_brush_bitmap_t *b = (vl_graphics_brush_bitmap_t*) brush;
             vl_graphics_bitmap_universal_t *bu = (vl_graphics_bitmap_universal_t*) b->bitmap;
-            r->active_texture = bu->handle;
+            r->active_bitmap = b;
             brush_index = add_brush(r, (Brush) {
                 {3, 0, 0, 0},
                 {0, 0, 0 ,0}
@@ -346,6 +348,23 @@ vl_result_t vl_graphics_render_universal_batch_quad_colored(vl_graphics_render_t
     return VL_SUCCESS;
 }
 
+static GLint interpret_extend_mode(vl_graphics_brush_extend_mode_t extend_mode) {
+    switch (extend_mode) {
+        case VL_GRAPHICS_BRUSH_EXTEND_CLAMP: return GL_CLAMP_TO_EDGE;
+        case VL_GRAPHICS_BRUSH_EXTEND_MIRROR: return GL_MIRRORED_REPEAT;
+        case VL_GRAPHICS_BRUSH_EXTEND_WRAP: return GL_REPEAT;
+        default: return GL_REPEAT;
+    }
+}
+
+static GLint interpret_filter_mode(vl_graphics_brush_bitmap_filter_t filter) {
+    switch (filter) {
+        case VL_GRAPHICS_BRUSH_BITMAP_FILTER_LINEAR: return GL_LINEAR;
+        case VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST: return GL_NEAREST;
+        default: return GL_LINEAR;
+    }
+}
+
 vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render) {
     if (!render) return VL_ERROR;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
@@ -366,9 +385,17 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->ctx.BufferSubData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush), r->stops_offset * sizeof(GradientStop), r->stops_da);
 
     r->ctx.UseProgram(r->batch_program);
-    if (r->active_texture) {
+    if (r->active_bitmap) {
+        printf("filter: %d\n", r->active_bitmap->filter);
+        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_WRAP_S, interpret_extend_mode(r->active_bitmap->base.extend_x));
+        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_WRAP_T, interpret_extend_mode(r->active_bitmap->base.extend_y));
+        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_MAG_FILTER, interpret_filter_mode(r->active_bitmap->filter));
+        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_MIN_FILTER, interpret_filter_mode(r->active_bitmap->filter));
+
+        r->ctx.BindSampler(0, r->sampler);
         r->ctx.ActiveTexture(GL_TEXTURE0);
-        r->ctx.BindTexture(GL_TEXTURE_2D, r->active_texture);
+        vl_graphics_bitmap_universal_t *bu = (vl_graphics_bitmap_universal_t*) r->active_bitmap->bitmap;
+        r->ctx.BindTexture(GL_TEXTURE_2D, bu->handle);
     }
     r->ctx.BindVertexArray(r->batch_vao);
     r->ctx.BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo);

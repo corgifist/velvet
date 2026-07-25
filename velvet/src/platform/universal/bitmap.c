@@ -41,8 +41,8 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *ren
     vl_graphics_render_universal_t *r = ((vl_graphics_render_universal_t*) render);
     r->ctx.GenTextures(1, &bitmap->handle);
     r->ctx.BindTexture(GL_TEXTURE_2D, bitmap->handle);
-    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     r->ctx.TexImage2D(
@@ -58,6 +58,7 @@ vl_result_t vl_graphics_bitmap_universal_free(vl_graphics_bitmap_t *bitmap) {
     vl_graphics_bitmap_universal_t *b = (vl_graphics_bitmap_universal_t*) bitmap;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) bitmap->owner;
     r->ctx.DeleteTextures(1, &b->handle);
+    b->handle = 0;
     vl_free(b);
     return VL_SUCCESS;
 }

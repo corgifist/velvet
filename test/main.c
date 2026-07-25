@@ -461,8 +461,10 @@ void bitmap_test() {
 
     vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(render, 64, 64, VL_GRAPHICS_BITMAP_FORMAT_RGBA8, pixels);
     VL_ASSERT(bitmap);
-    vl_graphics_brush_t *bitmap_brush = vl_graphics_brush_new_bitmap(render, bitmap);
+    vl_graphics_brush_t *bitmap_brush = (vl_graphics_brush_bitmap_t*) vl_graphics_brush_new_bitmap(render, bitmap);
     VL_ASSERT(bitmap_brush);
+    vl_graphics_brush_bitmap_t *br = (vl_graphics_brush_bitmap_t*) bitmap_brush;
+    br->filter = VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST;
 
     bool close;
     while (!vl_os_window_should_close(win, &close) && !close) {
@@ -470,12 +472,14 @@ void bitmap_test() {
 
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(render);
-            vl_graphics_render_batch_rect(render, VL_RECT_EX(100, 100, 200, 200), bitmap_brush);
+            vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 640, 480), bitmap_brush);
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
 
     vl_graphics_presentation_free(present);
+    vl_graphics_brush_free(bitmap_brush);
+    vl_graphics_bitmap_free(bitmap);
     vl_graphics_render_free(render);
     vl_os_window_free(win);
     vl_platform_context_free(ctx);
