@@ -41,13 +41,14 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *ren
     vl_graphics_render_universal_t *r = ((vl_graphics_render_universal_t*) render);
     r->ctx.GenTextures(1, &bitmap->handle);
     r->ctx.BindTexture(GL_TEXTURE_2D, bitmap->handle);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     r->ctx.TexImage2D(
-        GL_TEXTURE_BINDING_1D, 0, get_internal_format(format), 
+        GL_TEXTURE_2D, 0, get_internal_format(format), 
             width, height, 0, get_format(format), get_type(format), data);
-    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    r->ctx.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    // r->ctx.GenerateMipmap(GL_TEXTURE_2D);
     return (vl_graphics_bitmap_t*) bitmap;
 }
 

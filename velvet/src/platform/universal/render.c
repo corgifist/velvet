@@ -2,6 +2,7 @@
 #include "graphics/brush.h"
 #include "graphics/color.h"
 #include "graphics/render.h"
+#include "platform/universal/bitmap.h"
 #include "platform/universal/window.h"
 #include "platform/universal/brush.h"
 #include "support/da.h"
@@ -71,6 +72,7 @@ static const char *s_batch_fragment_shader =
 "#version 330 core\n"
 "#define BRUSH_SOLID 1\n"
 "#define BRUSH_LINEAR_GRADIENT 2\n"
+"#define BRUSH_BITMAP 3\n"
 VL_STRINGIFY(
 out vec4 FragColor;
 
@@ -92,6 +94,8 @@ layout(std140) uniform BrushData {
     Brush brushes[BRUSH_MAX];
     GradientStop stops[STOPS_MAX];
 };
+
+uniform sampler2D texture1;
 
 void main() {
     vec4 color = vColor;
@@ -122,6 +126,8 @@ void main() {
                 }
             }
             color *= gradient_color;
+        } else if (brushes[vBrushIndex].brush_data.x == BRUSH_BITMAP) {
+            color *= texture(texture1, vST);
         }
     }
     FragColor = color;
@@ -221,6 +227,11 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     render->ctx.DeleteShader(vertex_shader);
     render->ctx.DeleteShader(fragment_shader);
 
+    render->ctx.UseProgram(render->batch_program);
+    int sampler_location = render->ctx.GetUniformLocation(render->batch_program, "texture1");
+    render->ctx.Uniform1i(sampler_location, 0);
+    render->ctx.UseProgram(0);
+
     GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "BrushData");
     render->ctx.UniformBlockBinding(render->batch_program, brushes_ubo, 0);
 
@@ -252,6 +263,7 @@ vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *rende
     r->batch_active = true;
     r->brush_offset = 0;
     r->stops_offset = 0;
+    r->active_texture = 0;
     return VL_SUCCESS;
 }
 
@@ -273,7 +285,7 @@ static int add_brush(vl_graphics_render_universal_t *render, Brush brush) {
 static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *brush) {
     if (!brush) return -1;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
-    int *saved_brush_index = (int*) (((vl_byte_t*) brush) - sizeof(int));
+    vl_brush_index_t *saved_brush_index = VL_PTR_BACKWARD(brush, sizeof(vl_brush_index_t));
     int brush_index;
     if (*saved_brush_index >= 0) {
         brush_index = *saved_brush_index;
@@ -301,6 +313,16 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
             brush_index = add_brush(r, (Brush) {
                 {2, gradient_begin_index, VL_DA_LENGTH(l->stops), 0},
                 {l->start.x, l->start.y, l->end.x, l->end.y}
+            });
+            break;
+        }
+        case VL_GRAPHICS_RENDER_BRUSH_BITMAP: {
+            vl_graphics_brush_bitmap_t *b = (vl_graphics_brush_bitmap_t*) brush;
+            vl_graphics_bitmap_universal_t *bu = (vl_graphics_bitmap_universal_t*) b->bitmap;
+            r->active_texture = bu->handle;
+            brush_index = add_brush(r, (Brush) {
+                {3, 0, 0, 0},
+                {0, 0, 0 ,0}
             });
             break;
         }
@@ -344,6 +366,10 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->ctx.BufferSubData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush), r->stops_offset * sizeof(GradientStop), r->stops_da);
 
     r->ctx.UseProgram(r->batch_program);
+    if (r->active_texture) {
+        r->ctx.ActiveTexture(GL_TEXTURE0);
+        r->ctx.BindTexture(GL_TEXTURE_2D, r->active_texture);
+    }
     r->ctx.BindVertexArray(r->batch_vao);
     r->ctx.BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo);
     r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset);

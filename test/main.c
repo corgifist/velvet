@@ -6,6 +6,7 @@
 #include <unicode/umachine.h>
 
 #include "large_test.h"
+#include "velvet/graphics/bitmap.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/graphics/color.h"
 #include "velvet/graphics/geometry.h"
@@ -424,14 +425,7 @@ void error_pool_test() {
 }
 
 void parser_quote_test() {
-    const char *input = VL_STRINGIFY(
-        <body>
-            Alice's friend
-        </body>
-        <footer>
-            Bob's friend
-        </footer>
-    );
+    const char *input = "<body>Alice's friend</body><footer>Bob's friend</footer>";
 
     vl_error_pool_t *ep = vl_error_pool_new();
     vl_html_document_t *doc = vl_html_document_new_with_ep(input, ep);
@@ -446,10 +440,10 @@ void bitmap_test() {
     uint8_t pixels[64 * 64 * 4];
     for (int y = 0; y < 64; y++) {
         for (int x = 0; x < 64; x++) {
-            pixels[(y * 64 * 4) + x * 4] = (uint8_t) (((float) x) / 64.0f);
-            pixels[(y * 64 * 4) + x * 4 + 1] = (uint8_t) (((float) x) / 64.0f);
-            pixels[(y * 64 * 4) + x * 4 + 2] = (uint8_t) (((float) x) / 64.0f);
-            pixels[(y * 64 * 4) + x * 4 + 3] = (uint8_t) (((float) x) / 64.0f);
+            pixels[(y * 64 * 4) + x * 4] = (uint8_t) (((float) x) / 64.0f * 255.0f);
+            pixels[(y * 64 * 4) + x * 4 + 1] = (uint8_t) (((float) x) / 64.0f * 255.0f);
+            pixels[(y * 64 * 4) + x * 4 + 2] = (uint8_t) (((float) x) / 64.0f * 255.0f);
+            pixels[(y * 64 * 4) + x * 4 + 3] = (uint8_t) (((float) x) / 64.0f * 255.0f);
         }
     }
 
@@ -465,13 +459,18 @@ void bitmap_test() {
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, render);
     VL_ASSERT(present);
 
+    vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(render, 64, 64, VL_GRAPHICS_BITMAP_FORMAT_RGBA8, pixels);
+    VL_ASSERT(bitmap);
+    vl_graphics_brush_t *bitmap_brush = vl_graphics_brush_new_bitmap(render, bitmap);
+    VL_ASSERT(bitmap_brush);
+
     bool close;
     while (!vl_os_window_should_close(win, &close) && !close) {
         vl_os_window_poll_events(ctx);
 
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(render);
-            // do something
+            vl_graphics_render_batch_rect(render, VL_RECT_EX(100, 100, 200, 200), bitmap_brush);
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
@@ -536,10 +535,10 @@ int main(int argc, const char *argv[]) {
     // window_test();
     // document_tidy_test();
     // ht_test();
-    large_document_test();
+    // large_document_test();
     // error_pool_test();
     // parser_quote_test();
-    // bitmap_test();
+    bitmap_test();
     // memory_allocator_test();
     // malloc_test();
     // html_realloc_test();

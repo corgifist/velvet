@@ -7,10 +7,12 @@
 #include "velvet/support/result.h"
 #include "velvet/graphics/geometry.h"
 #include "velvet/graphics/color.h"
+#include "velvet/graphics/bitmap.h"
 
 enum vl_graphics_brush_type {
     VL_GRAPHICS_RENDER_BRUSH_SOLID = 1,
-    VL_GRAPHICS_RENDER_BRUSH_LINEAR_GRADIENT
+    VL_GRAPHICS_RENDER_BRUSH_LINEAR_GRADIENT,
+    VL_GRAPHICS_RENDER_BRUSH_BITMAP
 };
 
 typedef enum vl_graphics_brush_type vl_graphics_brush_type_t;
@@ -41,8 +43,16 @@ struct vl_graphics_brush_linear_gradient {
 
 typedef struct vl_graphics_brush_linear_gradient vl_graphics_brush_linear_gradient_t;
 
+struct vl_graphics_brush_bitmap {
+    vl_graphics_brush_t base;
+    vl_graphics_bitmap_t *bitmap;
+};
+
+typedef struct vl_graphics_brush_bitmap vl_graphics_brush_bitmap_t;
+
 VL_API vl_graphics_brush_t *vl_graphics_brush_new_solid(struct vl_graphics_render *render, vl_color_t color);
 VL_API vl_graphics_brush_t *vl_graphics_brush_new_linear_gradient(struct vl_graphics_render *render, vl_gradient_stop_t *stops, size_t stops_count);
+VL_API vl_graphics_brush_t *vl_graphics_brush_new_bitmap(struct vl_graphics_render *render, vl_graphics_bitmap_t *bitmap);
 VL_API vl_result_t vl_graphics_brush_free(vl_graphics_brush_t *brush);
 
 #endif // VELVET_GRAPHICS_BRUSH_H
