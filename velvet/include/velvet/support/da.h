@@ -25,7 +25,9 @@
     header points here         array points here   third_item points here
 */
 
+#define VL_DA_DEFAULT_CAPACITY 8
 #define VL_DA_MAGIC ((uint64_t) 5930775908981165142)
+
 struct vl_da_header {
     uint64_t magic;
     vl_allocator_t allocator;
@@ -44,7 +46,6 @@ typedef struct vl_da_header vl_da_header_t;
 // dynamic array of chars (simply char*)
 #define VL_DA_STRING VL_DA(char)
 
-#define VL_DA_DEFAULT_CAPACITY 8
 
 /*
     initializes a dynamic array of type TYPE with initial capacity of VL_DA_DEFAULT_CAPACITY

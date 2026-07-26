@@ -526,6 +526,8 @@ void html_realloc_test() {
     vl_html_document_print(doc);
 }
 
+#include <memory.h>
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -538,9 +540,9 @@ int main(int argc, const char *argv[]) {
     // memory_test();
     // window_test();
     // document_tidy_test();
-    // ht_test();
+    ht_test();
     // large_document_test();
-    error_pool_test();
+    // error_pool_test();
     // parser_quote_test();
     // bitmap_test();
     // memory_allocator_test();

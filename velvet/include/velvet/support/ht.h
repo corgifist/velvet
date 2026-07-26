@@ -14,8 +14,10 @@
 typedef size_t (*vl_ht_hash_func_t)(void* mem, size_t mem_length); 
 
 #define VL_HT_DEFAULT_CAPACITY 8
+#define VL_HT_MAGIC ((uint64_t) 6868061232122317910)
 
 struct vl_ht_header {
+    uint64_t magic;
     vl_allocator_t allocator;
     size_t key_size, value_size;
     size_t count, capacity;

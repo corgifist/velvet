@@ -12,6 +12,7 @@
     header = vl_amalloc(allocator, size, loc);
     VL_ASSERT(header && "out of memory (malloc returned NULL)");
     memset(header, 0, size);
+    header->magic = VL_HT_MAGIC;
     header->allocator = allocator;
     header->count = 0;
     header->capacity = capacity;
@@ -94,6 +95,7 @@ static bool *ht_get_entry(void *ht, void *key, size_t key_size, bool create_new_
 void *vl_ht_put(void **ht, void *key, void *value, size_t key_size, size_t value_size, vl_source_location_t loc) {
     if (!ht || !*ht || !key) return NULL;
     vl_ht_header_t *header = VL_HT_HEADER(*ht);
+    VL_ASSERT(header->magic == VL_HT_MAGIC && "not a hash table");
     VL_ASSERT(header->key_size == key_size && "ht key type mismatch");
     VL_ASSERT(header->value_size && "ht value type mismatch");
     VL_ASSERT(header->hash_func && "ht hash_func not set");
@@ -113,6 +115,7 @@ void *vl_ht_put(void **ht, void *key, void *value, size_t key_size, size_t value
 void *vl_ht_get(void *ht, void *key, size_t key_size) {
     if (!ht || !key) return NULL;
     vl_ht_header_t *header = VL_HT_HEADER(ht);
+    VL_ASSERT(header->magic == VL_HT_MAGIC && "not a hash table");
     VL_ASSERT(header->key_size == key_size && "ht key type mismatch");
     VL_ASSERT(header->hash_func && "ht hash_func not set");
     bool *entry_ptr = ht_get_entry(ht, key, key_size, false);
@@ -123,6 +126,8 @@ void *vl_ht_get(void *ht, void *key, size_t key_size) {
 vl_result_t vl_ht_free(void *ht, vl_source_location_t loc) {
     if (!ht) return VL_SUCCESS;
     vl_ht_header_t *header = VL_HT_HEADER(ht);
+    VL_ASSERT(header->magic == VL_HT_MAGIC && "not a hash table");
+    header->magic = 0;
     vl_afree(header->allocator, header, loc);
     return VL_SUCCESS;
 }
@@ -130,6 +135,7 @@ vl_result_t vl_ht_free(void *ht, vl_source_location_t loc) {
 vl_ht_entry_t *vl_ht_iterate(void *ht, vl_ht_entry_t *entry) {
     if (!ht || !entry) return NULL;
     vl_ht_header_t *header = VL_HT_HEADER(ht);
+    VL_ASSERT(header->magic == VL_HT_MAGIC && "not a hash table");
     if (entry->__index >= header->capacity) return NULL;
     size_t begin_index = entry->__index;
     bool *occupied = VL_HT_ENTRY_AT_INDEX(ht, begin_index);
