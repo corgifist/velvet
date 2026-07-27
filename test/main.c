@@ -528,6 +528,17 @@ void html_realloc_test() {
 
 #include <memory.h>
 
+void misalign_test() {
+    VL_DA(bool) b = VL_DA_INIT_WITH_CAPACITY(bool, 5);
+    *VL_DA_PUSH(b, bool) = true;
+    *VL_DA_PUSH(b, bool) = false;
+    *VL_DA_PUSH(b, bool) = true;
+    *VL_DA_PUSH(b, bool) = false;
+    for (int i = 0; i < VL_DA_LENGTH(b); i++) {
+        printf("%s\n", b[i] ? "true" : "false");
+    }
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -548,6 +559,7 @@ int main(int argc, const char *argv[]) {
     // memory_allocator_test();
     // malloc_test();
     // html_realloc_test();
+    // misalign_test();
 
     return 0;
 }

@@ -61,7 +61,7 @@ typedef struct vl_ht_header vl_ht_header_t;
     ((vl_ht_header_t*) VL_PTR_BACKWARD(HT, sizeof(vl_ht_header_t)))
 
 #define VL_HT_ENTRY_SIZE(HT) \
-    (sizeof(bool) + sizeof(vl_hash_t) + VL_HT_HEADER(HT)->key_size + VL_HT_HEADER(HT)->value_size)
+    (sizeof(size_t) + sizeof(vl_hash_t) + VL_HT_HEADER(HT)->key_size + VL_HT_HEADER(HT)->value_size)
 
 #define VL_HT_ENTRY_AT_INDEX(HT, INDEX) \
     VL_PTR_FORWARD(HT, VL_HT_ENTRY_SIZE(HT) * (INDEX))
