@@ -447,6 +447,16 @@ void bitmap_test() {
         }
     }
 
+    uint8_t red_pixels[64 * 64 * 4];
+    for (int y = 0; y < 64; y++) {
+        for (int x = 0; x < 64; x++) {
+            red_pixels[(y * 64 * 4) + x * 4] = (uint8_t) (((float) x) / 64.0f * 255.0f);
+            red_pixels[(y * 64 * 4) + x * 4 + 1] = 0;
+            red_pixels[(y * 64 * 4) + x * 4 + 2] = 0;
+            red_pixels[(y * 64 * 4) + x * 4 + 3] = 1;
+        }
+    }
+
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_TYPES());
     VL_ASSERT(ctx);
 
@@ -461,10 +471,15 @@ void bitmap_test() {
 
     vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(render, 64, 64, VL_GRAPHICS_BITMAP_FORMAT_RGBA8, pixels);
     VL_ASSERT(bitmap);
-    vl_graphics_brush_t *bitmap_brush = (vl_graphics_brush_bitmap_t*) vl_graphics_brush_new_bitmap(render, bitmap);
+    vl_graphics_brush_t *bitmap_brush = vl_graphics_brush_new_bitmap(render, bitmap);
     VL_ASSERT(bitmap_brush);
     vl_graphics_brush_bitmap_t *br = (vl_graphics_brush_bitmap_t*) bitmap_brush;
     br->filter = VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST;
+
+    vl_graphics_bitmap_t *red_bitmap = vl_graphics_bitmap_new(render, 64, 64, VL_GRAPHICS_BITMAP_FORMAT_RGBA8, red_pixels);
+    VL_ASSERT(red_bitmap);
+    vl_graphics_brush_t *red_brush = vl_graphics_brush_new_bitmap(render, red_bitmap);
+    VL_ASSERT(red_brush);
 
     bool close;
     while (!vl_os_window_should_close(win, &close) && !close) {
@@ -473,6 +488,7 @@ void bitmap_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(render);
             vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 640, 480), bitmap_brush);
+            vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 200, 200), red_brush);
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
@@ -551,11 +567,11 @@ int main(int argc, const char *argv[]) {
     // memory_test();
     // window_test();
     // document_tidy_test();
-    ht_test();
+    // ht_test();
     // large_document_test();
     // error_pool_test();
     // parser_quote_test();
-    // bitmap_test();
+    bitmap_test();
     // memory_allocator_test();
     // malloc_test();
     // html_realloc_test();

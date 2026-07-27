@@ -1,4 +1,5 @@
 #include "platform/universal/render.h"
+#include "graphics/bitmap.h"
 #include "graphics/brush.h"
 #include "graphics/color.h"
 #include "graphics/render.h"
@@ -9,6 +10,7 @@
 #include "support/memory.h"
 #include "os/window.h"
 #include "support/result.h"
+#include "support/str.h"
 #include "velvet.h"
 
 #include <GLFW/glfw3.h>
@@ -56,6 +58,7 @@ void main() {
 
 #define BRUSH_MAX 16
 #define STOPS_MAX 32
+#define BITMAP_MAX 16
 
 typedef VL_PACK(struct Brush {
     ivec4 brush_data;
@@ -95,7 +98,26 @@ layout(std140) uniform BrushData {
     GradientStop stops[STOPS_MAX];
 };
 
-uniform sampler2D texture1;
+uniform sampler2D bitmaps[BITMAP_MAX];
+
+vec4 sampleBitmap(int bitmapIndex, vec2 st) {
+    if (bitmapIndex == 0) { return texture(bitmaps[0], st); }
+    if (bitmapIndex == 1) { return texture(bitmaps[1], st); }
+    if (bitmapIndex == 2) { return texture(bitmaps[2], st); }
+    if (bitmapIndex == 3) { return texture(bitmaps[3], st); }
+    if (bitmapIndex == 4) { return texture(bitmaps[4], st); }
+    if (bitmapIndex == 5) { return texture(bitmaps[5], st); }
+    if (bitmapIndex == 6) { return texture(bitmaps[6], st); }
+    if (bitmapIndex == 7) { return texture(bitmaps[7], st); }
+    if (bitmapIndex == 8) { return texture(bitmaps[8], st); }
+    if (bitmapIndex == 9) { return texture(bitmaps[9], st); }
+    if (bitmapIndex == 10) { return texture(bitmaps[10], st); }
+    if (bitmapIndex == 11) { return texture(bitmaps[11], st); }
+    if (bitmapIndex == 12) { return texture(bitmaps[12], st); }
+    if (bitmapIndex == 13) { return texture(bitmaps[13], st); }
+    if (bitmapIndex == 14) { return texture(bitmaps[14], st); }
+    if (bitmapIndex == 15) { return texture(bitmaps[15], st); }
+}
 
 void main() {
     vec4 color = vColor;
@@ -127,7 +149,7 @@ void main() {
             }
             color *= gradient_color;
         } else if (brushes[vBrushIndex].brush_data.x == BRUSH_BITMAP) {
-            color *= texture(texture1, vST);
+            color *= sampleBitmap(brushes[vBrushIndex].brush_data.y, vST);
         }
     }
     FragColor = color;
@@ -228,18 +250,25 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     render->ctx.DeleteShader(fragment_shader);
 
     render->ctx.UseProgram(render->batch_program);
-    int sampler_location = render->ctx.GetUniformLocation(render->batch_program, "texture1");
-    render->ctx.Uniform1i(sampler_location, 0);
-    render->ctx.UseProgram(0);
+    for (int i = 0; i < BITMAP_MAX; i++) {
+        int sampler_location = render->ctx.GetUniformLocation(render->batch_program, vl_sprintf_tmp("bitmaps[%i]", i));
+        render->ctx.Uniform1i(sampler_location, i);
+    }
 
-    render->ctx.GenSamplers(1, &render->sampler);
+    render->active_samplers = VL_DA_INIT_WITH_CAPACITY(GLint, BITMAP_MAX);
+    render->ctx.GenSamplers(BITMAP_MAX, render->active_samplers);
 
+    render->active_bitmaps = VL_DA_INIT_WITH_CAPACITY(vl_graphics_brush_bitmap_t*, BITMAP_MAX);
+    render->bitmap_offset = 0;
+    
     GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "BrushData");
     render->ctx.UniformBlockBinding(render->batch_program, brushes_ubo, 0);
 
-    GLint max_texture_size;
+    GLint max_texture_size, max_texture_units;
     render->ctx.GetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+    render->ctx.GetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
     printf("max texture size: %i\n", max_texture_size);
+    printf("max texture units: %i\n", max_texture_units);
 
     VL_DA_APPEND(win->owned_renders, render);
     return (vl_graphics_render_t*) render;
@@ -265,7 +294,7 @@ vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *rende
     r->batch_active = true;
     r->brush_offset = 0;
     r->stops_offset = 0;
-    r->active_bitmap = NULL;
+    r->bitmap_offset = 0;
     return VL_SUCCESS;
 }
 
@@ -321,9 +350,18 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
         case VL_GRAPHICS_RENDER_BRUSH_BITMAP: {
             vl_graphics_brush_bitmap_t *b = (vl_graphics_brush_bitmap_t*) brush;
             vl_graphics_bitmap_universal_t *bu = (vl_graphics_bitmap_universal_t*) b->bitmap;
-            r->active_bitmap = b;
+            int bitmap_index = -1;
+            for (int i = 0; i < r->bitmap_offset; i++) {
+                if (((vl_graphics_bitmap_universal_t*) r->active_bitmaps[i]->bitmap)->handle == bu->handle) {
+                    bitmap_index = i;
+                    break;
+                }
+            }
+            if (bitmap_index < 0) {
+                r->active_bitmaps[(bitmap_index = r->bitmap_offset++)] = b;
+            }
             brush_index = add_brush(r, (Brush) {
-                {3, 0, 0, 0},
+                {3, bitmap_index, 0, 0},
                 {0, 0, 0 ,0}
             });
             break;
@@ -385,17 +423,17 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     r->ctx.BufferSubData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush), r->stops_offset * sizeof(GradientStop), r->stops_da);
 
     r->ctx.UseProgram(r->batch_program);
-    if (r->active_bitmap) {
-        printf("filter: %d\n", r->active_bitmap->filter);
-        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_WRAP_S, interpret_extend_mode(r->active_bitmap->base.extend_x));
-        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_WRAP_T, interpret_extend_mode(r->active_bitmap->base.extend_y));
-        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_MAG_FILTER, interpret_filter_mode(r->active_bitmap->filter));
-        r->ctx.SamplerParameteri(r->sampler, GL_TEXTURE_MIN_FILTER, interpret_filter_mode(r->active_bitmap->filter));
+    for (int i = 0; i < r->bitmap_offset; i++) {
+        vl_graphics_brush_bitmap_t *bitmap_brush = r->active_bitmaps[i];
+        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_S, interpret_extend_mode(bitmap_brush->base.extend_x));
+        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_T, interpret_extend_mode(bitmap_brush->base.extend_y));
+        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MAG_FILTER, interpret_filter_mode(bitmap_brush->filter));
+        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MIN_FILTER, interpret_filter_mode(bitmap_brush->filter));
 
-        r->ctx.BindSampler(0, r->sampler);
-        r->ctx.ActiveTexture(GL_TEXTURE0);
-        vl_graphics_bitmap_universal_t *bu = (vl_graphics_bitmap_universal_t*) r->active_bitmap->bitmap;
-        r->ctx.BindTexture(GL_TEXTURE_2D, bu->handle);
+        vl_graphics_bitmap_universal_t *bitmap = (vl_graphics_bitmap_universal_t*) bitmap_brush->bitmap;
+        r->ctx.BindSampler(i, r->active_samplers[i]);
+        r->ctx.ActiveTexture(GL_TEXTURE0 + i);
+        r->ctx.BindTexture(GL_TEXTURE_2D, bitmap->handle);
     }
     r->ctx.BindVertexArray(r->batch_vao);
     r->ctx.BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo);

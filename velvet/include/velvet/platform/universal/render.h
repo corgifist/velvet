@@ -5,11 +5,13 @@
 #ifndef VELVET_PLATFORM_UNIVERSAL_RENDER_H
 #define VELVET_PLATFORM_UNIVERSAL_RENDER_H
 
+#include "graphics/bitmap.h"
 #include "graphics/color.h"
 #include "velvet/support/da.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/os/window.h"
 #include "velvet/graphics/render.h"
+#include "velvet/platform/universal/bitmap.h"
 
 #include <glad/gl.h>
 #include <cglm/mat4.h>
@@ -48,8 +50,9 @@ struct vl_graphics_render_universal {
 
     VL_DA(vl_graphics_brush_t*) owned_brushes;
 
-    vl_graphics_brush_bitmap_t *active_bitmap;
-    GLuint sampler;
+    VL_DA(vl_graphics_brush_bitmap_t*) active_bitmaps;
+    VL_DA(GLuint) active_samplers;
+    size_t bitmap_offset;
 
     mat4 proj_mat;
 };

@@ -1,5 +1,7 @@
 #include "velvet/support/str.h"
 #include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 // Source - https://stackoverflow.com/a/5820991
 // Posted by Fred Foo, modified by community. See post 'Timeline' for change history
@@ -20,4 +22,14 @@ int vl_nstrcicmp(const char *a, const char *b, int length) {
         if (d != 0) return d;
     }
     return 0;
+}
+
+const char *vl_sprintf_tmp(const char *format, ...) {
+    static char s_buffer[512];
+    va_list va;
+    va_start(va, format);
+    size_t len = vsnprintf(s_buffer, sizeof(s_buffer), format, va);
+    va_end(va);
+    s_buffer[len] = '\0';
+    return s_buffer;
 }
