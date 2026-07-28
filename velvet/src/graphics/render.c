@@ -3,7 +3,6 @@
 #include "graphics/color.h"
 #include "graphics/geometry.h"
 #include "platform/context.h"
-#include "platform/universal/render.h"
 #include "support/result.h"
 #include "velvet/support/feature.h"
 
@@ -27,20 +26,29 @@ vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
 }
 
 vl_result_t vl_graphics_render_batch_quad_colored(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
-    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_quad_colored) return VL_ERROR;
-    return render->context->graphics_render_batch_quad_colored(render, quad, brush, colors);
+    return vl_graphics_render_batch_quad_colored_uv(render, quad, brush, colors, VL_QUAD_UV_DEFAULT);
+}
+
+
+vl_result_t vl_graphics_render_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_quad_colored_uv) return VL_ERROR;
+    return render->context->graphics_render_batch_quad_colored_uv(render, quad, brush, colors, uv);
 }
 
 vl_result_t vl_graphics_render_batch_quad(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush) {
-    return vl_graphics_render_universal_batch_quad_colored(render, quad, brush, VL_QUAD_WHITE);
-}
-
-vl_result_t vl_graphics_render_batch_rect_colored(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
-    return vl_graphics_render_batch_quad_colored(render, VL_RECT_TO_QUAD(rect), brush, colors);
+    return vl_graphics_render_batch_quad_colored(render, quad, brush, VL_QUAD_WHITE);
 }
 
 vl_result_t vl_graphics_render_batch_rect(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush) {
     return vl_graphics_render_batch_rect_colored(render, rect, brush, VL_QUAD_WHITE);
+}
+
+vl_result_t vl_graphics_render_batch_rect_colored(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
+    return vl_graphics_render_batch_rect_colored_uv(render, rect, brush, colors, VL_QUAD_UV_DEFAULT);
+}
+
+vl_result_t vl_graphics_render_batch_rect_colored_uv(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
+    return vl_graphics_render_batch_quad_colored_uv(render, VL_RECT_TO_QUAD(rect), brush, colors, uv);
 }
 
 vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, vl_point_t point, int size, vl_color_t color) {

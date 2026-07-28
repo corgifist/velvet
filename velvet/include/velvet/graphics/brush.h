@@ -9,6 +9,9 @@
 #include "velvet/graphics/color.h"
 #include "velvet/graphics/bitmap.h"
 
+#include <cglm/mat3x2.h>
+#include <cglm/types.h>
+
 enum vl_graphics_brush_type {
     VL_GRAPHICS_RENDER_BRUSH_SOLID = 1,
     VL_GRAPHICS_RENDER_BRUSH_LINEAR_GRADIENT,
@@ -30,6 +33,7 @@ struct vl_graphics_brush {
     vl_graphics_brush_type_t type;
     struct vl_graphics_render *owner;
     vl_graphics_brush_extend_mode_t extend_x, extend_y;
+    mat3x2 transform;
 };
 
 typedef struct vl_graphics_brush vl_graphics_brush_t;

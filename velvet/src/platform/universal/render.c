@@ -14,6 +14,7 @@
 #include "velvet.h"
 
 #include <GLFW/glfw3.h>
+#include <cglm/mat3x2.h>
 #include <cglm/mat4.h>
 #include <cglm/types.h>
 #include <cglm/vec4.h>
@@ -298,12 +299,14 @@ vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *rende
     return VL_SUCCESS;
 }
 
-static void batch_add_vertex(vl_graphics_render_t *render, float x, float y, int brush_index, vl_color_t color, float s, float t) {
+#define st2(x, y) ((vec2) {(x), (6)})
+
+static void batch_add_vertex(vl_graphics_render_t *render, float x, float y, int brush_index, vl_color_t color, vl_point_t st) {
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     if (!r) return;
     if (!r->batch_active) return;
     r->batch_vertices[r->batch_offset++] = (vl_graphics_vertex_t) {
-        x, y, brush_index, color, s, t
+        x, y, brush_index, color, st.x, st.y
     };
 }
 
@@ -374,15 +377,15 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
     return brush_index;
 }
 
-vl_result_t vl_graphics_render_universal_batch_quad_colored(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
+vl_result_t vl_graphics_render_universal_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
     if (!render) return VL_ERROR;
     int brush_index = get_brush_index(render, brush);
-    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr, 1, 0);
-    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl, 0, 1);
-    batch_add_vertex(render, quad.x3, quad.y3, brush_index, colors.br, 1, 1);
-    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr, 1, 0);
-    batch_add_vertex(render, quad.x1, quad.y1, brush_index, colors.tl, 0, 0);
-    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl, 0, 1);
+    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr, uv.tr);
+    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl, uv.bl);
+    batch_add_vertex(render, quad.x3, quad.y3, brush_index, colors.br, uv.br);
+    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr, uv.tr);
+    batch_add_vertex(render, quad.x1, quad.y1, brush_index, colors.tl, uv.tl);
+    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl, uv.bl);
     return VL_SUCCESS;
 }
 

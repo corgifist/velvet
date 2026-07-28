@@ -475,6 +475,8 @@ void bitmap_test() {
     VL_ASSERT(bitmap_brush);
     vl_graphics_brush_bitmap_t *br = (vl_graphics_brush_bitmap_t*) bitmap_brush;
     br->filter = VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST;
+    br->base.extend_x = VL_GRAPHICS_BRUSH_EXTEND_MIRROR;
+    br->base.extend_y = VL_GRAPHICS_BRUSH_EXTEND_MIRROR;
 
     vl_graphics_bitmap_t *red_bitmap = vl_graphics_bitmap_new(render, 64, 64, VL_GRAPHICS_BITMAP_FORMAT_RGBA8, red_pixels);
     VL_ASSERT(red_bitmap);
@@ -487,7 +489,7 @@ void bitmap_test() {
 
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(render);
-            vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 640, 480), bitmap_brush);
+            vl_graphics_render_batch_rect_colored_uv(render, VL_RECT_EX(0, 0, 640, 480), bitmap_brush, VL_QUAD_WHITE, VL_QUAD_UV_MUL(VL_QUAD_UV_DEFAULT, VL_QUAD_UV1(2)));
             vl_graphics_render_batch_rect(render, VL_RECT_EX(0, 0, 200, 200), red_brush);
         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);

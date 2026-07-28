@@ -7,31 +7,35 @@
 #include "support/feature.h"
 #include "support/memory.h"
 #include "support/result.h"
+#include <cglm/mat3x2.h>
+
+#define MAT3X2_IDENTITY ((mat3x2) {{1,0}, {0, 1}, {0, 0}})
+
+static void setup_brush(vl_graphics_brush_t *brush, vl_graphics_render_t *render) {
+    if (brush) {
+        brush->owner = render;
+        glm_mat3x2_copy(MAT3X2_IDENTITY, brush->transform);
+    }
+}
 
 vl_graphics_brush_t *vl_graphics_brush_new_solid(vl_graphics_render_t *render, vl_color_t color) {
     if (!render || !render->context || !render->context->graphics_brush_new_solid) return NULL;
     vl_graphics_brush_t *brush = render->context->graphics_brush_new_solid(render, color);
-    if (brush) {
-        brush->owner = render;
-    }
+    setup_brush(brush, render);
     return brush;
 }
 
 vl_graphics_brush_t *vl_graphics_brush_new_linear_gradient(vl_graphics_render_t *render, vl_gradient_stop_t *stops, size_t stops_count) {
     if (!render || !render->context || !render->context->graphics_brush_new_linear_gradient) return NULL;
     vl_graphics_brush_t *brush = render->context->graphics_brush_new_linear_gradient(render, stops, stops_count);
-    if (brush) {
-        brush->owner = render;
-    }
+    setup_brush(brush, render);
     return brush;
 }
 
 vl_graphics_brush_t *vl_graphics_brush_new_bitmap(vl_graphics_render_t *render, vl_graphics_bitmap_t *bitmap) {
     if (!render || !render->context || !render->context->graphics_brush_new_bitmap) return NULL;
     vl_graphics_brush_t *brush = render->context->graphics_brush_new_bitmap(render, bitmap);
-    if (brush) {
-        brush->owner = render;
-    }
+    setup_brush(brush, render);
     return brush;
 }
 

@@ -1,14 +1,13 @@
 #ifndef VELVET_GRAPHICS_GEOMETRY_H
 #define VELVET_GRAPHICS_GEOMETRY_H
 
+#include <cglm/types.h>
+
 struct vl_point {
     float x, y;
 };
 
 typedef struct vl_point vl_point_t;
-
-#define VL_POINT_SUB(P1, P2) \
-    ((vl_point_t) {.x = (P1).x - (P2).x, .y = (P1).y - (P2).y})
 
 struct vl_rect {
     union {
@@ -43,7 +42,32 @@ struct vl_quad {
 
 typedef struct vl_quad vl_quad_t;
 
+struct vl_quad_uv {
+    // top-left and top-right
+    vl_point_t tl, tr;
+    // bottom-left and bottom-right
+    vl_point_t bl, br;
+};
+
+typedef struct vl_quad_uv vl_quad_uv_t;
+
 #define VL_POINT(X, Y) ((vl_point_t) {.x = ((float) (X)), .y = ((float) (Y))})
+#define VL_POINT1(A) VL_POINT(A, A)
+
+#define VL_POINT_OP(P1, P2, OP) \
+    ((vl_point_t) {.x = (P1).x OP (P2).x, .y = (P1).y OP (P2).y})
+
+#define VL_POINT_ADD(P1, P2) \
+    VL_POINT_OP(P1, P2, +)
+
+#define VL_POINT_SUB(P1, P2) \
+    VL_POINT_OP(P1, P2, -)
+
+#define VL_POINT_MUL(P1, P2) \
+    VL_POINT_OP(P1, P2, *)
+
+#define VL_POINT_DIV(P1, P2) \
+    VL_POINT_OP(P1, P2, /)
 
 #define VL_RECT(P1, P2) \
     ((vl_rect_t) {.p1 = (P1), .p2 = (P2)})
@@ -58,5 +82,29 @@ typedef struct vl_quad vl_quad_t;
 
 #define VL_RECT_TO_QUAD(RECT) \
         VL_QUAD(RECT.p1, VL_POINT(RECT.p2.x, RECT.p1.y), RECT.p2, VL_POINT(RECT.p1.x, RECT.p2.y))
+
+#define VL_QUAD_UV(TL, TR, BL, BR) \
+    ((vl_quad_uv_t) {.tl = (TL), .tr =(TR), .bl = (BL), .br = (BR)})
+
+#define VL_QUAD_UV1(A) \
+        VL_QUAD_UV(VL_POINT1(A), VL_POINT1(A), VL_POINT1(A), VL_POINT1(A))
+
+#define VL_QUAD_UV_DEFAULT \
+        VL_QUAD_UV(VL_POINT(0, 0), VL_POINT(1, 0), VL_POINT(0, 1), VL_POINT(1, 1))
+
+#define VL_QUAD_UV_OP(UV1, UV2, OP) \
+    VL_QUAD_UV((UV1).tl.x OP (UV2).tl.y, (UV1).tr.x OP (UV2).tr.y, (UV1).bl.x OP (UV2).bl.y, (UV1).br.x OP (UV2).br.y)
+
+#define VL_QUAD_UV_ADD(UV1, UV2) \
+        VL_QUAD_UV_OP(UV1, UV2, +)
+
+#define VL_QUAD_UV_SUB(UV1, UV2) \
+        VL_QUAD_UV_OP(UV1, UV2, -)
+
+#define VL_QUAD_UV_MUL(UV1, UV2) \
+        VL_QUAD_UV_OP(UV1, UV2, *)
+
+#define VL_QUAD_UV_DIV(UV1, UV2) \
+        VL_QUAD_UV_OP(UV1, UV2, /)
 
 #endif // VELVET_GRAPHICS_GEOMETRY_H
