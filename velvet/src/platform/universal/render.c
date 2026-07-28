@@ -268,6 +268,11 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
 
     render->active_bitmaps = VL_DA_INIT_WITH_CAPACITY(vl_graphics_brush_bitmap_t*, BITMAP_MAX);
     render->bitmap_offset = 0;
+
+    GL_CALL(render->ctx, GenTextures(1, &render->dummy_texture));
+    uint8_t data[3] = {255, 255, 255};
+    GL_CALL(render->ctx, BindTexture(GL_TEXTURE_2D, render->dummy_texture));
+    GL_CALL(render->ctx, TexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
     
     GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "BrushData");
     GL_CALL(render->ctx, UniformBlockBinding(render->batch_program, brushes_ubo, 0));
@@ -447,6 +452,11 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
         GL_CALL(r->ctx, BindSampler(i, r->active_samplers[i]));
 
         // printf("bitmap index: %i; handle: %i\n", i, bitmap->handle);
+    }
+
+    for (int i = r->bitmap_offset; i < BITMAP_MAX; i++) {
+        GL_CALL(r->ctx, ActiveTexture(GL_TEXTURE0 + i));
+        GL_CALL(r->ctx, BindTexture(GL_TEXTURE_2D, r->dummy_texture));
     }
 
     GL_CALL(r->ctx, BindVertexArray(r->batch_vao));

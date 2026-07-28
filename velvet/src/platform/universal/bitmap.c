@@ -7,7 +7,7 @@
 GLint get_internal_format(vl_graphics_bitmap_format_t format) {
     switch (format) {
     case VL_GRAPHICS_BITMAP_FORMAT_RGBA8:
-        return GL_RGB;
+        return GL_RGBA8;
     default: {
         return GL_RGB;
     }
