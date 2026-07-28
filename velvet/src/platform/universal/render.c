@@ -12,6 +12,7 @@
 #include "support/result.h"
 #include "support/str.h"
 #include "velvet.h"
+#include "gl_check.h"
 
 #include <GLFW/glfw3.h>
 #include <cglm/mat3x2.h>
@@ -118,6 +119,7 @@ vec4 sampleBitmap(int bitmapIndex, vec2 st) {
     if (bitmapIndex == 13) { return texture(bitmaps[13], st); }
     if (bitmapIndex == 14) { return texture(bitmaps[14], st); }
     if (bitmapIndex == 15) { return texture(bitmaps[15], st); }
+    return vec4(1.0);
 }
 
 void main() {
@@ -150,7 +152,11 @@ void main() {
             }
             color *= gradient_color;
         } else if (brushes[vBrushIndex].brush_data.x == BRUSH_BITMAP) {
-            color *= sampleBitmap(brushes[vBrushIndex].brush_data.y, vST);
+            int bitmapIndex = brushes[vBrushIndex].brush_data.y;
+            color *= sampleBitmap(bitmapIndex, vST);
+            if (bitmapIndex == 2) {
+                color = vec4(0, 1, 0, 1);
+            }
         }
     }
     FragColor = color;
@@ -164,12 +170,12 @@ static inline void flat_ortho(float w, float h, mat4 dest) {
 GLuint compile_shader(GladGLContext *ctx, GLenum shader_type, const char *source) {
     static GLchar error_log[1024];
     GLuint shader = ctx->CreateShader(shader_type);
-    ctx->ShaderSource(shader, 1, &source, NULL);
-    ctx->CompileShader(shader);
+    GL_CALL(*ctx, ShaderSource(shader, 1, &source, NULL));
+    GL_CALL(*ctx, CompileShader(shader));
     GLint success;
-    ctx->GetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    GL_CALL(*ctx, GetShaderiv(shader, GL_COMPILE_STATUS, &success));
     if (!success) {
-        ctx->GetShaderInfoLog(shader, sizeof(error_log), NULL, error_log);
+        GL_CALL(*ctx, GetShaderInfoLog(shader, sizeof(error_log), NULL, error_log));
         printf("%s\n", error_log);
     }
     return shader;
@@ -188,6 +194,7 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     if (!gladLoadGLContext(&render->ctx, glfwGetProcAddress)) {
         goto fail;
     }
+    vl_gl_drain_errors(&render->ctx);
     render->base.owner = win;
     render->base.backend = (const char*) render->ctx.GetString(GL_VERSION);
     if (!render->base.backend) {
@@ -197,21 +204,21 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     int w, h;
     glfwGetFramebufferSize(window->handle, &fw, &fh);
     glfwGetWindowSize(window->handle, &w, &h);
-    render->ctx.Viewport(0, 0, fw, fh);
+    GL_CALL(render->ctx, Viewport(0, 0, fw, fh));
     flat_ortho(w, h, render->proj_mat);
     // printf("%i %i\n", w, h);
 
-    render->ctx.GenBuffers(1, &render->batch_vbo);
-    render->ctx.BindBuffer(GL_ARRAY_BUFFER, render->batch_vbo);
-    render->ctx.BufferData(GL_ARRAY_BUFFER, BATCH_MAX * (6 * sizeof(float) + sizeof(int)), NULL, GL_DYNAMIC_DRAW);
+    GL_CALL(render->ctx, GenBuffers(1, &render->batch_vbo));
+    GL_CALL(render->ctx, BindBuffer(GL_ARRAY_BUFFER, render->batch_vbo));
+    GL_CALL(render->ctx, BufferData(GL_ARRAY_BUFFER, BATCH_MAX * (6 * sizeof(float) + sizeof(int)), NULL, GL_DYNAMIC_DRAW));
 
     render->batch_offset = 0;
     render->batch_vertices = VL_DA_INIT_WITH_CAPACITY(vl_graphics_vertex_t, BATCH_MAX);
     render->batch_active = false;
 
-    render->ctx.GenBuffers(1, &render->brush_vbo);
-    render->ctx.BindBuffer(GL_UNIFORM_BUFFER, render->brush_vbo);
-    render->ctx.BufferData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush) + STOPS_MAX * sizeof(GradientStop), NULL, GL_DYNAMIC_READ);
+    GL_CALL(render->ctx, GenBuffers(1, &render->brush_vbo));
+    GL_CALL(render->ctx, BindBuffer(GL_UNIFORM_BUFFER, render->brush_vbo));
+    GL_CALL(render->ctx, BufferData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush) + STOPS_MAX * sizeof(GradientStop), NULL, GL_DYNAMIC_READ));
 
     render->brush_offset = 0;
     render->brush_da = VL_DA_INIT_WITH_CAPACITY(Brush, BRUSH_MAX);
@@ -220,54 +227,54 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     render->stops_da = VL_DA_INIT_WITH_CAPACITY(GradientStop, STOPS_MAX);
     render->stops_offset = 0;
 
-    render->ctx.GenVertexArrays(1, &render->batch_vao);
-    render->ctx.BindVertexArray(render->batch_vao);
-    render->ctx.VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float) + sizeof(int), NULL);
-    render->ctx.EnableVertexAttribArray(0);
-    render->ctx.VertexAttribIPointer(1, 1, GL_INT, 8 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float)));
-    render->ctx.EnableVertexAttribArray(1);
-    render->ctx.VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float) + sizeof(int)));
-    render->ctx.EnableVertexAttribArray(2);
-    render->ctx.VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float) + sizeof(int), (void*) (6 * sizeof(float) + sizeof(int)));
-    render->ctx.EnableVertexAttribArray(3);
+    GL_CALL(render->ctx, GenVertexArrays(1, &render->batch_vao));
+    GL_CALL(render->ctx, BindVertexArray(render->batch_vao));
+    GL_CALL(render->ctx, VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float) + sizeof(int), NULL));
+    GL_CALL(render->ctx, EnableVertexAttribArray(0));
+    GL_CALL(render->ctx, VertexAttribIPointer(1, 1, GL_INT, 8 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float))));
+    GL_CALL(render->ctx, EnableVertexAttribArray(1));
+    GL_CALL(render->ctx, VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float) + sizeof(int), (void*) (2 * sizeof(float) + sizeof(int))));
+    GL_CALL(render->ctx, EnableVertexAttribArray(2));
+    GL_CALL(render->ctx, VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float) + sizeof(int), (void*) (6 * sizeof(float) + sizeof(int))));
+    GL_CALL(render->ctx, EnableVertexAttribArray(3));
 
     GLint vertex_shader, fragment_shader;
     vertex_shader = compile_shader(&render->ctx, GL_VERTEX_SHADER, s_batch_vertex_shader);
     fragment_shader = compile_shader(&render->ctx, GL_FRAGMENT_SHADER, s_batch_fragment_shader);
 
     render->batch_program = render->ctx.CreateProgram();
-    render->ctx.AttachShader(render->batch_program, vertex_shader);
-    render->ctx.AttachShader(render->batch_program, fragment_shader);
-    render->ctx.LinkProgram(render->batch_program);
+    GL_CALL(render->ctx, AttachShader(render->batch_program, vertex_shader));
+    GL_CALL(render->ctx, AttachShader(render->batch_program, fragment_shader));
+    GL_CALL(render->ctx, LinkProgram(render->batch_program));
     GLint success;
-    render->ctx.GetProgramiv(render->batch_program, GL_LINK_STATUS, &success);
+    GL_CALL(render->ctx, GetProgramiv(render->batch_program, GL_LINK_STATUS, &success));
     if (!success) {
         static GLchar error[1024];
         render->ctx.GetProgramInfoLog(render->batch_program, sizeof(error), NULL, error);
         printf("%s\n", error);
     }
 
-    render->ctx.DeleteShader(vertex_shader);
-    render->ctx.DeleteShader(fragment_shader);
+    GL_CALL(render->ctx, DeleteShader(vertex_shader));
+    GL_CALL(render->ctx, DeleteShader(fragment_shader));
 
-    render->ctx.UseProgram(render->batch_program);
+    GL_CALL(render->ctx, UseProgram(render->batch_program));
     for (int i = 0; i < BITMAP_MAX; i++) {
         int sampler_location = render->ctx.GetUniformLocation(render->batch_program, vl_sprintf_tmp("bitmaps[%i]", i));
-        render->ctx.Uniform1i(sampler_location, i);
+        GL_CALL(render->ctx, Uniform1i(sampler_location, i));
     }
 
     render->active_samplers = VL_DA_INIT_WITH_CAPACITY(GLint, BITMAP_MAX);
-    render->ctx.GenSamplers(BITMAP_MAX, render->active_samplers);
+    GL_CALL(render->ctx, GenSamplers(BITMAP_MAX, render->active_samplers));
 
     render->active_bitmaps = VL_DA_INIT_WITH_CAPACITY(vl_graphics_brush_bitmap_t*, BITMAP_MAX);
     render->bitmap_offset = 0;
     
     GLuint brushes_ubo = render->ctx.GetUniformBlockIndex(render->batch_program, "BrushData");
-    render->ctx.UniformBlockBinding(render->batch_program, brushes_ubo, 0);
+    GL_CALL(render->ctx, UniformBlockBinding(render->batch_program, brushes_ubo, 0));
 
     GLint max_texture_size, max_texture_units;
-    render->ctx.GetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-    render->ctx.GetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
+    GL_CALL(render->ctx, GetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size));
+    GL_CALL(render->ctx, GetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units));
     printf("max texture size: %i\n", max_texture_size);
     printf("max texture units: %i\n", max_texture_units);
 
@@ -283,8 +290,8 @@ vl_result_t vl_graphics_render_universal_clear(vl_graphics_render_t *render, vl_
     if (!render) return VL_ERROR;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     ensure_render_context(r);
-    r->ctx.ClearColor(fill.r, fill.g, fill.b, fill.a);
-    r->ctx.Clear(GL_COLOR_BUFFER_BIT);
+    GL_CALL(r->ctx, ClearColor(fill.r, fill.g, fill.b, fill.a));
+    GL_CALL(r->ctx, Clear(GL_COLOR_BUFFER_BIT));
     return VL_SUCCESS;
 }
 
@@ -363,6 +370,7 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
             if (bitmap_index < 0) {
                 r->active_bitmaps[(bitmap_index = r->bitmap_offset++)] = b;
             }
+            // printf("bi: %i\n", bitmap_index);
             brush_index = add_brush(r, (Brush) {
                 {3, bitmap_index, 0, 0},
                 {0, 0, 0 ,0}
@@ -418,29 +426,32 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
         r->batch_vertices[i].x = v[0];
         r->batch_vertices[i].y = v[1];
     }
-    r->ctx.BindBuffer(GL_ARRAY_BUFFER, r->batch_vbo);
-    r->ctx.BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(vl_graphics_vertex_t), r->batch_vertices);
+    GL_CALL(r->ctx, BindBuffer(GL_ARRAY_BUFFER, r->batch_vbo));
+    GL_CALL(r->ctx, BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(vl_graphics_vertex_t), r->batch_vertices));
 
-    r->ctx.BindBuffer(GL_UNIFORM_BUFFER, r->brush_vbo);
-    r->ctx.BufferSubData(GL_UNIFORM_BUFFER, 0, r->brush_offset * sizeof(Brush), r->brush_da);
-    r->ctx.BufferSubData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush), r->stops_offset * sizeof(GradientStop), r->stops_da);
+    GL_CALL(r->ctx, BindBuffer(GL_UNIFORM_BUFFER, r->brush_vbo));
+    GL_CALL(r->ctx, BufferSubData(GL_UNIFORM_BUFFER, 0, r->brush_offset * sizeof(Brush), r->brush_da));
+    GL_CALL(r->ctx, BufferSubData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush), r->stops_offset * sizeof(GradientStop), r->stops_da));
 
-    r->ctx.UseProgram(r->batch_program);
+    GL_CALL(r->ctx, UseProgram(r->batch_program));
     for (int i = 0; i < r->bitmap_offset; i++) {
         vl_graphics_brush_bitmap_t *bitmap_brush = r->active_bitmaps[i];
-        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_S, interpret_extend_mode(bitmap_brush->base.extend_x));
-        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_T, interpret_extend_mode(bitmap_brush->base.extend_y));
-        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MAG_FILTER, interpret_filter_mode(bitmap_brush->filter));
-        r->ctx.SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MIN_FILTER, interpret_filter_mode(bitmap_brush->filter));
+        GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_S, interpret_extend_mode(bitmap_brush->base.extend_x)));
+        GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_T, interpret_extend_mode(bitmap_brush->base.extend_y)));
+        GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MAG_FILTER, interpret_filter_mode(bitmap_brush->filter)));
+        GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MIN_FILTER, interpret_filter_mode(bitmap_brush->filter)));
 
         vl_graphics_bitmap_universal_t *bitmap = (vl_graphics_bitmap_universal_t*) bitmap_brush->bitmap;
-        r->ctx.BindSampler(i, r->active_samplers[i]);
-        r->ctx.ActiveTexture(GL_TEXTURE0 + i);
-        r->ctx.BindTexture(GL_TEXTURE_2D, bitmap->handle);
+        GL_CALL(r->ctx, ActiveTexture(GL_TEXTURE0 + i));
+        GL_CALL(r->ctx, BindTexture(GL_TEXTURE_2D, bitmap->handle));
+        GL_CALL(r->ctx, BindSampler(i, r->active_samplers[i]));
+
+        // printf("bitmap index: %i; handle: %i\n", i, bitmap->handle);
     }
-    r->ctx.BindVertexArray(r->batch_vao);
-    r->ctx.BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo);
-    r->ctx.DrawArrays(GL_TRIANGLES, 0, r->batch_offset);
+
+    GL_CALL(r->ctx, BindVertexArray(r->batch_vao));
+    GL_CALL(r->ctx, BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo));
+    GL_CALL(r->ctx, DrawArrays(GL_TRIANGLES, 0, r->batch_offset));
 
     for (int i = 0; i < VL_DA_LENGTH(r->owned_brushes); i++) {
         // reset brush's saved brush index
@@ -457,7 +468,7 @@ vl_result_t vl_graphics_render_universal_resize(vl_graphics_render_t *render, in
 
     int fw, fh;
     glfwGetFramebufferSize(win->handle, &fw, &fh);
-    r->ctx.Viewport(0, 0, fw, fh);
+    GL_CALL(r->ctx, Viewport(0, 0, fw, fh));
     return VL_SUCCESS;
 }
 

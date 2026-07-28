@@ -55,6 +55,8 @@ struct vl_graphics_render_universal {
     VL_DA(GLuint) active_samplers;
     size_t bitmap_offset;
 
+    GLuint dummy_texture;
+
     mat4 proj_mat;
 };
 
