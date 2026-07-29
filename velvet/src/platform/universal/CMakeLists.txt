@@ -8,6 +8,7 @@ set(Velvet_Sources
     src/platform/universal/sleep.c
     src/platform/universal/bitmap.c
     src/platform/universal/gl_check.c
+    src/platform/universal/font.c
     PARENT_SCOPE
 )
 

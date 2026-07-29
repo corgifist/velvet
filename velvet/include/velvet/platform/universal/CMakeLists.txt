@@ -6,5 +6,7 @@ set(Velvet_Headers
     include/velvet/platform/universal/brush.h
     include/velvet/platform/universal/sleep.h
     include/velvet/platform/universal/bitmap.h
+    include/velvet/platform/universal/font.h
+    include/velvet/platform/universal/stb_truetype.h
     PARENT_SCOPE
 )

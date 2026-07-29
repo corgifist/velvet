@@ -20,6 +20,8 @@ struct vl_os_window_io {
     // cursor x/y are relative to the window itself
     vl_point_t cursor;
     bool mouse_down[VL_MOUSE_BUTTON_COUNT];
+
+    float content_scale;
 };
 
 typedef struct vl_os_window_io vl_os_window_io_t;

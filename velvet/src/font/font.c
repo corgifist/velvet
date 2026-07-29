@@ -1,0 +1,28 @@
+#include "velvet/font/font.h"
+#include "font/atlas.h"
+
+
+vl_font_t *vl_font_new_(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc) {
+    if (!context || !context->font_new) return NULL;
+    return context->font_new(context, name, height, density, data, data_length, loc);
+}
+
+vl_font_atlas_codepoint_t *vl_font_rasterize_codepoint(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t codepoint) {
+    if (!font || !atlas) return NULL;
+    if (!font->context || !font->context->font_rasterize_codepoint) return NULL;
+    return font->context->font_rasterize_codepoint(font, atlas, codepoint);
+}
+
+int vl_font_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
+    if (!font || !font->context || !font->context->font_get_kern_advance) return 0;
+    return font->context->font_get_kern_advance(font, codepoint_a, codepoint_b);
+}
+
+vl_result_t vl_font_free(vl_font_t *font) {
+    if (!font) return VL_ERROR;
+    if (font->context && font->context->font_free) {
+        font->context->font_free(font);
+    }
+    vl_free(font);
+    return VL_SUCCESS;
+}

@@ -6,6 +6,7 @@
 #include <unicode/umachine.h>
 
 #include "large_test.h"
+#include "velvet/font/atlas.h"
 #include "velvet/graphics/bitmap.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/graphics/color.h"
@@ -557,6 +558,73 @@ void misalign_test() {
     }
 }
 
+#include "font.h"
+#include "velvet/font/font.h"
+
+void font_test() {
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_TYPES());
+    VL_ASSERT(ctx);
+
+    vl_font_t *font = vl_font_new(ctx, "simple font", 48, 2, ProggyVector_Regular, VL_ARR_SIZE(ProggyVector_Regular));
+    VL_ASSERT(font);
+    // vl_memory_print_allocations();
+
+    vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
+    // vl_memory_print_allocations();
+
+    for (int c = 'A'; c <= 'Z'; c++) {
+        vl_font_rasterize_codepoint(font, atlas, c);
+    }
+    for (int c = 'a'; c <= 'z'; c++) {
+        vl_font_rasterize_codepoint(font, atlas, c);
+    }
+
+    vl_font_rasterize_codepoint(font, atlas, ' ');
+    vl_font_rasterize_codepoint(font, atlas, '!');
+    vl_font_rasterize_codepoint(font, atlas, ',');
+
+
+    vl_os_window_t *win = vl_os_window_new(ctx, "Font rendering", 640, 480);
+    vl_graphics_render_t *r = vl_graphics_render_new(win);
+    vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
+    // win->callback_resize = window_resize;
+
+    vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, atlas->width, atlas->width, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas->data);
+    vl_graphics_brush_t *brush = vl_graphics_brush_new_bitmap(r, bitmap);
+    // ((vl_graphics_brush_bitmap_t*) brush)->filter = VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST;
+
+    bool close;
+    while (!vl_os_window_should_close(win, &close) && !close) {
+        vl_os_window_poll_events(ctx);
+        vl_graphics_presentation_begin(present);
+        vl_graphics_render_batch_begin(r); 
+            vl_graphics_render_batch_rect(r, VL_RECT_EX(0, 0, 400, 400), brush);
+
+            // const char *text = "A font that whispers tales of unfolding events Hello World";
+            const char *text = "Hello, World";
+            int base_x = 200;
+            int base_y = 400;
+            while (*text != '\0') {
+                int c = *text++;
+                vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, c);
+                // printf("character: %c\n", c);
+                VL_ASSERT(code);
+                vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
+                    base_x + code->left_bearing, base_y + code->y, 
+                    base_x + code->left_bearing + code->w, base_y + code->y + code->h), 
+                brush, VL_QUAD_WHITE, code->uv);
+                base_x += code->advance_x + vl_font_get_kern_advance(font, c, *text);
+                // printf("base_x: %i\n", base_x);
+            }
+        vl_graphics_render_batch_end(r);
+        vl_graphics_presentation_end(present);
+    }
+
+    vl_font_free(font);
+    vl_font_atlas_free(atlas);
+    // vl_memory_print_allocations();
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -573,11 +641,12 @@ int main(int argc, const char *argv[]) {
     // large_document_test();
     // error_pool_test();
     // parser_quote_test();
-    bitmap_test();
+    // bitmap_test();
     // memory_allocator_test();
     // malloc_test();
     // html_realloc_test();
     // misalign_test();
+    font_test();
 
     return 0;
 }

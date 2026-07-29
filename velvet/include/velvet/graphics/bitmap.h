@@ -6,7 +6,8 @@
 #include "velvet/support/result.h"
 
 enum vl_graphics_bitmap_format {
-    VL_GRAPHICS_BITMAP_FORMAT_RGBA8 = 0
+    VL_GRAPHICS_BITMAP_FORMAT_RGBA8 = 1,
+    VL_GRAPHICS_BITMAP_FORMAT_RRRR8
 };
 
 typedef enum vl_graphics_bitmap_format vl_graphics_bitmap_format_t;

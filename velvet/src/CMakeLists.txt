@@ -3,6 +3,7 @@ add_subdirectory(html)
 add_subdirectory(os)
 add_subdirectory(platform)
 add_subdirectory(graphics)
+add_subdirectory(font)
 
 set(Velvet_Sources
     ${Velvet_Sources}

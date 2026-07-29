@@ -96,8 +96,12 @@ static void update_window_io(vl_os_window_t *window) {
         (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
     window->io.mouse_down[VL_MOUSE_BUTTON_RIGHT] =
         (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
-     window->io.mouse_down[VL_MOUSE_BUTTON_MIDDLE] =
+    window->io.mouse_down[VL_MOUSE_BUTTON_MIDDLE] =
         (glfwGetMouseButton(win->handle, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
+
+    float scale_x, scale_y;
+    glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &scale_x, &scale_y);
+    window->io.content_scale = (scale_x + scale_y) / 2.0f;
 }
 
 vl_result_t vl_os_window_universal_poll_events() {

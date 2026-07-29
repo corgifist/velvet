@@ -159,6 +159,7 @@ void main() {
             }
         }
     }
+    if (color.a == 0.0) discard;
     FragColor = color;
 }
 );
@@ -205,12 +206,13 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     glfwGetFramebufferSize(window->handle, &fw, &fh);
     glfwGetWindowSize(window->handle, &w, &h);
     GL_CALL(render->ctx, Viewport(0, 0, fw, fh));
+    GL_CALL(render->ctx, PixelStorei(GL_UNPACK_ALIGNMENT, 1));
     flat_ortho(w, h, render->proj_mat);
     // printf("%i %i\n", w, h);
 
     GL_CALL(render->ctx, GenBuffers(1, &render->batch_vbo));
     GL_CALL(render->ctx, BindBuffer(GL_ARRAY_BUFFER, render->batch_vbo));
-    GL_CALL(render->ctx, BufferData(GL_ARRAY_BUFFER, BATCH_MAX * (6 * sizeof(float) + sizeof(int)), NULL, GL_DYNAMIC_DRAW));
+    GL_CALL(render->ctx, BufferData(GL_ARRAY_BUFFER, BATCH_MAX * sizeof(vl_graphics_vertex_t), NULL, GL_DYNAMIC_DRAW));
 
     render->batch_offset = 0;
     render->batch_vertices = VL_DA_INIT_WITH_CAPACITY(vl_graphics_vertex_t, BATCH_MAX);
@@ -392,6 +394,11 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
 
 vl_result_t vl_graphics_render_universal_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
     if (!render) return VL_ERROR;
+    vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
+    if (r->batch_offset + 6 > BATCH_MAX) {
+        vl_graphics_render_universal_batch_end(render);
+        vl_graphics_render_universal_batch_begin(render);
+    }
     int brush_index = get_brush_index(render, brush);
     batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr, uv.tr);
     batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl, uv.bl);

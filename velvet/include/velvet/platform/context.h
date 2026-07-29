@@ -20,6 +20,7 @@ struct vl_platform_context_types {
     vl_platform_context_type_t os_sleep;
     vl_platform_context_type_t graphics_render;
     vl_platform_context_type_t graphics_presentation;
+    vl_platform_context_type_t font;
 };
 
 typedef struct vl_platform_context_types vl_platform_context_types_t;
@@ -69,6 +70,15 @@ typedef struct vl_graphics_brush* (*vl_ctx_graphics_brush_new_linear_gradient)(s
 typedef struct vl_graphics_brush *(*vl_ctx_graphics_brush_new_bitmap)(struct vl_graphics_render *render, struct vl_graphics_bitmap *bitmap);
 typedef vl_result_t (*vl_ctx_graphics_brush_free)(struct vl_graphics_brush *brush);
 
+// velvet/font/font.h
+struct vl_font;
+struct vl_font_atlas_codepoint;
+struct vl_font_atlas;
+typedef struct vl_font* (*vl_ctx_font_new)(struct vl_platform_context *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc);
+typedef struct vl_font_atlas_codepoint* (*vl_ctx_font_rasterize_codepoint)(struct vl_font *font, struct vl_font_atlas *atlas, uint32_t codepoint);
+typedef int (*vl_ctx_font_get_kern_advance)(struct vl_font *font, uint32_t codepoint_a, uint32_t codepoint_b);
+typedef vl_result_t (*vl_ctx_font_free)(struct vl_font *font);
+
 struct vl_platform_context {
     vl_platform_context_types_t types;
 
@@ -99,6 +109,11 @@ struct vl_platform_context {
     vl_ctx_graphics_brush_new_linear_gradient graphics_brush_new_linear_gradient;
     vl_ctx_graphics_brush_new_bitmap graphics_brush_new_bitmap;
     vl_ctx_graphics_brush_free graphics_brush_free;
+
+    vl_ctx_font_new font_new;
+    vl_ctx_font_rasterize_codepoint font_rasterize_codepoint;
+    vl_ctx_font_get_kern_advance font_get_kern_advance;
+    vl_ctx_font_free font_free;
 };
 
 typedef struct vl_platform_context vl_platform_context_t;

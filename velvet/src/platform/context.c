@@ -10,6 +10,7 @@
     #include "velvet/platform/universal/presentation.h"
     #include "velvet/platform/universal/brush.h"
     #include "velvet/platform/universal/bitmap.h"
+    #include "velvet/platform/universal/font.h"
 #endif
 
 static vl_result_t init_os_window(vl_platform_context_t *ctx, vl_platform_context_types_t *types) {
@@ -81,6 +82,20 @@ static vl_result_t init_graphics_presentation(vl_platform_context_t *ctx, vl_pla
     return VL_ERROR;
 }
 
+static vl_result_t init_font(vl_platform_context_t *ctx, vl_platform_context_types_t *types) {
+#if VL_FEATURE(UNIVERSAL_PLATFORM)
+    if (types->font == VL_PLATFORM_CONTEXT_UNIVERSAL) {
+        ctx->font_new = vl_font_universal_new;
+        ctx->font_rasterize_codepoint = vl_font_universal_rasterize_codepoint;
+        ctx->font_get_kern_advance = vl_font_universal_get_kern_advance;
+        ctx->font_free = vl_font_universal_free;
+        return VL_SUCCESS;
+    }
+#endif 
+
+    return VL_ERROR;
+}
+
 static VL_DA(vl_platform_context_t*) s_contexts = NULL;
 
 vl_platform_context_t *vl_platform_context_new_(vl_platform_context_types_t types, vl_source_location_t loc) {
@@ -90,6 +105,7 @@ vl_platform_context_t *vl_platform_context_new_(vl_platform_context_types_t type
     if (init_os_sleep(ctx, &types)) goto drop;
     if (init_graphics(ctx, &types)) goto drop;
     if (init_graphics_presentation(ctx, &types)) goto drop;
+    if (init_font(ctx, &types)) goto drop;
     if (!s_contexts) s_contexts = VL_DA_INIT_WITH_ALLOCATOR(vl_platform_context_t*, VL_ALLOCATOR_STDLIB());
     VL_DA_APPEND(s_contexts, ctx);
     return ctx;
