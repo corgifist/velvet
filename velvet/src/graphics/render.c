@@ -29,7 +29,6 @@ vl_result_t vl_graphics_render_batch_quad_colored(vl_graphics_render_t *render, 
     return vl_graphics_render_batch_quad_colored_uv(render, quad, brush, colors, VL_QUAD_UV_DEFAULT);
 }
 
-
 vl_result_t vl_graphics_render_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_quad_colored_uv) return VL_ERROR;
     return render->context->graphics_render_batch_quad_colored_uv(render, quad, brush, colors, uv);

@@ -577,14 +577,10 @@ void font_test() {
     vl_font_atlas_t *atlas2 = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     // vl_memory_print_allocations();
 
-    for (int c = 'A'; c <= 'Z'; c++) {
-        vl_font_rasterize_codepoint(font1, atlas1, c);
-        vl_font_rasterize_codepoint(font2, atlas2, c);
-    }
-    for (int c = 'a'; c <= 'z'; c++) {
-        vl_font_rasterize_codepoint(font1, atlas1, c);
-        vl_font_rasterize_codepoint(font2, atlas2, c);
-    }
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas1, 'A', 'Z'));
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas1, 'a', 'z'));
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas2, 'A', 'Z'));
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas2, 'a', 'z'));
 
     vl_font_rasterize_codepoint(font1, atlas1, ' ');
     vl_font_rasterize_codepoint(font1, atlas1, '!');
