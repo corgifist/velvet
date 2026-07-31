@@ -11,7 +11,7 @@ struct vl_font_universal {
     const vl_byte_t *data;
     size_t data_length;
     stbtt_fontinfo font;
-    float scale, dense_scale;
+    float scale, slim_scale;
     int ascent, descent, line_gap;
 };
 
@@ -19,7 +19,7 @@ typedef struct vl_font_universal vl_font_universal_t;
 
 vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc);
 vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t codepoint);
-int vl_font_universal_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b);
+float vl_font_universal_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b);
 vl_result_t vl_font_universal_free(vl_font_t *font);
 
 #endif // VELVET_PLATFORM_UNIVERSAL_FONT_H

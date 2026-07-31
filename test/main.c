@@ -618,6 +618,7 @@ void font_test() {
         vl_graphics_render_batch_begin(r); 
             vl_graphics_render_clear(r, VL_BLACK);
             bool pressed = win->io.mouse_down[VL_MOUSE_BUTTON_LEFT];
+            vl_font_t *font = pressed ? font1 : font2;
             vl_font_atlas_t *atlas = pressed ? atlas1 : atlas2;
             vl_graphics_brush_t *brush = pressed ? brush1 : brush2;
             vl_graphics_render_batch_rect(r, VL_RECT_EX(0, 0, 400, 400), brush);
@@ -625,18 +626,20 @@ void font_test() {
             const char *text = "A font that whispers tales of unfolding events VA AV";
             // const char *text = "Hello, World";
             // const char *text = "Kerning: VA AV";
-            int base_x = 200;
-            int base_y = 400;
+            float base_x = 200;
+            float base_y = 400;
             while (*text != '\0') {
                 int c = *text++;
                 vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, c);
                 // printf("character: %c\n", c);
                 VL_ASSERT(code);
+                float x = pressed ? 1.0f : 2.0f;
+                x = 1;
                 vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
-                    base_x + code->x, base_y + code->y, 
-                    base_x + code->x + code->w, base_y + code->y + code->h), 
+                    base_x + code->x1 / x, base_y + code->y1 / x, 
+                    base_x + code->x2 / x, base_y + code->y2 / x), 
                 brush, VL_QUAD_WHITE, code->uv);
-                base_x += code->advance_x;
+                base_x += code->advance_x / x + vl_font_get_kern_advance(font, c, *text);
                 // printf("base_x: %i\n", base_x);
             }
         vl_graphics_render_batch_end(r);
@@ -659,7 +662,7 @@ void shaper_test() {
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
     VL_ASSERT(present);
 
-    vl_font_t *proggy = vl_font_new(ctx, "proggy", 48, 1, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
+    vl_font_t *proggy = vl_font_new(ctx, "proggy", 16, 1, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
     VL_ASSERT(proggy);
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     VL_ASSERT(atlas);
@@ -690,7 +693,7 @@ void shaper_test() {
         vl_os_window_poll_events(ctx);
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(r);
-            const char *text = "Hello, World! VA AV";
+            const char *text = "hello, World! VA AV";
             vl_font_shaper_process(shaper, text, strlen(text));
             int base_x = 200;
             int base_y = 200;
@@ -700,10 +703,10 @@ void shaper_test() {
                 while (vl_font_shaper_iterate(run, &glyph)) {
                     vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, glyph.codepoint);
                     VL_ASSERT(code);
-                    vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
-                        base_x + glyph.x, base_y + code->y + glyph.y,
-                        base_x + glyph.x + code->w, base_y + code->y + code->h + glyph.y
-                    ), brush, VL_QUAD_WHITE, code->uv);
+                    // vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
+                    //     base_x + glyph.x, base_y + code->y1 + glyph.y,
+                    //     base_x + glyph.x + code->w, base_y + code->y1 + code->h + glyph.y
+                    // ), brush, VL_QUAD_WHITE, code->uv);
                     // printf("base: %i %i\b; glyph: %i %i; advance: %i %i; char: %c\n", base_x, base_y, glyph.x, glyph.y, glyph.advance_x, glyph.advance_y, (char) glyph.codepoint);
                     base_x += glyph.advance_x;
                     base_y += glyph.advance_y;

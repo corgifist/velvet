@@ -13,7 +13,7 @@ vl_font_atlas_codepoint_t *vl_font_rasterize_codepoint(vl_font_t *font, vl_font_
     return font->context->font_rasterize_codepoint(font, atlas, codepoint);
 }
 
-int vl_font_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
+float vl_font_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
     if (!font || !font->context || !font->context->font_get_kern_advance) return 0;
     return font->context->font_get_kern_advance(font, codepoint_a, codepoint_b);
 }

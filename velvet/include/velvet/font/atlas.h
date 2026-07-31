@@ -22,9 +22,10 @@ struct vl_font_atlas_codepoint {
 
     // Data for basic text shaping
     // Consider using vl_font_shaper for better-looking text shaping
-    int w, h;
-    int x, y;
-    int advance_x;
+    float w, h;
+    float x1, y1;
+    float x2, y2;
+    float advance_x;
 };
 
 typedef struct vl_font_atlas_codepoint vl_font_atlas_codepoint_t;

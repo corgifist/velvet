@@ -1,3 +1,4 @@
+#include "platform/universal/kb_text_shape.h"
 #define KB_TEXT_SHAPE_IMPLEMENTATION
 #include "velvet/font/shaper.h"
 #include "platform/context.h"
@@ -73,7 +74,7 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
     glyph->codepoint = r->iterator->Codepoint;
     glyph->x = VL_ICEIL(r->iterator->OffsetX * f->scale);
     glyph->y = r->iterator->OffsetY;
-    glyph->advance_x = VL_ICEIL(r->iterator->AdvanceX * f->scale);
+    glyph->advance_x = r->iterator->AdvanceX * f->scale;
     glyph->advance_y = r->iterator->AdvanceY * f->scale;
     return glyph;
 }

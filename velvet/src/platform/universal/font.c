@@ -1,5 +1,6 @@
 #include "font/atlas.h"
 #include "support/da.h"
+#include "support/math.h"
 #include <stddef.h>
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "velvet/platform/universal/font.h"
@@ -24,9 +25,10 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     if (!stbtt_InitFont(&font->font, font->data, 0)) {
         goto err;
     }
-    font->scale = stbtt_ScaleForPixelHeight(&font->font, (float) height);
-    font->dense_scale = stbtt_ScaleForPixelHeight(&font->font, ((float) height) * density);
-    printf("%f %f\n", font->scale, font->dense_scale);
+    // font->base.height = height = height * density;
+    // font->base.density = density = 1;
+    font->scale = stbtt_ScaleForPixelHeight(&font->font, height * density);
+    font->slim_scale = stbtt_ScaleForPixelHeight(&font->font, height);
     stbtt_GetFontVMetrics(&font->font, &font->ascent, &font->descent, &font->line_gap);
 
     return (vl_font_t*) font;
@@ -41,54 +43,57 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
     vl_font_universal_t *f = (vl_font_universal_t*) font;
     int advance_x, left_bearing;
     stbtt_GetCodepointHMetrics(&f->font, codepoint, &advance_x, &left_bearing);
-    int nx1, ny1, nx2, ny2;
-    int dx1, dy1, dx2, dy2;
-    stbtt_GetCodepointBitmapBox(&f->font, codepoint, f->scale, f->scale, &nx1, &ny1, &nx2, &ny2);
-    stbtt_GetCodepointBitmapBox(&f->font, codepoint, f->dense_scale, f->dense_scale, &dx1, &dy1, &dx2, &dy2);
-    int nw = nx2 - nx1;
-    int nh = ny2 - ny1;
-    int dw = dx2 - dx1;
-    int dh = dy2 - dy1;
+    int x1, y1, x2, y2;
+    stbtt_GetCodepointBitmapBox(&f->font, codepoint, f->scale, f->scale, &x1, &y1, &x2, &y2);
+    float w = x2 - x1;
+    float h = y2 - y1;
     if (atlas->cursor_y >= atlas->height) {
         return NULL;
     }
-    if (atlas->cursor_x + dw >= atlas->width) {
+    if (atlas->cursor_x + w >= atlas->width) {
         atlas->cursor_x = 0;
-        atlas->cursor_y += font->height * font->density;
+        atlas->cursor_y += font->height * 2;
     }
-    if (atlas->cursor_y + dh >= atlas->height) {
+    if (atlas->cursor_y + h >= atlas->height) {
         // atlas is full
-        atlas->cursor_y += dh;
+        atlas->cursor_y += h;
         return NULL;
     }
     vl_byte_t *pixels = (atlas->data + atlas->width * atlas->cursor_y) + atlas->cursor_x;
-    stbtt_MakeCodepointBitmap(&f->font, pixels, dw, dh, atlas->width, f->dense_scale, f->dense_scale, codepoint);
+    stbtt_MakeCodepointBitmap(&f->font, pixels, w, h, atlas->width, f->scale, f->scale, codepoint);
     float bx1 = atlas->cursor_x;
     float by1 = atlas->cursor_y;
-    float bx2 = bx1 + dw;
-    float by2 = by1 + dh;
+    float bx2 = bx1 + w;
+    float by2 = by1 + h;
     vl_font_atlas_codepoint_t result = {0};
     result.owner = font;
-    result.w = dw;
-    result.h = dh;
+    result.w = w / font->density;
+    result.h = h / font->density;
     result.codepoint = codepoint;
-    result.advance_x = (advance_x * f->dense_scale);
-    result.x = (left_bearing * f->dense_scale);
-    result.y = (f->ascent * f->dense_scale) + dy1;
+    
+    float as = f->ascent * f->slim_scale;
+    float lb = left_bearing * f->slim_scale;
+    float ax = advance_x * f->slim_scale;
+    result.advance_x = ax;
+    result.x1 = lb;
+    result.y1 = as + y1 / font->density;
+    result.x2 = lb + w / font->density;
+    result.y2 = as + (y1 + h) / font->density;
+
     float aw = atlas->width;
     float ah = atlas->height;
-    result.uv.tl = VL_POINT(bx1 / atlas->width, by1 / atlas->height);
-    result.uv.tr = VL_POINT(bx2 / atlas->width, by1 / atlas->height);
-    result.uv.br = VL_POINT(bx2 / atlas->width, by2 / atlas->height);
-    result.uv.bl = VL_POINT(bx1 / atlas->width, by2 / atlas->height);
-    atlas->cursor_x += dw + font->density;
+    result.uv.tl = VL_POINT(bx1 / aw, by1 / ah);
+    result.uv.tr = VL_POINT(bx2 / aw, by1 / ah);
+    result.uv.br = VL_POINT(bx2 / aw, by2 / ah);
+    result.uv.bl = VL_POINT(bx1 / aw, by2 / ah);
+    atlas->cursor_x += w + font->density;
     return VL_DA_APPEND(atlas->codepoints, result);
 }
 
-int vl_font_universal_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
+float vl_font_universal_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
     if (!font) return 0;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
-    return (int) (stbtt_GetGlyphKernAdvance(&f->font, codepoint_a, codepoint_b) * f->scale);
+    return (stbtt_GetGlyphKernAdvance(&f->font, codepoint_a, codepoint_b) * f->scale / font->density);
 }
 
 vl_result_t vl_font_universal_free(vl_font_t *font) {
