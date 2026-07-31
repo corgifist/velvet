@@ -655,6 +655,7 @@ void shaper_test() {
 
     vl_os_window_t *win = vl_os_window_new(ctx, "Text shaper test", 640, 480);
     VL_ASSERT(win);
+    win->callback_resize = window_resize;
 
     vl_graphics_render_t *r = vl_graphics_render_new(win);
     VL_ASSERT(r);
@@ -662,7 +663,7 @@ void shaper_test() {
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
     VL_ASSERT(present);
 
-    vl_font_t *proggy = vl_font_new(ctx, "proggy", 16, 1, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
+    vl_font_t *proggy = vl_font_new(ctx, "proggy", 16, 2, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
     VL_ASSERT(proggy);
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     VL_ASSERT(atlas);
@@ -677,6 +678,7 @@ void shaper_test() {
     vl_font_rasterize_codepoint(proggy, atlas, '!');
     vl_font_rasterize_codepoint(proggy, atlas, ',');
     vl_font_rasterize_codepoint(proggy, atlas, ':');
+    vl_font_rasterize_codepoint(proggy, atlas, '.');
 
     vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, 512, 512, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas->data);
     vl_graphics_brush_t *brush = vl_graphics_brush_new_bitmap(r, bitmap);
@@ -693,20 +695,21 @@ void shaper_test() {
         vl_os_window_poll_events(ctx);
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(r);
-            const char *text = "hello, World! VA AV";
+            // const char *text = "hello, World! VA AV";
+            const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric.";
             vl_font_shaper_process(shaper, text, strlen(text));
-            int base_x = 200;
-            int base_y = 200;
+            float base_x = 0;
+            float base_y = 0;
             vl_font_shaper_run_reset(run);
             while (vl_font_shaper_shape(shaper, run)) {
                 vl_font_shaper_glyph_t glyph = {0};
                 while (vl_font_shaper_iterate(run, &glyph)) {
                     vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, glyph.codepoint);
                     VL_ASSERT(code);
-                    // vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
-                    //     base_x + glyph.x, base_y + code->y1 + glyph.y,
-                    //     base_x + glyph.x + code->w, base_y + code->y1 + code->h + glyph.y
-                    // ), brush, VL_QUAD_WHITE, code->uv);
+                    vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
+                         base_x + glyph.x, base_y + code->y1 + glyph.y,
+                         base_x + glyph.x + code->w, base_y + code->y1 + code->h + glyph.y
+                     ), brush, VL_QUAD_WHITE, code->uv);
                     // printf("base: %i %i\b; glyph: %i %i; advance: %i %i; char: %c\n", base_x, base_y, glyph.x, glyph.y, glyph.advance_x, glyph.advance_y, (char) glyph.codepoint);
                     base_x += glyph.advance_x;
                     base_y += glyph.advance_y;
@@ -738,8 +741,8 @@ int main(int argc, const char *argv[]) {
     // malloc_test();
     // html_realloc_test();
     // misalign_test();
-    font_test();
-    // shaper_test();
+    // font_test();
+    shaper_test();
 
     return 0;
 }
