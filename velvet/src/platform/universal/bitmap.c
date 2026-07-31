@@ -9,6 +9,7 @@ GLint get_internal_format(vl_graphics_bitmap_format_t format) {
     case VL_GRAPHICS_BITMAP_FORMAT_RGBA8:
         return GL_RGBA8;
     case VL_GRAPHICS_BITMAP_FORMAT_RRRR8:
+    case VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP:
         return GL_R8;
     default: {
         return GL_RGB;
@@ -21,6 +22,7 @@ GLint get_format(vl_graphics_bitmap_format_t format) {
     case VL_GRAPHICS_BITMAP_FORMAT_RGBA8:
         return GL_RGBA;
     case VL_GRAPHICS_BITMAP_FORMAT_RRRR8:
+    case VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP:
         return GL_RED;
     default: {
         return GL_RGBA;
@@ -31,8 +33,8 @@ GLint get_format(vl_graphics_bitmap_format_t format) {
 GLint get_type(vl_graphics_bitmap_format_t format) {
     switch (format) {
     case VL_GRAPHICS_BITMAP_FORMAT_RGBA8:
-        return GL_UNSIGNED_BYTE;
     case VL_GRAPHICS_BITMAP_FORMAT_RRRR8:
+    case VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP:
         return GL_UNSIGNED_BYTE;
     default: {
         return GL_UNSIGNED_BYTE;
@@ -59,7 +61,7 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *ren
     GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, format_mipmapped(format) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR));
     GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
     GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
-    if (format == VL_GRAPHICS_BITMAP_FORMAT_RRRR8) {
+    if (format == VL_GRAPHICS_BITMAP_FORMAT_RRRR8 || format == VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP) {
         GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED));
         GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED));
         GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));

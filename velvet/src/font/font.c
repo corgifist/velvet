@@ -16,6 +16,10 @@ vl_font_atlas_codepoint_t *vl_font_rasterize_codepoint(vl_font_t *font, vl_font_
 vl_result_t vl_font_rasterize_codepoint_range(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t begin, uint32_t end) {
     if (!font || !atlas) return VL_ERROR;
     for (uint32_t c = begin; c <= end; c++) {
+        if (vl_font_atlas_find_codepoint(atlas, font, c)) {
+            // already rasterized
+            continue;
+        }
         if (!vl_font_rasterize_codepoint(font, atlas, c)) return VL_ERROR;
     }
     return VL_SUCCESS;

@@ -569,30 +569,29 @@ void font_test() {
 
     vl_font_t *font1 = vl_font_new(ctx, "simple font", 16, 1, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
     VL_ASSERT(font1);
-    vl_font_t *font2 = vl_font_new(ctx, "simple font 2", 16, 4, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
+    vl_font_t *font2 = vl_font_new(ctx, "simple font 2", 16, 2, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
     VL_ASSERT(font2);
     // vl_memory_print_allocations();
 
-    vl_font_atlas_t *atlas1 = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
-    vl_font_atlas_t *atlas2 = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
+    vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     // vl_memory_print_allocations();
 
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas1, 'A', 'Z'));
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas1, 'a', 'z'));
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas2, 'A', 'Z'));
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas2, 'a', 'z'));
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas, 'A', 'Z'));
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas, 'a', 'z'));
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas, 'A', 'Z'));
+    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas, 'a', 'z'));
 
-    vl_font_rasterize_codepoint(font1, atlas1, ' ');
-    vl_font_rasterize_codepoint(font1, atlas1, '!');
-    vl_font_rasterize_codepoint(font1, atlas1, ',');
-    vl_font_rasterize_codepoint(font1, atlas1, ':');
-    vl_font_rasterize_codepoint(font1, atlas1, '.');
+    vl_font_rasterize_codepoint(font1, atlas, ' ');
+    vl_font_rasterize_codepoint(font1, atlas, '!');
+    vl_font_rasterize_codepoint(font1, atlas, ',');
+    vl_font_rasterize_codepoint(font1, atlas, ':');
+    vl_font_rasterize_codepoint(font1, atlas, '.');
 
-    vl_font_rasterize_codepoint(font2, atlas2, ' ');
-    vl_font_rasterize_codepoint(font2, atlas2, '!');
-    vl_font_rasterize_codepoint(font2, atlas2, ',');
-    vl_font_rasterize_codepoint(font2, atlas2, ':');
-    vl_font_rasterize_codepoint(font2, atlas2, '.');
+    vl_font_rasterize_codepoint(font2, atlas, ' ');
+    vl_font_rasterize_codepoint(font2, atlas, '!');
+    vl_font_rasterize_codepoint(font2, atlas, ',');
+    vl_font_rasterize_codepoint(font2, atlas, ':');
+    vl_font_rasterize_codepoint(font2, atlas, '.');
 
     // vl_font_rasterize_codepoint(font, atlas, 'A');
     // vl_font_rasterize_codepoint(font, atlas, 'B');
@@ -603,10 +602,8 @@ void font_test() {
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
     // win->callback_resize = window_resize;
 
-    vl_graphics_bitmap_t *bitmap1 = vl_graphics_bitmap_new(r, atlas1->width, atlas1->width, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas1->data);
-    vl_graphics_brush_t *brush1 = vl_graphics_brush_new_bitmap(r, bitmap1);
-    vl_graphics_bitmap_t *bitmap2 = vl_graphics_bitmap_new(r, atlas2->width, atlas2->width, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas2->data);
-    vl_graphics_brush_t *brush2 = vl_graphics_brush_new_bitmap(r, bitmap2);
+    vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, atlas->width, atlas->width, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas->data);
+    vl_graphics_brush_t *brush = vl_graphics_brush_new_bitmap(r, bitmap);
     // ((vl_graphics_brush_bitmap_t*) brush)->filter = VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST;
 
     bool close;
@@ -617,8 +614,6 @@ void font_test() {
             vl_graphics_render_clear(r, VL_BLACK);
             bool pressed = win->io.mouse_down[VL_MOUSE_BUTTON_LEFT];
             vl_font_t *font = pressed ? font1 : font2;
-            vl_font_atlas_t *atlas = pressed ? atlas1 : atlas2;
-            vl_graphics_brush_t *brush = pressed ? brush1 : brush2;
             vl_graphics_render_batch_rect(r, VL_RECT_EX(0, 0, 400, 400), brush);
 
             const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric. VA AV";
@@ -629,16 +624,14 @@ void font_test() {
             float base_y = 400;
             while (*text != '\0') {
                 int c = *text++;
-                vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, c);
+                vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, font, c);
                 // printf("character: %c\n", c);
                 VL_ASSERT(code);
-                float x = pressed ? 1.0f : 2.0f;
-                x = 1.0f;
                 vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
-                    base_x + code->x1 / x, base_y + code->y1 / x, 
-                    base_x + code->x2 / x, base_y + code->y2 / x), 
+                    base_x + code->x1, base_y + code->y1, 
+                    base_x + code->x2, base_y + code->y2), 
                 brush, VL_QUAD_WHITE, code->uv);
-                base_x += code->advance_x / x + vl_font_get_kern_advance(font, c, *text) / x;
+                base_x += code->advance_x + vl_font_get_kern_advance(font, c, *text);
                 // printf("base_x: %i\n", base_x);
             }
         vl_graphics_render_batch_end(r);
@@ -705,7 +698,7 @@ void shaper_test() {
             while (vl_font_shaper_shape(shaper, run)) {
                 vl_font_shaper_glyph_t glyph = {0};
                 while (vl_font_shaper_iterate(run, &glyph)) {
-                    vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, glyph.codepoint);
+                    vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, proggy, glyph.codepoint);
                     VL_ASSERT(code);
                     vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
                          base_x + glyph.x + code->x1, base_y + code->y1 + glyph.y,

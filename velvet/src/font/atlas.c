@@ -1,6 +1,7 @@
 #include "font/atlas.h"
 #include "support/result.h"
-#include <string.h>
+#include "support/memory.h"
+#include "font/font.h"
 
 vl_font_atlas_t *vl_font_atlas_new_(vl_font_atlas_format_t format, size_t width, size_t height, vl_source_location_t loc) {
     vl_font_atlas_t *atlas = VL_NEW(vl_font_atlas_t, loc);
@@ -28,14 +29,16 @@ vl_result_t vl_font_atlas_init_(vl_font_atlas_t *atlas, vl_font_atlas_format_t f
     atlas->data = vl_malloc(width * height * get_pixel_size(format), loc);
     atlas->cursor_x = 0;
     atlas->cursor_y = 0;
+    atlas->largest_glyph_on_line = 0;
     atlas->codepoints = VL_DA_INIT(vl_font_atlas_codepoint_t);
     return VL_SUCCESS;
 }
 
-vl_font_atlas_codepoint_t *vl_font_atlas_find_codepoint(vl_font_atlas_t *atlas, uint32_t codepoint) {
+vl_font_atlas_codepoint_t *vl_font_atlas_find_codepoint(vl_font_atlas_t *atlas, vl_font_t *font, uint32_t codepoint) {
     for (int i = 0; i < VL_DA_LENGTH(atlas->codepoints); i++) {
-        if (atlas->codepoints[i].codepoint == codepoint) {
-            return atlas->codepoints + i;
+        vl_font_atlas_codepoint_t *c = atlas->codepoints + i;
+        if (c->owner == font && c->codepoint == codepoint && c->owner->height == font->height) {
+            return c;
         }
     }
     return NULL;

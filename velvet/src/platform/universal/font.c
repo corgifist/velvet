@@ -52,7 +52,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
     }
     if (atlas->cursor_x + w >= atlas->width) {
         atlas->cursor_x = 0;
-        atlas->cursor_y += font->height * font->density;
+        atlas->cursor_y += atlas->largest_glyph_on_line;
     }
     if (atlas->cursor_y + h >= atlas->height) {
         // atlas is full
@@ -87,6 +87,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
     result.uv.br = VL_POINT(bx2 / aw, by2 / ah);
     result.uv.bl = VL_POINT(bx1 / aw, by2 / ah);
     atlas->cursor_x += w + 1;
+    atlas->largest_glyph_on_line = VL_MAX(h, atlas->largest_glyph_on_line);
     return VL_DA_APPEND(atlas->codepoints, result);
 }
 
