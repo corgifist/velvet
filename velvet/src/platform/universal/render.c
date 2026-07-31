@@ -154,9 +154,6 @@ void main() {
         } else if (brushes[vBrushIndex].brush_data.x == BRUSH_BITMAP) {
             int bitmapIndex = brushes[vBrushIndex].brush_data.y;
             color *= sampleBitmap(bitmapIndex, vST);
-            if (bitmapIndex == 2) {
-                color = vec4(0, 1, 0, 1);
-            }
         }
     }
     if (color.a == 0.0) discard;
@@ -207,6 +204,8 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     glfwGetWindowSize(window->handle, &w, &h);
     GL_CALL(render->ctx, Viewport(0, 0, fw, fh));
     GL_CALL(render->ctx, PixelStorei(GL_UNPACK_ALIGNMENT, 1));
+    GL_CALL(render->ctx, Enable(GL_BLEND));
+    GL_CALL(render->ctx, BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     flat_ortho(w, h, render->proj_mat);
     // printf("%i %i\n", w, h);
 
@@ -445,6 +444,7 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
         r->batch_vertices[i].x = v[0];
         r->batch_vertices[i].y = v[1];
     }
+    printf("batch offset: %i\n", (int) r->batch_offset);
     GL_CALL(r->ctx, BindBuffer(GL_ARRAY_BUFFER, r->batch_vbo));
     GL_CALL(r->ctx, BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(vl_graphics_vertex_t), r->batch_vertices));
 

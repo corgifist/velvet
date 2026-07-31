@@ -576,34 +576,28 @@ void font_test() {
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     // vl_memory_print_allocations();
 
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas, 'A', 'Z'));
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font1, atlas, 'a', 'z'));
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas, 'A', 'Z'));
-    VL_ASSERT(!vl_font_rasterize_codepoint_range(font2, atlas, 'a', 'z'));
-
-    vl_font_rasterize_codepoint(font1, atlas, ' ');
-    vl_font_rasterize_codepoint(font1, atlas, '!');
-    vl_font_rasterize_codepoint(font1, atlas, ',');
-    vl_font_rasterize_codepoint(font1, atlas, ':');
-    vl_font_rasterize_codepoint(font1, atlas, '.');
-
-    vl_font_rasterize_codepoint(font2, atlas, ' ');
-    vl_font_rasterize_codepoint(font2, atlas, '!');
-    vl_font_rasterize_codepoint(font2, atlas, ',');
-    vl_font_rasterize_codepoint(font2, atlas, ':');
-    vl_font_rasterize_codepoint(font2, atlas, '.');
-
-    // vl_font_rasterize_codepoint(font, atlas, 'A');
-    // vl_font_rasterize_codepoint(font, atlas, 'B');
+    const char *text = "Roboto has a dual nature.\nIt has a mechanical skeleton and the forms are largely geometric.\nAt the same time, the font features friendly and open curves\nWhile some grotesks distort their letterforms to force a rigid rhythm, Roboto doesn\'t compromise,\nallowing letters to be settled into their natural width. \nThis makes for a more natural reading rhythm more commonly found in humanist and serif types.";
+    // const char *text = "A font that whispers tales of unfolding events VA AV";
+    // const char *text = "Hello, World!";
+    // const char *text = "Kerning: VA AV";
+    for (int i = 0; i < strlen(text); i++) {
+        int c = text[i];
+        if (vl_font_atlas_find_codepoint(atlas, font1, c)) {
+            continue;
+        }
+        vl_font_rasterize_codepoint(font1, atlas, c);
+        vl_font_rasterize_codepoint(font2, atlas, c);
+    }
 
     vl_os_window_t *win = vl_os_window_new(ctx, "Font rendering", 640, 480);
     printf("scale: %f\n", win->io.content_scale);
     vl_graphics_render_t *r = vl_graphics_render_new(win);
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
-    // win->callback_resize = window_resize;
 
-    vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, atlas->width, atlas->width, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas->data);
+    vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, atlas->width, atlas->width, VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP, atlas->data);
+    VL_ASSERT(bitmap);
     vl_graphics_brush_t *brush = vl_graphics_brush_new_bitmap(r, bitmap);
+    VL_ASSERT(brush);
     // ((vl_graphics_brush_bitmap_t*) brush)->filter = VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST;
 
     bool close;
@@ -613,26 +607,30 @@ void font_test() {
         vl_graphics_render_batch_begin(r); 
             vl_graphics_render_clear(r, VL_BLACK);
             bool pressed = win->io.mouse_down[VL_MOUSE_BUTTON_LEFT];
+            vl_graphics_render_batch_rect(r, VL_RECT_EX(0, 0, 512, 512), brush);
             vl_font_t *font = pressed ? font1 : font2;
-            vl_graphics_render_batch_rect(r, VL_RECT_EX(0, 0, 400, 400), brush);
-
-            const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric. VA AV";
-            // const char *text = "A font that whispers tales of unfolding events VA AV";
-            // const char *text = "Hello, World";
-            // const char *text = "Kerning: VA AV";
             float base_x = 0;
-            float base_y = 400;
-            while (*text != '\0') {
-                int c = *text++;
+            float base_y = 200;
+            const char *ptr = text;
+            vl_vec2_t size = vl_font_get_text_size(font, ptr);
+            vl_graphics_render_batch_rect_colored(r, VL_RECT_EX(
+                base_x, base_y,
+                base_x + size.x, base_y + size.y
+            ), NULL, VL_QUAD_GREEN);
+            while (*ptr != '\0') {
+                int c = *ptr++;
                 vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, font, c);
-                // printf("character: %c\n", c);
                 VL_ASSERT(code);
+                if (c == '\n' || base_x + code->x1 >= 630) {
+                    base_x = 0;
+                    base_y += font2->newline_advance;
+                    continue;
+                }
                 vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
                     base_x + code->x1, base_y + code->y1, 
                     base_x + code->x2, base_y + code->y2), 
                 brush, VL_QUAD_WHITE, code->uv);
-                base_x += code->advance_x + vl_font_get_kern_advance(font, c, *text);
-                // printf("base_x: %i\n", base_x);
+                base_x += code->advance_x + vl_font_get_kern_advance(font, c, *ptr);
             }
         vl_graphics_render_batch_end(r);
         vl_graphics_presentation_end(present);
@@ -661,18 +659,18 @@ void shaper_test() {
     VL_ASSERT(proggy);
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     VL_ASSERT(atlas);
-    for (int c = 'A'; c <= 'Z'; c++) {
+    const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric. At the same time, the font features friendly and open curves. While some grotesks distort their letterforms to force a rigid rhythm, Roboto doesn\'t compromise, allowing letters to be settled into their natural width. This makes for a more natural reading rhythm more commonly found in humanist and serif types.";
+    // const char *text = "A font that whispers tales of unfolding events VA AV";
+    // const char *text = "Hello, World!";
+    // const char *text = "Kerning: VA AV";
+    // const char *text = "Kerning: VA AV";
+    for (int i = 0; i < strlen(text); i++) {
+        int c = text[i];
+        if (vl_font_atlas_find_codepoint(atlas, proggy, c)) {
+            continue;
+        }
         vl_font_rasterize_codepoint(proggy, atlas, c);
     }
-    for (int c = 'a'; c <= 'z'; c++) {
-        vl_font_rasterize_codepoint(proggy, atlas, c);
-    }
-
-    vl_font_rasterize_codepoint(proggy, atlas, ' ');
-    vl_font_rasterize_codepoint(proggy, atlas, '!');
-    vl_font_rasterize_codepoint(proggy, atlas, ',');
-    vl_font_rasterize_codepoint(proggy, atlas, ':');
-    vl_font_rasterize_codepoint(proggy, atlas, '.');
 
     vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, 512, 512, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas->data);
     vl_graphics_brush_t *brush = vl_graphics_brush_new_bitmap(r, bitmap);
@@ -690,12 +688,17 @@ void shaper_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(r);
             // const char *text = "hello, World! VA AV";
-            const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric. VA AV";
-            vl_font_shaper_process(shaper, text, strlen(text));
             float base_x = 0;
             float base_y = 0;
+            const char *ptr = text;
             vl_font_shaper_run_reset(run);
+            vl_font_shaper_process(shaper, ptr, strlen(ptr));
+            int ri = 0;
             while (vl_font_shaper_shape(shaper, run)) {
+                if (run->newline) {
+                    base_y += proggy->newline_advance;
+                    base_x = 0;
+                }
                 vl_font_shaper_glyph_t glyph = {0};
                 while (vl_font_shaper_iterate(run, &glyph)) {
                     vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, proggy, glyph.codepoint);

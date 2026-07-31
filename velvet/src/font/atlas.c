@@ -37,7 +37,8 @@ vl_result_t vl_font_atlas_init_(vl_font_atlas_t *atlas, vl_font_atlas_format_t f
 vl_font_atlas_codepoint_t *vl_font_atlas_find_codepoint(vl_font_atlas_t *atlas, vl_font_t *font, uint32_t codepoint) {
     for (int i = 0; i < VL_DA_LENGTH(atlas->codepoints); i++) {
         vl_font_atlas_codepoint_t *c = atlas->codepoints + i;
-        if (c->owner == font && c->codepoint == codepoint && c->owner->height == font->height) {
+        if (!c->owner) continue; 
+        if (c->owner == font && c->codepoint == codepoint) {
             return c;
         }
     }

@@ -3,11 +3,12 @@
 
 #include <cglm/types.h>
 
-struct vl_point {
+struct vl_vec2 {
     float x, y;
 };
 
-typedef struct vl_point vl_point_t;
+typedef struct vl_vec2 vl_vec2_t;
+typedef vl_vec2_t vl_point_t;
 
 struct vl_rect {
     union {
@@ -56,6 +57,7 @@ typedef struct vl_quad_uv vl_quad_uv_t;
 
 #define VL_POINT(X, Y) ((vl_point_t) {.x = ((float) (X)), .y = ((float) (Y))})
 #define VL_POINT1(A) VL_POINT(A, A)
+#define VL_VEC2 VL_POINT
 
 #define VL_POINT_OP(P1, P2, OP) \
     ((vl_point_t) {.x = (P1).x OP (P2).x, .y = (P1).y OP (P2).y})

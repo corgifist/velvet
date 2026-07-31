@@ -80,6 +80,7 @@ struct vl_font_atlas;
 typedef struct vl_font* (*vl_ctx_font_new)(struct vl_platform_context *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc);
 typedef struct vl_font_atlas_codepoint* (*vl_ctx_font_rasterize_codepoint)(struct vl_font *font, struct vl_font_atlas *atlas, uint32_t codepoint);
 typedef float (*vl_ctx_font_get_kern_advance)(struct vl_font *font, uint32_t codepoint_a, uint32_t codepoint_b);
+typedef struct vl_vec2 (*vl_ctx_font_get_text_size_ex)(struct vl_font *font, const char *text, size_t size);
 typedef vl_result_t (*vl_ctx_font_free)(struct vl_font *font);
 
 // velvet/font/shaper.h
@@ -130,6 +131,7 @@ struct vl_platform_context {
     vl_ctx_font_new font_new;
     vl_ctx_font_rasterize_codepoint font_rasterize_codepoint;
     vl_ctx_font_get_kern_advance font_get_kern_advance;
+    vl_ctx_font_get_text_size_ex font_get_text_size_ex;
     vl_ctx_font_free font_free;
 
     vl_ctx_font_shaper_new font_shaper_new;

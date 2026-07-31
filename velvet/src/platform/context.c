@@ -89,6 +89,7 @@ static vl_result_t init_font(vl_platform_context_t *ctx, vl_platform_context_typ
         ctx->font_new = vl_font_universal_new;
         ctx->font_rasterize_codepoint = vl_font_universal_rasterize_codepoint;
         ctx->font_get_kern_advance = vl_font_universal_get_kern_advance;
+        ctx->font_get_text_size_ex = vl_font_universal_get_text_size_ex;
         ctx->font_free = vl_font_universal_free;
 
         ctx->font_shaper_new = vl_font_shaper_universal_new;

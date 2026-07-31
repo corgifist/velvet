@@ -12,6 +12,7 @@ struct vl_font {
     vl_platform_context_t *context;
     const char *name;
     int height;
+    int newline_advance;
     float density;
 };
 
@@ -25,6 +26,8 @@ VL_API vl_font_t *vl_font_new_(vl_platform_context_t *context, const char *name,
 VL_API vl_font_atlas_codepoint_t *vl_font_rasterize_codepoint(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t codepoint);
 VL_API vl_result_t vl_font_rasterize_codepoint_range(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t begin, uint32_t end);
 VL_API float vl_font_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b);
+VL_API vl_vec2_t vl_font_get_text_size(vl_font_t *font, const char *text);
+VL_API vl_vec2_t vl_font_get_text_size_ex(vl_font_t *font, const char *text, size_t text_length);
 VL_API vl_result_t vl_font_free(vl_font_t *font);
 
 #endif // VELVET_FONT_FONT_H

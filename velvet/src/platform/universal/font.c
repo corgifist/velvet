@@ -1,4 +1,5 @@
 #include "font/atlas.h"
+#include "graphics/geometry.h"
 #include "support/da.h"
 #include "support/math.h"
 #include <stddef.h>
@@ -30,6 +31,7 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     font->slim_scale = stbtt_ScaleForPixelHeight(&font->font, height);
     font->scale = font->slim_scale * density;
     stbtt_GetFontVMetrics(&font->font, &font->ascent, &font->descent, &font->line_gap);
+    font->base.newline_advance = (font->ascent - font->descent + font->line_gap) * font->slim_scale;
 
     return (vl_font_t*) font;
     err:
@@ -53,6 +55,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
     if (atlas->cursor_x + w >= atlas->width) {
         atlas->cursor_x = 0;
         atlas->cursor_y += atlas->largest_glyph_on_line;
+        atlas->largest_glyph_on_line = 0;
     }
     if (atlas->cursor_y + h >= atlas->height) {
         // atlas is full
@@ -92,10 +95,40 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
 }
 
 float vl_font_universal_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
-    if (!font) return 0;
     if (codepoint_a == 0 || codepoint_b == 0) return 0;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
     return ((float) stbtt_GetGlyphKernAdvance(&f->font, codepoint_a, codepoint_b)) * f->slim_scale;
+}
+
+vl_vec2_t vl_font_universal_get_text_size_ex(vl_font_t *font, const char *text, size_t text_length) {
+    vl_font_universal_t *f = (vl_font_universal_t*) font;
+    float x = 0;
+    float y = 0;
+    float base_x = 0;
+    float base_y = 0;
+    for (size_t i = 0; i < text_length; i++) {
+        int c = text[i];
+        if (c == '\n') {
+            base_y += font->newline_advance;
+            base_x = 0;
+            y = VL_MAX(y, base_y);
+            continue;
+        }
+        int ax, lsb;
+        stbtt_GetCodepointHMetrics(&f->font, c, &ax, &lsb);
+        int x1, y1, x2, y2;
+        stbtt_GetCodepointBitmapBox(&f->font, c, f->slim_scale, f->slim_scale, &x1, &y1, &x2, &y2);
+        int w = x2 - x1;
+        int h = y2 - y1;
+        base_x += ax * f->slim_scale;
+        float bx = base_x + (lsb + w) * f->slim_scale;
+        float by = base_y + (f->ascent - f->descent + f->line_gap + y1 + h) * f->slim_scale;
+        x = VL_MAX(bx, x);
+        y = VL_MAX(by, y);
+        if (i != text_length - 1)
+            base_x += stbtt_GetGlyphKernAdvance(&f->font, c, text[i + 1]) * f->slim_scale;
+    }
+    return VL_VEC2(x, y);
 }
 
 vl_result_t vl_font_universal_free(vl_font_t *font) {
