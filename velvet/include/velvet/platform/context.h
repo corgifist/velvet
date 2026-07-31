@@ -28,6 +28,9 @@ typedef struct vl_platform_context_types vl_platform_context_types_t;
 #define VL_PLATFORM_CONTEXT_TYPES() \
     ((vl_platform_context_types_t) {0})
 
+#define VL_PLATFORM_CONTEXT_DEFAULT \
+    VL_PLATFORM_CONTEXT_TYPES()
+
 struct vl_platform_context;
 // velvet/os/window.h
 struct vl_os_window;
@@ -79,6 +82,20 @@ typedef struct vl_font_atlas_codepoint* (*vl_ctx_font_rasterize_codepoint)(struc
 typedef int (*vl_ctx_font_get_kern_advance)(struct vl_font *font, uint32_t codepoint_a, uint32_t codepoint_b);
 typedef vl_result_t (*vl_ctx_font_free)(struct vl_font *font);
 
+// velvet/font/shaper.h
+struct vl_font_shaper;
+struct vl_font_shaper_run;
+struct vl_font_shaper_glyph;
+typedef struct vl_font_shaper_run* (*vl_ctx_font_shaper_run_new)(struct vl_font_shaper *shaper, vl_source_location_t loc);
+typedef struct vl_font_shaper *(*vl_ctx_font_shaper_new)(struct vl_platform_context *context, vl_source_location_t loc);
+typedef vl_result_t (*vl_ctx_font_shaper_add_font)(struct vl_font_shaper *shaper, struct vl_font *font);
+typedef vl_result_t (*vl_ctx_font_shaper_process)(struct vl_font_shaper *shaper, const char *text, size_t text_length);
+typedef bool (*vl_ctx_font_shaper_shape)(struct vl_font_shaper *shaper, struct vl_font_shaper_run *run);
+typedef struct vl_font_shaper_glyph* (*vl_ctx_font_shaper_iterate)(struct vl_font_shaper_run *run, struct vl_font_shaper_glyph *glyph);
+typedef vl_result_t (*vl_ctx_font_shaper_run_reset)(struct vl_font_shaper_run *run);
+typedef vl_result_t (*vl_ctx_font_shaper_run_free)(struct vl_font_shaper_run *run);
+typedef vl_result_t (*vl_ctx_font_shaper_free)(struct vl_font_shaper *shaper);
+
 struct vl_platform_context {
     vl_platform_context_types_t types;
 
@@ -114,6 +131,16 @@ struct vl_platform_context {
     vl_ctx_font_rasterize_codepoint font_rasterize_codepoint;
     vl_ctx_font_get_kern_advance font_get_kern_advance;
     vl_ctx_font_free font_free;
+
+    vl_ctx_font_shaper_new font_shaper_new;
+    vl_ctx_font_shaper_add_font font_shaper_add_font;
+    vl_ctx_font_shaper_process font_shaper_process;
+    vl_ctx_font_shaper_run_new font_shaper_run_new;
+    vl_ctx_font_shaper_shape font_shaper_shape;
+    vl_ctx_font_shaper_iterate font_shaper_iterate;
+    vl_ctx_font_shaper_run_reset font_shaper_run_reset;
+    vl_ctx_font_shaper_run_free font_shaper_run_free;
+    vl_ctx_font_shaper_free font_shaper_free;
 };
 
 typedef struct vl_platform_context vl_platform_context_t;

@@ -9,6 +9,7 @@ set(Velvet_Sources
     src/platform/universal/bitmap.c
     src/platform/universal/gl_check.c
     src/platform/universal/font.c
+    src/platform/universal/shaper.c
     PARENT_SCOPE
 )
 

@@ -18,10 +18,13 @@ struct vl_font;
 struct vl_font_atlas_codepoint {
     struct vl_font *owner;
     uint32_t codepoint;
-    int w, h;
-    int left_bearing, advance_x;
-    int y;
     vl_quad_uv_t uv;
+
+    // Data for basic text shaping
+    // Consider using vl_font_shaper for better-looking text shaping
+    int w, h;
+    int x, y;
+    int advance_x;
 };
 
 typedef struct vl_font_atlas_codepoint vl_font_atlas_codepoint_t;

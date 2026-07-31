@@ -63,22 +63,24 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
     }
     vl_byte_t *pixels = (atlas->data + atlas->width * atlas->cursor_y) + atlas->cursor_x;
     stbtt_MakeCodepointBitmap(&f->font, pixels, dw, dh, atlas->width, f->dense_scale, f->dense_scale, codepoint);
-    size_t bx1 = atlas->cursor_x;
-    size_t by1 = atlas->cursor_y;
-    size_t bx2 = bx1 + floorf(nw * font->density);
-    size_t by2 = by1 + floorf(nh * font->density);
+    float bx1 = atlas->cursor_x;
+    float by1 = atlas->cursor_y;
+    float bx2 = bx1 + dw;
+    float by2 = by1 + dh;
     vl_font_atlas_codepoint_t result = {0};
     result.owner = font;
-    result.w = nw;
-    result.h = nh;
+    result.w = dw;
+    result.h = dh;
     result.codepoint = codepoint;
-    result.advance_x = (advance_x * f->scale);
-    result.left_bearing = (left_bearing * f->scale);
-    result.y = (f->ascent * f->scale) + ny1;
-    result.uv.tl = VL_POINT((float)bx1 / (float) atlas->width, (float) by1 / (float) atlas->height);
-    result.uv.tr = VL_POINT((float) bx2 / (float) atlas->width, (float) by1 / (float) atlas->height);
-    result.uv.br = VL_POINT((float) bx2 / (float) atlas->width, (float) by2 / (float) atlas->height);
-    result.uv.bl = VL_POINT((float) bx1 / (float) atlas->width, (float) by2 / (float) atlas->height);
+    result.advance_x = (advance_x * f->dense_scale);
+    result.x = (left_bearing * f->dense_scale);
+    result.y = (f->ascent * f->dense_scale) + dy1;
+    float aw = atlas->width;
+    float ah = atlas->height;
+    result.uv.tl = VL_POINT(bx1 / atlas->width, by1 / atlas->height);
+    result.uv.tr = VL_POINT(bx2 / atlas->width, by1 / atlas->height);
+    result.uv.br = VL_POINT(bx2 / atlas->width, by2 / atlas->height);
+    result.uv.bl = VL_POINT(bx1 / atlas->width, by2 / atlas->height);
     atlas->cursor_x += dw + font->density;
     return VL_DA_APPEND(atlas->codepoints, result);
 }

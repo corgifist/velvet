@@ -75,6 +75,7 @@ vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     *VL_DA_PUSH(s_windows, vl_os_window_t*) = (vl_os_window_t*) win;
 
     glfwSetWindowSizeCallback(handle, callback_window_resize);
+    vl_os_window_universal_poll_events();
 
     return (vl_os_window_t*) win;
 

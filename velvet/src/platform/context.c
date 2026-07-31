@@ -11,6 +11,7 @@
     #include "velvet/platform/universal/brush.h"
     #include "velvet/platform/universal/bitmap.h"
     #include "velvet/platform/universal/font.h"
+    #include "velvet/platform/universal/shaper.h"
 #endif
 
 static vl_result_t init_os_window(vl_platform_context_t *ctx, vl_platform_context_types_t *types) {
@@ -89,6 +90,16 @@ static vl_result_t init_font(vl_platform_context_t *ctx, vl_platform_context_typ
         ctx->font_rasterize_codepoint = vl_font_universal_rasterize_codepoint;
         ctx->font_get_kern_advance = vl_font_universal_get_kern_advance;
         ctx->font_free = vl_font_universal_free;
+
+        ctx->font_shaper_new = vl_font_shaper_universal_new;
+        ctx->font_shaper_run_new = vl_font_shaper_run_universal_new;
+        ctx->font_shaper_process = vl_font_shaper_univesal_process;
+        ctx->font_shaper_add_font = vl_font_shaper_universal_add_font;
+        ctx->font_shaper_shape = vl_font_shaper_universal_shape;
+        ctx->font_shaper_iterate = vl_font_shaper_universal_iterate;
+        ctx->font_shaper_run_reset = vl_font_shaper_run_universal_reset;
+        ctx->font_shaper_run_free = vl_font_shaper_run_universal_free;
+        ctx->font_shaper_free = vl_font_shaper_universal_free;
         return VL_SUCCESS;
     }
 #endif 
