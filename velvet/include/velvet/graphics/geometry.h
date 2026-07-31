@@ -29,7 +29,10 @@ typedef struct vl_rect vl_rect_t;
 struct vl_quad {
     union {
         struct {
-            vl_point_t p1, p2, p3, p4;
+            vl_point_t p1;
+            vl_point_t p2;
+            vl_point_t p3;
+            vl_point_t p4;
         };
         struct {
             float x1, y1;

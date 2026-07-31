@@ -27,8 +27,8 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     }
     // font->base.height = height = height * density;
     // font->base.density = density = 1;
-    font->scale = stbtt_ScaleForPixelHeight(&font->font, height * density);
     font->slim_scale = stbtt_ScaleForPixelHeight(&font->font, height);
+    font->scale = font->slim_scale * density;
     stbtt_GetFontVMetrics(&font->font, &font->ascent, &font->descent, &font->line_gap);
 
     return (vl_font_t*) font;
@@ -52,7 +52,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
     }
     if (atlas->cursor_x + w >= atlas->width) {
         atlas->cursor_x = 0;
-        atlas->cursor_y += font->height * 2;
+        atlas->cursor_y += font->height * font->density;
     }
     if (atlas->cursor_y + h >= atlas->height) {
         // atlas is full
@@ -86,14 +86,15 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_codepoint(vl_font_t *font
     result.uv.tr = VL_POINT(bx2 / aw, by1 / ah);
     result.uv.br = VL_POINT(bx2 / aw, by2 / ah);
     result.uv.bl = VL_POINT(bx1 / aw, by2 / ah);
-    atlas->cursor_x += w + font->density;
+    atlas->cursor_x += w + 1;
     return VL_DA_APPEND(atlas->codepoints, result);
 }
 
 float vl_font_universal_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
     if (!font) return 0;
+    if (codepoint_a == 0 || codepoint_b == 0) return 0;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
-    return (stbtt_GetGlyphKernAdvance(&f->font, codepoint_a, codepoint_b) * f->scale / font->density);
+    return ((float) stbtt_GetGlyphKernAdvance(&f->font, codepoint_a, codepoint_b)) * f->slim_scale;
 }
 
 vl_result_t vl_font_universal_free(vl_font_t *font) {

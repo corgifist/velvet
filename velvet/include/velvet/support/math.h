@@ -33,4 +33,6 @@
 #define VL_IROUND(A) ((int) VL_ROUND(A))
 #endif // VL_IROUND
 
+#define VL_LRINTF(A) (lrintf((float) (A)))
+
 #endif // VELVET_SUPPORT_MATH_H

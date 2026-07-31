@@ -569,7 +569,7 @@ void font_test() {
 
     vl_font_t *font1 = vl_font_new(ctx, "simple font", 16, 1, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
     VL_ASSERT(font1);
-    vl_font_t *font2 = vl_font_new(ctx, "simple font 2", 16, 2, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
+    vl_font_t *font2 = vl_font_new(ctx, "simple font 2", 16, 4, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
     VL_ASSERT(font2);
     // vl_memory_print_allocations();
 
@@ -637,12 +637,12 @@ void font_test() {
                 // printf("character: %c\n", c);
                 VL_ASSERT(code);
                 float x = pressed ? 1.0f : 2.0f;
-                x = 1;
+                x = 1.0f;
                 vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
                     base_x + code->x1 / x, base_y + code->y1 / x, 
                     base_x + code->x2 / x, base_y + code->y2 / x), 
                 brush, VL_QUAD_WHITE, code->uv);
-                base_x += code->advance_x / x + vl_font_get_kern_advance(font, c, *text);
+                base_x += code->advance_x / x + vl_font_get_kern_advance(font, c, *text) / x;
                 // printf("base_x: %i\n", base_x);
             }
         vl_graphics_render_batch_end(r);
@@ -725,6 +725,11 @@ void shaper_test() {
     }
 }
 
+void arabic_test() {
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
+    vl_os_window_t *win = vl_os_window_new(ctx, "Arabic test", 640, 480);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -748,6 +753,7 @@ int main(int argc, const char *argv[]) {
     // misalign_test();
     font_test();
     // shaper_test();
+    // arabic_test();
 
     return 0;
 }

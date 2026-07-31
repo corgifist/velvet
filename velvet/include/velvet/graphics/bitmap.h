@@ -7,7 +7,8 @@
 
 enum vl_graphics_bitmap_format {
     VL_GRAPHICS_BITMAP_FORMAT_RGBA8 = 1,
-    VL_GRAPHICS_BITMAP_FORMAT_RRRR8
+    VL_GRAPHICS_BITMAP_FORMAT_RRRR8,
+    VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP
 };
 
 typedef enum vl_graphics_bitmap_format vl_graphics_bitmap_format_t;

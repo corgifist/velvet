@@ -40,6 +40,13 @@ GLint get_type(vl_graphics_bitmap_format_t format) {
     }
 }
 
+static bool format_mipmapped(vl_graphics_bitmap_format_t format) {
+    switch (format) {
+    case VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP: return true;
+    default: return false;
+    }
+}
+
 vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *render, 
         size_t width, size_t height, vl_graphics_bitmap_format_t format, void *data) {
     if (!render) return NULL;
@@ -49,7 +56,7 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *ren
     GL_CALL(r->ctx, GenTextures(1, &bitmap->handle));
     GL_CALL(r->ctx, BindTexture(GL_TEXTURE_2D, bitmap->handle));
     GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, format_mipmapped(format) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR));
     GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
     GL_CALL(r->ctx, TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
     if (format == VL_GRAPHICS_BITMAP_FORMAT_RRRR8) {
@@ -61,7 +68,9 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *ren
     GL_CALL(r->ctx, TexImage2D(
         GL_TEXTURE_2D, 0, get_internal_format(format), 
             width, height, 0, get_format(format), get_type(format), data));
-    r->ctx.GenerateMipmap(GL_TEXTURE_2D);
+    if (format == VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP) {
+        GL_CALL(r->ctx, GenerateMipmap(GL_TEXTURE_2D));
+    }
     return (vl_graphics_bitmap_t*) bitmap;
 }
 

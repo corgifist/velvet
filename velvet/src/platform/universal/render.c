@@ -426,6 +426,13 @@ static GLint interpret_filter_mode(vl_graphics_brush_bitmap_filter_t filter) {
     }
 }
 
+static bool format_mipmapped(vl_graphics_bitmap_format_t format) {
+    switch (format) {
+    case VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP: return true;
+    default: return false;
+    }
+}
+
 vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render) {
     if (!render) return VL_ERROR;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
@@ -451,7 +458,11 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
         GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_S, interpret_extend_mode(bitmap_brush->base.extend_x)));
         GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_WRAP_T, interpret_extend_mode(bitmap_brush->base.extend_y)));
         GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MAG_FILTER, interpret_filter_mode(bitmap_brush->filter)));
-        GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MIN_FILTER, ((interpret_filter_mode(bitmap_brush->filter)) == GL_LINEAR) ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST));
+        GL_CALL(r->ctx, SamplerParameteri(r->active_samplers[i], GL_TEXTURE_MIN_FILTER, (
+            (interpret_filter_mode(bitmap_brush->filter)) == GL_LINEAR)
+                    ? (format_mipmapped(bitmap_brush->bitmap->format) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR) 
+                    : GL_NEAREST
+        ));
 
         vl_graphics_bitmap_universal_t *bitmap = (vl_graphics_bitmap_universal_t*) bitmap_brush->bitmap;
         GL_CALL(r->ctx, ActiveTexture(GL_TEXTURE0 + i));
