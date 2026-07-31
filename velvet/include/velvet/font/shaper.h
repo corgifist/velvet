@@ -14,6 +14,7 @@ typedef struct vl_font_shaper vl_font_shaper_t;
 
 struct vl_font_shaper_glyph {
     uint32_t codepoint;
+    int codepoint_index;
     float x, y;
     float advance_x, advance_y;
 };

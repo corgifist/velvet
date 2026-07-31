@@ -72,10 +72,11 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
     int status = kbts_GlyphIteratorNext(&r->run.Glyphs, &r->iterator);
     if (status == 0) return NULL;
     glyph->codepoint = r->iterator->Codepoint;
-    glyph->x = r->iterator->OffsetX * f->slim_scale;
-    glyph->y = r->iterator->OffsetY * f->slim_scale;
-    glyph->advance_x = r->iterator->AdvanceX * f->slim_scale;
-    glyph->advance_y = r->iterator->AdvanceY * f->slim_scale;
+    glyph->codepoint_index = r->iterator->UserIdOrCodepointIndex;
+    glyph->x = ((float) r->iterator->OffsetX) * f->slim_scale;
+    glyph->y = ((float) r->iterator->OffsetY) * f->slim_scale;
+    glyph->advance_x = ((float) r->iterator->AdvanceX) * f->slim_scale;
+    glyph->advance_y = ((float) r->iterator->AdvanceY) * f->slim_scale;
     return glyph;
 }
 

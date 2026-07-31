@@ -590,11 +590,13 @@ void font_test() {
     vl_font_rasterize_codepoint(font1, atlas1, '!');
     vl_font_rasterize_codepoint(font1, atlas1, ',');
     vl_font_rasterize_codepoint(font1, atlas1, ':');
+    vl_font_rasterize_codepoint(font1, atlas1, '.');
 
     vl_font_rasterize_codepoint(font2, atlas2, ' ');
     vl_font_rasterize_codepoint(font2, atlas2, '!');
     vl_font_rasterize_codepoint(font2, atlas2, ',');
     vl_font_rasterize_codepoint(font2, atlas2, ':');
+    vl_font_rasterize_codepoint(font2, atlas2, '.');
 
     // vl_font_rasterize_codepoint(font, atlas, 'A');
     // vl_font_rasterize_codepoint(font, atlas, 'B');
@@ -623,10 +625,11 @@ void font_test() {
             vl_graphics_brush_t *brush = pressed ? brush1 : brush2;
             vl_graphics_render_batch_rect(r, VL_RECT_EX(0, 0, 400, 400), brush);
 
-            const char *text = "A font that whispers tales of unfolding events VA AV";
+            const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric. VA AV";
+            // const char *text = "A font that whispers tales of unfolding events VA AV";
             // const char *text = "Hello, World";
             // const char *text = "Kerning: VA AV";
-            float base_x = 200;
+            float base_x = 0;
             float base_y = 400;
             while (*text != '\0') {
                 int c = *text++;
@@ -648,6 +651,8 @@ void font_test() {
 
     // vl_memory_print_allocations();
 }
+
+#include "velvet/support/math.h"
 
 void shaper_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
@@ -696,7 +701,7 @@ void shaper_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(r);
             // const char *text = "hello, World! VA AV";
-            const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric.";
+            const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric. VA AV";
             vl_font_shaper_process(shaper, text, strlen(text));
             float base_x = 0;
             float base_y = 0;
@@ -707,8 +712,8 @@ void shaper_test() {
                     vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, glyph.codepoint);
                     VL_ASSERT(code);
                     vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
-                         base_x + glyph.x, base_y + code->y1 + glyph.y,
-                         base_x + glyph.x + code->w, base_y + code->y1 + code->h + glyph.y
+                         base_x + glyph.x + code->x1, base_y + code->y1 + glyph.y,
+                         base_x + glyph.x + code->x2, base_y + code->y2 + glyph.y
                      ), brush, VL_QUAD_WHITE, code->uv);
                     // printf("base: %i %i\b; glyph: %i %i; advance: %i %i; char: %c\n", base_x, base_y, glyph.x, glyph.y, glyph.advance_x, glyph.advance_y, (char) glyph.codepoint);
                     base_x += glyph.advance_x;
@@ -741,8 +746,8 @@ int main(int argc, const char *argv[]) {
     // malloc_test();
     // html_realloc_test();
     // misalign_test();
-    // font_test();
-    shaper_test();
+    font_test();
+    // shaper_test();
 
     return 0;
 }
