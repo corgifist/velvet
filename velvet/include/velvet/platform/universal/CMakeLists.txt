@@ -8,5 +8,7 @@ set(Velvet_Headers
     include/velvet/platform/universal/bitmap.h
     include/velvet/platform/universal/font.h
     include/velvet/platform/universal/stb_truetype.h
+    include/velvet/platform/universal/kb_text_shape.h
+    include/velvet/platform/universal/shaper.h
     PARENT_SCOPE
 )

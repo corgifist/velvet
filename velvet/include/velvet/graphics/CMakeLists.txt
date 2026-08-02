@@ -5,5 +5,6 @@ set(Velvet_Headers
     include/velvet/graphics/presentation.h
     include/velvet/graphics/geometry.h
     include/velvet/graphics/brush.h
+    include/velvet/graphics/bitmap.h
     PARENT_SCOPE
 )

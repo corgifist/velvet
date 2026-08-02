@@ -5,6 +5,7 @@ set(Velvet_Headers
     include/velvet/support/memory.h
     include/velvet/support/platform.h
     include/velvet/support/result.h
+    include/velvet/support/feature.h
     include/velvet/support/api.h
     include/velvet/support/math.h
     include/velvet/support/ht.h
