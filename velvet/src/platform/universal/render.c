@@ -298,11 +298,11 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     return NULL;
 }
 
-vl_result_t vl_graphics_render_universal_clear(vl_graphics_render_t *render, vl_color_t fill) {
+vl_result_t vl_graphics_render_universal_clear(vl_graphics_render_t *render, vl_color_t color) {
     if (!render) return VL_ERROR;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     ensure_render_context(r);
-    GL_CALL(r->ctx, ClearColor(fill.r, fill.g, fill.b, fill.a));
+    GL_CALL(r->ctx, ClearColor(color.r, color.g, color.b, color.a));
     GL_CALL(r->ctx, Clear(GL_COLOR_BUFFER_BIT));
     return VL_SUCCESS;
 }

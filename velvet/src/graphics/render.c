@@ -15,9 +15,9 @@ vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window) {
     return render;
 }
 
-vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t fill) {
+vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t color) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_clear) return VL_ERROR;
-    return render->context->graphics_render_clear(render, fill);
+    return render->context->graphics_render_clear(render, color);
 }
 
 vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {

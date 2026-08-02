@@ -63,7 +63,7 @@ struct vl_graphics_render_universal {
 typedef struct vl_graphics_render_universal vl_graphics_render_universal_t;
 
 vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *window);
-vl_result_t vl_graphics_render_universal_clear(vl_graphics_render_t *render, vl_color_t fill);
+vl_result_t vl_graphics_render_universal_clear(vl_graphics_render_t *render, vl_color_t color);
 vl_result_t vl_graphics_render_universal_batch_begin(vl_graphics_render_t *render);
 vl_result_t vl_graphics_render_universal_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv);
 vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render);
