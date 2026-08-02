@@ -73,6 +73,9 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *ren
     if (format == VL_GRAPHICS_BITMAP_FORMAT_RRRR8_MIPMAP) {
         GL_CALL(r->ctx, GenerateMipmap(GL_TEXTURE_2D));
     }
+    bitmap->base.width = width;
+    bitmap->base.height = height;
+    bitmap->base.format = format;
     return (vl_graphics_bitmap_t*) bitmap;
 }
 

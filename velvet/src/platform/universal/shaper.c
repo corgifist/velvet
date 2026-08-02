@@ -6,7 +6,6 @@
 #include "support/memory.h"
 #include "support/result.h"
 #include "platform/universal/font.h"
-#include "support/math.h"
 
 vl_font_shaper_run_t *vl_font_shaper_run_universal_new(vl_font_shaper_t *shaper, vl_source_location_t loc) {
     vl_font_shaper_run_universal_t *run = VL_NEW(vl_font_shaper_run_universal_t, loc);
@@ -70,13 +69,14 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
     vl_font_universal_t *f = (vl_font_universal_t*) run->font;
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
     int status = kbts_GlyphIteratorNext(&r->run.Glyphs, &r->iterator);
-    if (status == 0) return NULL;
+    if (!status) return NULL;
     glyph->codepoint = r->iterator->Codepoint;
     glyph->codepoint_index = r->iterator->UserIdOrCodepointIndex;
     glyph->x = ((float) r->iterator->OffsetX) * f->slim_scale;
     glyph->y = ((float) r->iterator->OffsetY) * f->slim_scale;
     glyph->advance_x = ((float) r->iterator->AdvanceX) * f->slim_scale;
     glyph->advance_y = ((float) r->iterator->AdvanceY) * f->slim_scale;
+    glyph->id = r->iterator->Id;
     return glyph;
 }
 

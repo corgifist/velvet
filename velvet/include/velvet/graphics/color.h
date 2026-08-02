@@ -31,6 +31,9 @@ typedef struct vl_quad_colors vl_quad_colors_t;
 #define VL_QUAD_WHITE \
     VL_QUAD_COLORS(VL_WHITE, VL_WHITE, VL_WHITE, VL_WHITE)
 
+#define VL_QUAD_BLACK \
+    VL_QUAD_COLORS(VL_BLACK, VL_BLACK, VL_BLACK, VL_BLACK)
+
 #define VL_QUAD_RED \
     VL_QUAD_COLORS(VL_RED, VL_RED, VL_RED, VL_RED)
 

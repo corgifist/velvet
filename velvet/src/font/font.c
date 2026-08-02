@@ -1,6 +1,11 @@
 #include "velvet/font/font.h"
 #include "font/atlas.h"
 #include "graphics/geometry.h"
+#include "platform/universal/font.h"
+#include "support/result.h"
+#include <string.h>
+#include <unicode/umachine.h>
+#include <unicode/utf8.h>
 
 
 vl_font_t *vl_font_new_(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc) {
@@ -9,21 +14,44 @@ vl_font_t *vl_font_new_(vl_platform_context_t *context, const char *name, int he
 }
 
 vl_font_atlas_codepoint_t *vl_font_rasterize_codepoint(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t codepoint) {
-    if (!font || !atlas) return NULL;
-    if (!font->context || !font->context->font_rasterize_codepoint) return NULL;
-    return font->context->font_rasterize_codepoint(font, atlas, codepoint);
+    uint32_t glyph_id = vl_font_get_glyph_id_by_codepoint(font, codepoint);
+    return vl_font_universal_rasterize_glyph_id(font, atlas, glyph_id);
+}
+
+vl_font_atlas_codepoint_t *vl_font_rasterize_glyph_id(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t glyph_id) {
+    if (!font || !atlas || !font->context || !font->context->font_rasterize_glyph_id) return NULL;
+    return font->context->font_rasterize_glyph_id(font, atlas, glyph_id);
 }
 
 vl_result_t vl_font_rasterize_codepoint_range(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t begin, uint32_t end) {
     if (!font || !atlas) return VL_ERROR;
     for (uint32_t c = begin; c <= end; c++) {
-        if (vl_font_atlas_find_codepoint(atlas, font, c)) {
+        if (vl_font_atlas_find_glyph_id(atlas, font, vl_font_get_glyph_id_by_codepoint(font, c))) {
             // already rasterized
             continue;
         }
         if (!vl_font_rasterize_codepoint(font, atlas, c)) return VL_ERROR;
     }
     return VL_SUCCESS;
+}
+
+vl_result_t vl_font_rasterize_codepoints(vl_font_t *font, vl_font_atlas_t *atlas, const char *codepoints) {
+    if (!font || !atlas || !codepoints) return VL_ERROR;
+    size_t len = strlen(codepoints);
+    size_t i = 0;
+    UChar32 codepoint = 0;
+    while (true) {
+        U8_NEXT(codepoints, i, len, codepoint);
+        if (codepoint <= 0) break;
+        if (vl_font_atlas_find_glyph_id(atlas, font, vl_font_get_glyph_id_by_codepoint(font, codepoint))) continue;
+        if (!vl_font_rasterize_codepoint(font, atlas, codepoint)) return VL_ERROR;
+    }
+    return VL_SUCCESS;
+}
+
+uint32_t vl_font_get_glyph_id_by_codepoint(vl_font_t *font, uint32_t codepoint) {
+    if (!font || !font->context || !font->context->font_get_glyph_id_by_codepoint) return 0;
+    return font->context->font_get_glyph_id_by_codepoint(font, codepoint);
 }
 
 float vl_font_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {

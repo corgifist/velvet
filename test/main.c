@@ -1,4 +1,5 @@
 
+#include <complex.h>
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
@@ -580,14 +581,8 @@ void font_test() {
     // const char *text = "A font that whispers tales of unfolding events VA AV";
     // const char *text = "Hello, World!";
     // const char *text = "Kerning: VA AV";
-    for (int i = 0; i < strlen(text); i++) {
-        int c = text[i];
-        if (vl_font_atlas_find_codepoint(atlas, font1, c)) {
-            continue;
-        }
-        vl_font_rasterize_codepoint(font1, atlas, c);
-        vl_font_rasterize_codepoint(font2, atlas, c);
-    }
+    vl_font_rasterize_codepoints(font1, atlas, text);
+    vl_font_rasterize_codepoints(font2, atlas, text);
 
     vl_os_window_t *win = vl_os_window_new(ctx, "Font rendering", 640, 480);
     printf("scale: %f\n", win->io.content_scale);
@@ -613,13 +608,14 @@ void font_test() {
             float base_y = 200;
             const char *ptr = text;
             vl_vec2_t size = vl_font_get_text_size(font, ptr);
-            vl_graphics_render_batch_rect_colored(r, VL_RECT_EX(
-                base_x, base_y,
-                base_x + size.x, base_y + size.y
-            ), NULL, VL_QUAD_GREEN);
+            if (pressed)             
+                vl_graphics_render_batch_rect_colored(r, VL_RECT_EX(
+                    base_x, base_y,
+                    base_x + size.x, base_y + size.y
+                ), NULL, VL_QUAD_GREEN);
             while (*ptr != '\0') {
                 int c = *ptr++;
-                vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, font, c);
+                vl_font_atlas_codepoint_t *code = vl_font_atlas_find_glyph_id(atlas, font, vl_font_get_glyph_id_by_codepoint(font, c));
                 VL_ASSERT(code);
                 if (c == '\n' || base_x + code->x1 >= 630) {
                     base_x = 0;
@@ -659,19 +655,12 @@ void shaper_test() {
     VL_ASSERT(proggy);
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     VL_ASSERT(atlas);
-    const char *text = "Roboto has a dual nature. It has a mechanical skeleton and the forms are largely geometric. At the same time, the font features friendly and open curves. While some grotesks distort their letterforms to force a rigid rhythm, Roboto doesn\'t compromise, allowing letters to be settled into their natural width. This makes for a more natural reading rhythm more commonly found in humanist and serif types.";
+    const char *text = "Roboto has a dual nature.\nIt has a mechanical skeleton and the forms are largely geometric.\nAt the same time, the font features friendly and open curves.\nWhile some grotesks distort their letterforms to force a rigid rhythm,\nRoboto doesn\'t compromise, allowing letters to be settled into their natural width.\nThis makes for a more natural reading rhythm more commonly found in humanist and serif types.";
     // const char *text = "A font that whispers tales of unfolding events VA AV";
     // const char *text = "Hello, World!";
     // const char *text = "Kerning: VA AV";
     // const char *text = "Kerning: VA AV";
-    for (int i = 0; i < strlen(text); i++) {
-        int c = text[i];
-        if (vl_font_atlas_find_codepoint(atlas, proggy, c)) {
-            continue;
-        }
-        vl_font_rasterize_codepoint(proggy, atlas, c);
-    }
-
+    vl_font_rasterize_codepoints(proggy, atlas, text);
     vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, 512, 512, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas->data);
     vl_graphics_brush_t *brush = vl_graphics_brush_new_bitmap(r, bitmap);
 
@@ -688,12 +677,12 @@ void shaper_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(r);
             // const char *text = "hello, World! VA AV";
+            vl_graphics_render_clear(r, VL_BLACK);
             float base_x = 0;
             float base_y = 0;
             const char *ptr = text;
             vl_font_shaper_run_reset(run);
             vl_font_shaper_process(shaper, ptr, strlen(ptr));
-            int ri = 0;
             while (vl_font_shaper_shape(shaper, run)) {
                 if (run->newline) {
                     base_y += proggy->newline_advance;
@@ -701,12 +690,17 @@ void shaper_test() {
                 }
                 vl_font_shaper_glyph_t glyph = {0};
                 while (vl_font_shaper_iterate(run, &glyph)) {
-                    vl_font_atlas_codepoint_t *code = vl_font_atlas_find_codepoint(atlas, proggy, glyph.codepoint);
+                    vl_font_atlas_codepoint_t *code = vl_font_atlas_find_glyph_id(atlas, proggy, glyph.id);
                     VL_ASSERT(code);
-                    vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
-                         base_x + glyph.x + code->x1, base_y + code->y1 + glyph.y,
-                         base_x + glyph.x + code->x2, base_y + code->y2 + glyph.y
-                     ), brush, VL_QUAD_WHITE, code->uv);
+                    if (glyph.codepoint == 10) continue;
+                    float lx = base_x + glyph.x + code->x1;
+                    float ly = base_y - glyph.y + code->y1;
+                    if (code->glyph_id != 10) {
+                        vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
+                            lx, ly,
+                            lx + code->w, ly + code->h
+                        ), brush, VL_QUAD_WHITE, code->uv);
+                    }
                     // printf("base: %i %i\b; glyph: %i %i; advance: %i %i; char: %c\n", base_x, base_y, glyph.x, glyph.y, glyph.advance_x, glyph.advance_y, (char) glyph.codepoint);
                     base_x += glyph.advance_x;
                     base_y += glyph.advance_y;
@@ -717,9 +711,84 @@ void shaper_test() {
     }
 }
 
+#include "notosans_arabic.h"
+#include "rubik.h"
+
 void arabic_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     vl_os_window_t *win = vl_os_window_new(ctx, "Arabic test", 640, 480);
+    vl_graphics_render_t *r = vl_graphics_render_new(win);
+    vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
+
+    vl_font_t *arabic = vl_font_new(ctx, "arabic", 72, 2, NotoSansArabic_Regular, VL_ARR_SIZE(NotoSansArabic_Regular));
+    vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
+    const char *text = u8"لمّا كان الاعتراف بالكرامة المتأصلة في جميع";
+    // const char *text = u8"Hello";
+    // const char *text = u8"لمّا";
+    // const char *text = u8"Préférer";
+    // const char *text = u8"كان";
+    // const char *text = u8"لد";
+    // const char *text = u8"بسم الله الرحمن الرحيم";
+    vl_font_shaper_t *shaper = vl_font_shaper_new(ctx);
+    vl_font_shaper_add_font(shaper, arabic);
+    vl_font_shaper_run_t *run = vl_font_shaper_run_new(shaper);
+    vl_font_shaper_process(shaper, text, strlen(text));
+    while (vl_font_shaper_shape(shaper, run)) {
+        vl_font_shaper_glyph_t glyph = {0};
+        while (vl_font_shaper_iterate(run, &glyph)) {
+            if (!vl_font_atlas_find_glyph_id(atlas, arabic, glyph.id)) {
+                vl_font_rasterize_glyph_id(arabic, atlas, glyph.id);
+            }
+        }
+    }
+    vl_font_shaper_run_reset(run);
+    vl_graphics_bitmap_t *bitmap = vl_graphics_bitmap_new(r, atlas->width, atlas->height, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, atlas->data);
+    vl_graphics_brush_t *brush = vl_graphics_brush_new_bitmap(r, bitmap);
+    // ((vl_graphics_brush_bitmap_t*) brush)->filter = VL_GRAPHICS_BRUSH_BITMAP_FILTER_NEAREST;
+
+    bool close;
+    while (!vl_os_window_should_close(win, &close) && !close) {
+        vl_os_window_poll_events(ctx);
+        vl_graphics_presentation_begin(present);
+        vl_graphics_render_clear(r, VL_BLACK);
+        vl_graphics_render_batch_begin(r);
+        vl_graphics_render_batch_rect(r, VL_RECT_EX(
+            0, 0, 512, 512
+        ), brush);
+        float base_x = 0;
+        float base_y = 300;
+        vl_font_shaper_process(shaper, text, strlen(text));
+        int index = 0;
+        VL_DA(vl_font_shaper_glyph_t) glyphs = VL_DA_INIT(vl_font_shaper_glyph_t);
+        while (vl_font_shaper_shape(shaper, run)) {
+            vl_font_shaper_glyph_t glyph = {0};
+            while (vl_font_shaper_iterate(run, &glyph)) {
+                VL_DA_APPEND(glyphs, glyph);
+                // base_y += glyph.advance_y;
+            }
+        }
+        int len = VL_DA_LENGTH(glyphs);
+        for (int i = 0; i < len; i++) {
+            vl_font_shaper_glyph_t glyph = glyphs[i];
+            vl_font_atlas_codepoint_t *code = vl_font_atlas_find_glyph_id(atlas, arabic, glyph.id);
+            vl_quad_uv_t uv = code->uv;
+            float lx = base_x + glyph.x + code->x1;
+            float ly = base_y - glyph.y + code->y1;
+            vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
+                lx, ly,
+                lx + code->w, ly + code->h
+            ), brush, VL_QUAD_WHITE, uv);
+            vl_graphics_render_batch_rect_colored_uv(r, VL_RECT_EX(
+                lx, ly + 100,
+                lx + code->w, ly + code->h + 100
+            ), brush, VL_QUAD_BLACK, uv);
+            base_x += glyph.advance_x;
+            base_y += glyph.advance_y;
+        }
+        vl_font_shaper_run_reset(run);
+        vl_graphics_render_batch_end(r);
+        vl_graphics_presentation_end(present);
+    }
 }
 
 int main(int argc, const char *argv[]) {
@@ -743,9 +812,9 @@ int main(int argc, const char *argv[]) {
     // malloc_test();
     // html_realloc_test();
     // misalign_test();
-    font_test();
+    // font_test();
     // shaper_test();
-    // arabic_test();
+    arabic_test();
 
     return 0;
 }

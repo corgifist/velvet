@@ -78,6 +78,9 @@ static const char *s_batch_fragment_shader =
 "#define BRUSH_SOLID 1\n"
 "#define BRUSH_LINEAR_GRADIENT 2\n"
 "#define BRUSH_BITMAP 3\n"
+"#define RGBA8 1\n"
+"#define RRRR8 2\n"
+"#define RRRR8_MIPMAP 3\n"
 VL_STRINGIFY(
 out vec4 FragColor;
 
@@ -153,7 +156,10 @@ void main() {
             color *= gradient_color;
         } else if (brushes[vBrushIndex].brush_data.x == BRUSH_BITMAP) {
             int bitmapIndex = brushes[vBrushIndex].brush_data.y;
-            color *= sampleBitmap(bitmapIndex, vST);
+            int format = brushes[vBrushIndex].brush_data.z;
+            vec4 texel = sampleBitmap(bitmapIndex, vST);
+            if (format == RGBA8) color *= texel;
+            else if (format == RRRR8 || format == RRRR8_MIPMAP) color = vec4(color.rgb * texel.r, texel.r);
         }
     }
     if (color.a == 0.0) discard;
@@ -205,7 +211,7 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     GL_CALL(render->ctx, Viewport(0, 0, fw, fh));
     GL_CALL(render->ctx, PixelStorei(GL_UNPACK_ALIGNMENT, 1));
     GL_CALL(render->ctx, Enable(GL_BLEND));
-    GL_CALL(render->ctx, BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    GL_CALL(render->ctx, BlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
     flat_ortho(w, h, render->proj_mat);
     // printf("%i %i\n", w, h);
 
@@ -378,7 +384,7 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
             }
             // printf("bi: %i\n", bitmap_index);
             brush_index = add_brush(r, (Brush) {
-                {3, bitmap_index, 0, 0},
+                {3, bitmap_index, b->bitmap->format, 0},
                 {0, 0, 0 ,0}
             });
             break;
@@ -440,11 +446,11 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     ensure_render_context(r);
     for (int i = 0; i < r->batch_offset; i++) {
         vec4 v = {r->batch_vertices[i].x, r->batch_vertices[i].y, 0, 1};
-        glm_mat4_mulv(r->proj_mat, v, v);
-        r->batch_vertices[i].x = v[0];
-        r->batch_vertices[i].y = v[1];
+        vec4 dst;
+        glm_mat4_mulv(r->proj_mat, v, dst);
+        r->batch_vertices[i].x = dst[0];
+        r->batch_vertices[i].y = dst[1];
     }
-    printf("batch offset: %i\n", (int) r->batch_offset);
     GL_CALL(r->ctx, BindBuffer(GL_ARRAY_BUFFER, r->batch_vbo));
     GL_CALL(r->ctx, BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(vl_graphics_vertex_t), r->batch_vertices));
 
