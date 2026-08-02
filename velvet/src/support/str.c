@@ -2,11 +2,11 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <unicode/utf8.h>
 
 // Source - https://stackoverflow.com/a/5820991
 // Posted by Fred Foo, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-07-21, License - CC BY-SA 4.0
-
 int vl_strcicmp(const char *a, const char *b)
 {
     for (;; a++, b++) {
@@ -32,4 +32,18 @@ const char *vl_sprintf_tmp(const char *format, ...) {
     va_end(va);
     s_buffer[len] = '\0';
     return s_buffer;
+}
+
+size_t vl_u8strlen(const char *string) {
+    if (!string) return 0;
+    size_t len = 0;
+    size_t raw_length = strlen(string);
+    size_t i = 0;
+    UChar32 dummy_c = 0;
+    while (true) {
+        U8_NEXT(string, i, raw_length, dummy_c);
+        if (dummy_c <= 0) break;
+        len++;
+    }
+    return len;
 }

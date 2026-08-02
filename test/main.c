@@ -804,7 +804,7 @@ int main(int argc, const char *argv[]) {
     // window_test();
     // document_tidy_test();
     // ht_test();
-    // large_document_test();
+    large_document_test();
     // error_pool_test();
     // parser_quote_test();
     // bitmap_test();
@@ -814,7 +814,7 @@ int main(int argc, const char *argv[]) {
     // misalign_test();
     // font_test();
     // shaper_test();
-    arabic_test();
+    // arabic_test();
 
     return 0;
 }

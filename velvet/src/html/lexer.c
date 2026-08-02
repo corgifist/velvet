@@ -2,6 +2,7 @@
 #include "support/error_pool.h"
 #include "support/memory.h"
 #include "support/result.h"
+#include "support/str.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -17,14 +18,8 @@ vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
     lexer->text = vl_malloc(lexer->raw_length + 1);
     memcpy(lexer->text, text, lexer->raw_length);
     lexer->text[lexer->raw_length] = '\0';
-    size_t count = 0, i = 0;
     lexer->c = 0;
-    do {
-        U8_NEXT(text, i, 0, lexer->c);
-        if (lexer->c == 0) break;
-        count++;
-    } while (lexer->c >= 0);
-    lexer->length = count;
+    lexer->length = vl_u8strlen(text);
     lexer->pos = lexer->inline_pos = 0;
     lexer->raw_pos = 0;
     lexer->line = 1;
@@ -70,7 +65,7 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
         ADVANCE();
     }
     const char *cursor = lexer->text + lexer->raw_pos;
-    if (lexer->pos > lexer->length) {
+    if (lexer->pos >= lexer->length) {
         SET_TOKEN(VL_HTML_TOKEN_TYPE_STOP, NULL, NULL);
         return VL_SUCCESS;
     }
