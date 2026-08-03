@@ -804,7 +804,7 @@ int main(int argc, const char *argv[]) {
     // window_test();
     // document_tidy_test();
     // ht_test();
-    large_document_test();
+    // large_document_test();
     // error_pool_test();
     // parser_quote_test();
     // bitmap_test();
@@ -815,6 +815,7 @@ int main(int argc, const char *argv[]) {
     // font_test();
     // shaper_test();
     // arabic_test();
+    // printf("feature: %i\n", VL_FEATURE(DOM_TEXT_NODE));
 
     return 0;
 }

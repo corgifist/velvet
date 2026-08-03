@@ -1,6 +1,3 @@
-add_subdirectory(include)
-add_subdirectory(src)
-
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
     option(USE_ASAN "Use AddressSanitizer (ON for debug builds)" ON)
 else()
@@ -8,9 +5,13 @@ else()
 endif()
 
 option(BUILD_UNIVERSAL_PLATFORM "Build universal platform" ON)
+option(BUILD_DOM_TEXT_NODE "Include support for raw text HTML node" ON)
 
 find_package(cglm CONFIG REQUIRED)
 pkg_search_module(ICU REQUIRED IMPORTED_TARGET icu-io icu-uc)
+
+add_subdirectory(include)
+add_subdirectory(src)
 
 add_library(velvet ${Velvet_Sources} ${Velvet_Headers})
 
@@ -28,6 +29,7 @@ endif()
 
 target_compile_definitions(velvet PRIVATE VL_EXPORT_SYMBOLS)
 target_compile_definitions(velvet PUBLIC VL_FEATURE_UNIVERSAL_PLATFORM=$<BOOL:${BUILD_UNIVERSAL_PLATFORM}>)
+target_compile_definitions(velvet PUBLIC VL_FEATURE_DOM_TEXT_NODE=$<BOOL:${BUILD_DOM_TEXT_NODE}>)
 
 # https://felsoci.sk/blog/using-address-sanitizer-asan-in-a-cmake-project.html
 if(USE_ASAN)
