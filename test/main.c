@@ -522,7 +522,7 @@ void malloc_test() {
     int *ptrs[] = {
         VL_NEW(int), VL_NEW(int), VL_NEW(int), VL_NEW(int), VL_NEW(int)
     };
-    for (int i = 0; i < VL_ARR_SIZE(ptrs); i++) {
+    for (int i = 0; i < VL_ARR_LEN(ptrs); i++) {
         printf("allocated %p\n", ptrs[i]);
     }
     vl_free(ptrs[0]);
@@ -568,9 +568,9 @@ void font_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_TYPES());
     VL_ASSERT(ctx);
 
-    vl_font_t *font1 = vl_font_new(ctx, "simple font", 16, 1, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
+    vl_font_t *font1 = vl_font_new(ctx, "simple font", 16, 1, Roboto_Regular, VL_ARR_LEN(Roboto_Regular));
     VL_ASSERT(font1);
-    vl_font_t *font2 = vl_font_new(ctx, "simple font 2", 16, 2, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
+    vl_font_t *font2 = vl_font_new(ctx, "simple font 2", 16, 2, Roboto_Regular, VL_ARR_LEN(Roboto_Regular));
     VL_ASSERT(font2);
     // vl_memory_print_allocations();
 
@@ -651,7 +651,7 @@ void shaper_test() {
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
     VL_ASSERT(present);
 
-    vl_font_t *proggy = vl_font_new(ctx, "proggy", 16, 2, Roboto_Regular, VL_ARR_SIZE(Roboto_Regular));
+    vl_font_t *proggy = vl_font_new(ctx, "proggy", 16, 2, Roboto_Regular, VL_ARR_LEN(Roboto_Regular));
     VL_ASSERT(proggy);
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     VL_ASSERT(atlas);
@@ -720,7 +720,7 @@ void arabic_test() {
     vl_graphics_render_t *r = vl_graphics_render_new(win);
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
 
-    vl_font_t *arabic = vl_font_new(ctx, "arabic", 72, 2, NotoSansArabic_Regular, VL_ARR_SIZE(NotoSansArabic_Regular));
+    vl_font_t *arabic = vl_font_new(ctx, "arabic", 72, 2, NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular));
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     const char *text = u8"لمّا كان الاعتراف بالكرامة المتأصلة في جميع";
     // const char *text = u8"Hello";

@@ -70,7 +70,7 @@ typedef uint8_t vl_byte_t;
 #define VL_PTR_DEREF(PTR, TYPE) \
     (*((TYPE*) (PTR)))
 
-#define VL_ARR_SIZE(ARR) \
+#define VL_ARR_LEN(ARR) \
     (sizeof((ARR)) / sizeof(*(ARR)))
 
 VL_API void *vl_malloc_(size_t size, vl_source_location_t loc);

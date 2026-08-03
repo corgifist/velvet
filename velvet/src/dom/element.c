@@ -19,7 +19,7 @@ static const vl_dom_element_pair_t s_elements[] = {
 };
 
 vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc) {
-    for (int i = 0; i < VL_ARR_SIZE(s_elements); i++) {
+    for (int i = 0; i < VL_ARR_LEN(s_elements); i++) {
         if (strcmp(s_elements[i].tag, tag) == 0) {
             return s_elements[i].new_(loc);
         }
