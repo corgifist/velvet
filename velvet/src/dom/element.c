@@ -33,6 +33,7 @@ vl_result_t vl_dom_element_free(vl_dom_element_t *element) {
         for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
             vl_dom_element_free(element->children[i]);
         }
+        VL_DA_FREE(element->children);
     }
     return VL_DOM_ELEMENT_FUNCS(element)->free(element);
 }
