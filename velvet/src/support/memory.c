@@ -43,8 +43,6 @@ static void init_roots() {
     s_first.magic = magic_const;
     s_last.magic = magic_const;
 
-    printf("magic_const = %llu\n", magic_const);
-
     VL_ASSERT(VL_MEMORY_CHECK_MAGIC(s_first.magic));
     VL_ASSERT(VL_MEMORY_CHECK_MAGIC(s_last.magic));
 }
