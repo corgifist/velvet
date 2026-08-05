@@ -1,11 +1,12 @@
 #ifndef VL_DOM_ELEMENT_H
 #define VL_DOM_ELEMENT_H
 
-#include "support/memory.h"
+#include "velvet/support/memory.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
 #include "velvet/graphics/geometry.h"
 #include "velvet/support/da.h"
+#include "velvet/dom/render.h"
 
 enum vl_dom_element_metric_type {
     // for vl_dom_element_get_metric2
@@ -14,11 +15,21 @@ enum vl_dom_element_metric_type {
 
 typedef enum vl_dom_element_metric_type vl_dom_element_metric_type_t;
 
+enum vl_dom_element_property_type {
+    VL_DOM_ELEMENT_PROPERTY_STRING
+};
+
+typedef enum vl_dom_element_property_type vl_dom_element_property_type_t;
+
 struct vl_dom_element;
+typedef vl_result_t (*vl_dom_element_render_func)(struct vl_dom_element *element, vl_dom_render_opts_t *opts);
+typedef vl_result_t (*vl_dom_element_set_property_func)(struct vl_dom_element *element, const char *property, vl_dom_element_property_type_t type, const void *value);
 typedef vl_vec2_t (*vl_dom_element_get_metric2_func)(struct vl_dom_element *element, vl_dom_element_metric_type_t metric);
 typedef vl_result_t (*vl_dom_element_free_func)(struct vl_dom_element *element);
 
 struct vl_dom_element_funcs {
+    vl_dom_element_render_func render;
+    vl_dom_element_set_property_func set_property;
     vl_dom_element_get_metric2_func get_metric2;
     vl_dom_element_free_func free;
 };
@@ -44,6 +55,8 @@ typedef vl_dom_element_t* (*vl_dom_element_new_func)(vl_source_location_t loc);
 #define vl_dom_element_new(...) \
     vl_dom_element_new_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 VL_API vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc);
+VL_API vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts);
+VL_API vl_result_t vl_dom_element_set_string(vl_dom_element_t *element, const char *property, const char *value);
 VL_API vl_result_t vl_dom_element_free(vl_dom_element_t *element);
 
 #endif // VL_DOM_ELEMENT_H

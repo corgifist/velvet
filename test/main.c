@@ -7,6 +7,8 @@
 #include <unicode/umachine.h>
 
 #include "large_test.h"
+#include "velvet/dom/dom.h"
+#include "velvet/dom/element.h"
 #include "velvet/font/atlas.h"
 #include "velvet/font/shaper.h"
 #include "velvet/graphics/bitmap.h"
@@ -791,6 +793,19 @@ void arabic_test() {
     }
 }
 
+void simple_dom_test() {
+    const char *input = "Hello, World!\n";
+    vl_html_node_t node = {0};
+    vl_html_parser_t parser = {0};
+    vl_html_parser_init(&parser, input);
+    vl_html_parser_get(&parser, &node);
+    VL_ASSERT(node.text);
+    vl_dom_t dom = {0};
+    vl_dom_init_with_html_node(&dom, &node);
+    VL_ASSERT(dom.root);
+    vl_dom_render(&dom, NULL);
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -816,6 +831,7 @@ int main(int argc, const char *argv[]) {
     // shaper_test();
     // arabic_test();
     // printf("feature: %i\n", VL_FEATURE(DOM_TEXT_NODE));
+    simple_dom_test();
 
     return 0;
 }

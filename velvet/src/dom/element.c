@@ -27,6 +27,17 @@ vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc)
     return NULL;
 }
 
+vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts) {
+    if (!element) return VL_ERROR;
+    vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
+    return funcs->render(element, opts);
+}
+
+vl_result_t vl_dom_element_set_string(vl_dom_element_t *element, const char *property, const char *value) {
+    if (!element || !property) return VL_ERROR;
+    return VL_DOM_ELEMENT_FUNCS(element)->set_property(element, property, VL_DOM_ELEMENT_PROPERTY_STRING, value);
+}
+
 vl_result_t vl_dom_element_free(vl_dom_element_t *element) {
     if (!element) return VL_ERROR;
     if (element->children) {
