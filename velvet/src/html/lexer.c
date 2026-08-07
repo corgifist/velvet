@@ -65,7 +65,7 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
         ADVANCE();
     }
     const char *cursor = lexer->text + lexer->raw_pos;
-    if (lexer->pos >= lexer->length) {
+    if (lexer->pos > lexer->length) {
         SET_TOKEN(VL_HTML_TOKEN_TYPE_STOP, NULL, NULL);
         return VL_SUCCESS;
     }
