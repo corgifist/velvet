@@ -56,6 +56,18 @@ vl_result_t vl_font_shaper_universal_free_font(vl_font_shaper_t *shaper, vl_font
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     vl_font_shaper_font_ref_universal_t *f = (vl_font_shaper_font_ref_universal_t*) font;
     kbts_FreeFont(&f->font);
+    while (true && shaper->font_stack) {
+        for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
+            if (shaper->font_stack[i] == font) {
+                VL_DA_DELETE(shaper->font_stack, i);
+                goto next_iteration;
+            }
+        }
+        break;
+
+        next_iteration:
+        continue;
+    }
     vl_free(font);
     return VL_SUCCESS;
 }
@@ -116,6 +128,10 @@ vl_result_t vl_font_shaper_universal_free(vl_font_shaper_t *shaper) {
     if (!shaper) return VL_ERROR;
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     kbts_DestroyShapeContext(s->context);
+    while (shaper->font_stack && VL_DA_LENGTH(shaper->font_stack) != 0) {
+        vl_font_shaper_universal_free_font(shaper, shaper->font_stack[0]);
+    }
+    VL_DA_FREE(shaper->font_stack);
     vl_free(shaper);
     return VL_SUCCESS;
 }
