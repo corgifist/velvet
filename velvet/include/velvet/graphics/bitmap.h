@@ -25,7 +25,8 @@ typedef struct vl_graphics_bitmap vl_graphics_bitmap_t;
 
 VL_API vl_graphics_bitmap_t *vl_graphics_bitmap_new(struct vl_graphics_render *render, 
     size_t width, size_t height, vl_graphics_bitmap_format_t format, void *data);
-
+VL_API vl_result_t vl_graphics_bitmap_update(vl_graphics_bitmap_t *bitmap,
+    size_t x, size_t y, size_t width, size_t height, void *data);
 VL_API vl_result_t vl_graphics_bitmap_free(vl_graphics_bitmap_t *bitmap);
 
 #endif // VELVET_GRAPHICS_BITMAP_H

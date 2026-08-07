@@ -72,10 +72,10 @@ void *vl_malloc_(size_t size, vl_source_location_t loc) {
 }
 
 void *vl_realloc_(void *mem, size_t new_size, vl_source_location_t loc) {
-    vl_memory_allocation_t *orig_allocation = VL_MEMORY_ALLOCATION(mem);
-    if ((!mem || !orig_allocation) && new_size > 0) {
+    if (!mem && new_size > 0) {
         return vl_malloc_(new_size, loc);
     }
+    vl_memory_allocation_t *orig_allocation = VL_MEMORY_ALLOCATION(mem);
     if (orig_allocation && new_size == 0) {
         vl_free_(mem, loc);
         return NULL;

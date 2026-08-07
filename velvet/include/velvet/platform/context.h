@@ -64,6 +64,8 @@ typedef vl_result_t (*vl_ctx_graphics_presentation_free)(struct vl_graphics_pres
 struct vl_graphics_bitmap;
 typedef struct vl_graphics_bitmap* (*vl_ctx_graphics_bitmap_new)(struct vl_graphics_render *render, 
     size_t width, size_t height, enum vl_graphics_bitmap_format format, void *data);
+typedef vl_result_t (*vl_ctx_graphics_bitmap_update)(struct vl_graphics_bitmap *bitmap,
+    size_t x, size_t y, size_t width, size_t height, void *data);
 typedef vl_result_t (*vl_ctx_graphics_bitmap_free)(struct vl_graphics_bitmap *bitmap);
 
 // velvet/graphics/brush.h
@@ -122,6 +124,7 @@ struct vl_platform_context {
     vl_ctx_graphics_presentation_free graphics_presentation_free;
 
     vl_ctx_graphics_bitmap_new graphics_bitmap_new;
+    vl_ctx_graphics_bitmap_update graphics_bitmap_update;
     vl_ctx_graphics_bitmap_free graphics_bitmap_free;
 
     vl_ctx_graphics_brush_new_solid graphics_brush_new_solid;

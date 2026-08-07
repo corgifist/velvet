@@ -16,6 +16,8 @@ typedef struct vl_graphics_bitmap_universal vl_graphics_bitmap_universal_t;
 
 vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *render, 
     size_t width, size_t height, vl_graphics_bitmap_format_t format, void *data);
+vl_result_t vl_graphics_bitmap_universal_update(vl_graphics_bitmap_t *bitmap,
+    size_t x, size_t y, size_t width, size_t height, void *data);
 vl_result_t vl_graphics_bitmap_universal_free(vl_graphics_bitmap_t *bitmap);
 
 #endif // VELVET_PLATFORM_UNIVERSAL_BITMAP_H

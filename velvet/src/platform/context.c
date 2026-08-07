@@ -53,6 +53,7 @@ static vl_result_t init_graphics(vl_platform_context_t *ctx, vl_platform_context
         ctx->graphics_render_free = vl_graphics_render_universal_free;
 
         ctx->graphics_bitmap_new = vl_graphics_bitmap_universal_new;
+        ctx->graphics_bitmap_update = vl_graphics_bitmap_universal_update;
         ctx->graphics_bitmap_free = vl_graphics_bitmap_universal_free;
 
         ctx->graphics_brush_new_solid = vl_graphics_brush_universal_new_solid;

@@ -1,6 +1,7 @@
 #include "velvet/platform/universal/bitmap.h"
 #include "graphics/bitmap.h"
 #include "platform/context.h"
+#include "support/result.h"
 #include "velvet/platform/universal/render.h"
 #include "gl_check.h"
 
@@ -77,6 +78,16 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_universal_new(vl_graphics_render_t *ren
     bitmap->base.height = height;
     bitmap->base.format = format;
     return (vl_graphics_bitmap_t*) bitmap;
+}
+
+VL_API vl_result_t vl_graphics_bitmap_universal_update(vl_graphics_bitmap_t *bitmap,
+        size_t x, size_t y, size_t width, size_t height, void *data) {
+    vl_graphics_bitmap_universal_t *b = (vl_graphics_bitmap_universal_t*) bitmap;
+    vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) bitmap->owner;
+    GL_CALL(r->ctx, BindTexture(GL_TEXTURE_2D, b->handle));
+    GL_CALL(r->ctx, TexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, 
+        get_format(bitmap->format), get_type(bitmap->format), data));
+    return VL_SUCCESS;
 }
 
 vl_result_t vl_graphics_bitmap_universal_free(vl_graphics_bitmap_t *bitmap) {

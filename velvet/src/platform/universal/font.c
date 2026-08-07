@@ -42,6 +42,7 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
 vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t glyph_id) {
     if (!font || !atlas) return NULL;
     if (atlas->format != VL_FONT_ATLAS_FORMAT_RRRR8) return NULL;
+    if (atlas->full) return NULL;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
     int advance_x, left_bearing;
     stbtt_GetGlyphHMetrics(&f->font, glyph_id, &advance_x, &left_bearing);
@@ -58,8 +59,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
         atlas->largest_glyph_on_line = 0;
     }
     if (atlas->cursor_y + h >= atlas->height) {
-        // atlas is full
-        atlas->cursor_y += h;
+        atlas->full = true;
         return NULL;
     }
     vl_byte_t *pixels = (atlas->data + atlas->width * atlas->cursor_y) + atlas->cursor_x;
@@ -91,6 +91,10 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     result.uv.bl = VL_POINT(bx1 / aw, by2 / ah);
     atlas->cursor_x += w + 2;
     atlas->largest_glyph_on_line = VL_MAX(h, atlas->largest_glyph_on_line);
+    if (atlas->cursor_x + font->height * font->density >= atlas->width
+            && atlas->cursor_y + font->height * font->density >= atlas->height) {
+        atlas->full = true;
+    }
     return VL_DA_APPEND(atlas->codepoints, result);
 }
 

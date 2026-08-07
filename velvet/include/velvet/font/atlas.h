@@ -37,6 +37,7 @@ struct vl_font_atlas {
     VL_DA(vl_font_atlas_codepoint_t) codepoints;
     size_t cursor_x, cursor_y;
     size_t largest_glyph_on_line;
+    bool full;
 };
 
 typedef struct vl_font_atlas vl_font_atlas_t;
@@ -50,7 +51,7 @@ VL_API vl_font_atlas_t *vl_font_atlas_new_(vl_font_atlas_format_t format, size_t
 #define vl_font_atlas_init_va_expand(atlas, format, width, height, loc, ...) \
     vl_font_atlas_init_(atlas, format, width, height, loc)
 #define vl_font_atlas_init(...) \
-    vl_font_atlas_init_va_expand(__VA_ARGS__)
+    vl_font_atlas_init_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 VL_API vl_result_t vl_font_atlas_init_(vl_font_atlas_t *atlas, vl_font_atlas_format_t format, size_t width, size_t height, vl_source_location_t loc);
 VL_API vl_font_atlas_codepoint_t *vl_font_atlas_find_glyph_id(vl_font_atlas_t *atlas, struct vl_font *font, uint32_t glyph_id);
 VL_API vl_result_t vl_font_atlas_deinit(vl_font_atlas_t *atlas);

@@ -793,6 +793,8 @@ void arabic_test() {
     }
 }
 
+#include "velvet/web/web.h"
+
 void simple_dom_test() {
     const char *input = "Hello, World!\n";
     vl_html_node_t node = {0};
@@ -800,10 +802,25 @@ void simple_dom_test() {
     vl_html_parser_init(&parser, input);
     vl_html_parser_get(&parser, &node);
     VL_ASSERT(node.text);
-    vl_dom_t dom = {0};
-    vl_dom_init_with_html_node(&dom, &node);
-    VL_ASSERT(dom.root);
-    vl_dom_render(&dom, NULL);
+    vl_web_t web = {0};
+    vl_web_init(&web, &node);
+
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
+    vl_os_window_t *win = vl_os_window_new(ctx, "Web test", 640, 480);
+    vl_graphics_render_t *render = vl_graphics_render_new(win);
+    vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, render);
+    web.render = render;
+
+    bool close;
+    while (!vl_os_window_should_close(win, &close) && !close) {
+        vl_os_window_poll_events(ctx);
+        vl_graphics_presentation_begin(present);
+        vl_graphics_render_clear(render, VL_BLACK);
+        vl_graphics_render_batch_begin(render);
+            vl_web_render(&web, NULL);
+        vl_graphics_render_batch_end(render);
+        vl_graphics_presentation_end(present);
+    }
 }
 
 int main(int argc, const char *argv[]) {

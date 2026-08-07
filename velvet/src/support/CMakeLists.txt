@@ -7,5 +7,6 @@ set(Velvet_Sources
     src/support/error_pool.c
     src/support/str.c
     src/support/allocator.c
+    src/support/global_error_pool.c
     PARENT_SCOPE
 )
