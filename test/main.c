@@ -798,14 +798,11 @@ void arabic_test() {
 void simple_dom_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     const char *input = "Hello, World!\nHello, Velvet!";
-    vl_html_node_t node = {0};
-    vl_html_parser_t parser = {0};
-    vl_html_parser_init(&parser, input);
-    vl_html_parser_get(&parser, &node);
-    vl_html_node_print(&node);
-    VL_ASSERT(node.text);
+    vl_html_document_t *doc = vl_html_document_new(input);
+    vl_html_document_print(doc);
+    VL_ASSERT(doc);
     vl_web_t web = {0};
-    vl_web_init(ctx, &web, &node);
+    vl_web_init(ctx, &web, &doc->root);
 
     vl_os_window_t *win = vl_os_window_new(ctx, "Web test", 640, 480);
     vl_graphics_render_t *render = vl_graphics_render_new(win);

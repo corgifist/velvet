@@ -1,8 +1,8 @@
 #ifndef VELVET_DOM_ELEMENT_TEXT_H
 #define VELVET_DOM_ELEMENT_TEXT_H
 
-#include "dom/render.h"
-#include "support/result.h"
+#include "velvet/dom/render.h"
+#include "velvet/support/result.h"
 #include "velvet/dom/element.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/da.h"

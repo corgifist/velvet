@@ -7,6 +7,14 @@
     #include "velvet/dom/text/text.h"
 #endif // VL_FEATURE(DOM_TEXT_NODE)
 
+#if VL_FEATURE(DOM_BODY_NODE)
+    #include "velvet/dom/body/body.h"
+#endif // VL_FEATURE(DOM_BODY_NODE)
+
+#if VL_FEATURE(DOM_HTML_NODE)
+    #include "velvet/dom/html/html.h"
+#endif // VL_FEATURE(DOM_HTML_NODE)
+
 typedef struct {
     const char *tag;
     vl_dom_element_new_func new_; // just to make sure we don't collide with the C++ new
@@ -15,6 +23,8 @@ typedef struct {
 static const vl_dom_element_pair_t s_elements[] = {
 #if VL_FEATURE(DOM_TEXT_NODE)
     {"text", vl_dom_element_text_new},
+    {"body", vl_dom_element_body_new},
+    {"html", vl_dom_element_html_new}
 #endif // VL_FEATURE(DOM_TEXT_NODE)
 };
 

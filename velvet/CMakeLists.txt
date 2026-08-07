@@ -6,6 +6,8 @@ endif()
 
 option(BUILD_UNIVERSAL_PLATFORM "Build universal platform" ON)
 option(BUILD_DOM_TEXT_NODE "Include support for raw text HTML node" ON)
+option(BUILD_DOM_BODY_NODE "Include support for <body> HTML node" ON)
+option(BUILD_DOM_HTML_NODE "Include support for <html> HTML node" ON)
 
 find_package(cglm CONFIG REQUIRED)
 pkg_search_module(ICU REQUIRED IMPORTED_TARGET icu-io icu-uc)
@@ -30,6 +32,8 @@ endif()
 target_compile_definitions(velvet PRIVATE VL_EXPORT_SYMBOLS)
 target_compile_definitions(velvet PUBLIC VL_FEATURE_UNIVERSAL_PLATFORM=$<BOOL:${BUILD_UNIVERSAL_PLATFORM}>)
 target_compile_definitions(velvet PUBLIC VL_FEATURE_DOM_TEXT_NODE=$<BOOL:${BUILD_DOM_TEXT_NODE}>)
+target_compile_definitions(velvet PUBLIC VL_FEATURE_DOM_BODY_NODE=$<BOOL:${BUILD_DOM_BODY_NODE}>)
+target_compile_definitions(velvet PUBLIC VL_FEATURE_DOM_HTML_NODE=$<BOOL:${BUILD_DOM_HTML_NODE}>)
 
 # https://felsoci.sk/blog/using-address-sanitizer-asan-in-a-cmake-project.html
 if(USE_ASAN)
