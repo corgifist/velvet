@@ -66,7 +66,7 @@ vl_result_t vl_error_pool_append_(vl_source_location_t loc, vl_error_pool_t *poo
     pool->__offset += vsnprintf(pool->buffer + pool->__offset, pool->__capacity - pool->__offset, format, va2);
     pool->buffer[pool->__offset++] = '\0';
     if (pool == vl_global_error_pool() && (*vl_global_error_pool_feature()) & VL_GLOBAL_ERROR_POOL_LOG_ERROS) {
-        printf("%s %s:%i: %s\n", loc.file, loc.function, loc.line, error_msg);
+        printf("%s:%i %s: %s\n", loc.file, loc.line, loc.function, error_msg);
     }
     while (pool->__offset % sizeof(size_t) != 0) {
         vl_error_pool_push(pool, NULL, 1, loc);

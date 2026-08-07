@@ -1,4 +1,6 @@
 #include "platform/universal/kb_text_shape.h"
+#include "support/da.h"
+#include "support/global_error_pool.h"
 #define KB_TEXT_SHAPE_IMPLEMENTATION
 #include "velvet/font/shaper.h"
 #include "platform/context.h"
@@ -28,6 +30,7 @@ vl_font_shaper_t *vl_font_shaper_universal_new(vl_platform_context_t *context, v
     if (!shaper) goto err;
     shaper->base.context = context;
     shaper->context = kbts_CreateShapeContext(NULL, NULL);
+    shaper->base.font_stack = VL_DA_INIT(vl_font_shaper_font_ref_t*);
     if (!shaper->context) goto err;
 
     return (vl_font_shaper_t*) shaper;
@@ -37,19 +40,41 @@ vl_font_shaper_t *vl_font_shaper_universal_new(vl_platform_context_t *context, v
 }
 
 
-vl_result_t vl_font_shaper_universal_add_font(vl_font_shaper_t *shaper, vl_font_t *font) {
+vl_font_shaper_font_ref_t *vl_font_shaper_universal_add_font(vl_font_shaper_t *shaper, vl_font_t *font) {
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
-    kbts_font *added_font = kbts_ShapePushFontFromMemory(s->context, (void*) f->data, f->data_length, 0);
-    if (!added_font) return VL_ERROR;
-    added_font->UserData = font;
+    kbts_font added_font = kbts_FontFromMemory((void*) f->data, f->data_length, 0, NULL, NULL);
+    added_font.UserData = font;
+    vl_font_shaper_font_ref_universal_t *font_ref = VL_NEW(vl_font_shaper_font_ref_universal_t);
+    font_ref->font = added_font;
+    font_ref->base.font = font;
+    VL_DA_APPEND(shaper->font_stack, font_ref);
+    return (vl_font_shaper_font_ref_t*) font_ref;
+}
+
+vl_result_t vl_font_shaper_universal_free_font(vl_font_shaper_t *shaper, vl_font_shaper_font_ref_t *font) {
+    vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
+    vl_font_shaper_font_ref_universal_t *f = (vl_font_shaper_font_ref_universal_t*) font;
+    kbts_FreeFont(&f->font);
+    vl_free(font);
     return VL_SUCCESS;
 }
 
 vl_result_t vl_font_shaper_univesal_process(vl_font_shaper_t *shaper, const char *text, size_t text_length) {
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
+    if (!shaper->font_stack || VL_DA_LENGTH(shaper->font_stack) == 0) {
+        vl_global_error_pool_append("font stack is either empty or NULL for vl_font_shaper_t %p", shaper);
+        return VL_ERROR;
+    }
     kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_DONT_KNOW);
+    for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
+        vl_font_shaper_font_ref_universal_t *uf = (vl_font_shaper_font_ref_universal_t*) shaper->font_stack[i];
+        kbts_ShapePushFont(s->context, &uf->font);
+    }
     kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_CODEPOINT_INDEX);
+    for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
+        kbts_ShapePopFont(s->context);
+    }
     kbts_ShapeEnd(s->context);
     return VL_SUCCESS;
 }

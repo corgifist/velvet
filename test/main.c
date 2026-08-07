@@ -796,16 +796,17 @@ void arabic_test() {
 #include "velvet/web/web.h"
 
 void simple_dom_test() {
-    const char *input = "Hello, World!\n";
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
+    const char *input = "Hello, World!\nHello, Velvet!";
     vl_html_node_t node = {0};
     vl_html_parser_t parser = {0};
     vl_html_parser_init(&parser, input);
     vl_html_parser_get(&parser, &node);
+    vl_html_node_print(&node);
     VL_ASSERT(node.text);
     vl_web_t web = {0};
-    vl_web_init(&web, &node);
+    vl_web_init(ctx, &web, &node);
 
-    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     vl_os_window_t *win = vl_os_window_new(ctx, "Web test", 640, 480);
     vl_graphics_render_t *render = vl_graphics_render_new(win);
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, render);

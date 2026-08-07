@@ -1,6 +1,7 @@
 #include "velvet/web/fonts.h"
 #include "font/atlas.h"
 #include "font/font.h"
+#include "font/shaper.h"
 #include "graphics/bitmap.h"
 #include "graphics/brush.h"
 #include "support/da.h"
@@ -10,11 +11,12 @@
 #include "graphics/render.h"
 #include "web/web.h"
 
-vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts) {
+vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts, vl_web_t *web) {
     if (!fonts) return VL_ERROR;
     fonts->owner = NULL;
     fonts->families = VL_DA_INIT(vl_web_font_family_t);
     fonts->atlases = VL_DA_INIT(vl_web_font_atlas_t);
+    fonts->shaper = vl_font_shaper_new(web->platform_context);
     return VL_SUCCESS;
 }
 
@@ -52,7 +54,7 @@ vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name
     vl_web_font_t *variation = find_variation(family, weight);
     if (variation) {
         for (int i = 0; i < VL_DA_LENGTH(variation->sizes); i++) {
-            vl_font_free(variation->sizes[i]);
+            vl_font_free(variation->sizes[i].font);
         }
         VL_DA_FREE(variation->sizes);
         variation = NULL;
@@ -61,12 +63,12 @@ vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name
     variation->font_data = font_data;
     variation->font_len = font_len;
     variation->weight = weight;
-    variation->sizes = VL_DA_INIT(vl_font_t*);
+    variation->sizes = VL_DA_INIT(vl_web_sized_font_t);
 
     return VL_SUCCESS;
 }
 
-vl_font_t *vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *family_name, vl_web_font_weight_t weight, int height) {
+vl_web_sized_font_t *vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *family_name, vl_web_font_weight_t weight, int height) {
     if (!fonts || !family_name) return NULL;
     vl_web_font_family_t *family = find_family(fonts, family_name);
     if (!family) {
@@ -80,19 +82,23 @@ vl_font_t *vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *family_name,
         return NULL;
     }
 
-    vl_font_t *font = NULL;
+    vl_web_sized_font_t *sized_font = NULL;
     for (int i = 0; i < VL_DA_LENGTH(variation->sizes); i++) {
-        if (variation->sizes[i]->height == height) {
-            font = variation->sizes[i];
+        if (variation->sizes[i].font->height == height) {
+            sized_font = variation->sizes + i;
             break;
         }
     }
 
-    if (!font) {
-        font = vl_font_new(fonts->owner->render->context, family_name, height, 2.0f, variation->font_data, variation->font_len);
-        VL_DA_APPEND(variation->sizes, font);
+    if (!sized_font) {
+        vl_font_t *font = vl_font_new(fonts->owner->render->context, family_name, height, 2.0f, variation->font_data, variation->font_len);
+        vl_font_shaper_font_ref_t *font_ref = vl_font_shaper_add_font(fonts->shaper, font);
+        vl_web_sized_font_t sf = {0};
+        sf.font = font;
+        sf.shaper_ref = font_ref;
+        sized_font = VL_DA_APPEND(variation->sizes, sf);
     }
-    return font;
+    return sized_font;
 }
 
 static vl_byte_t *s_tmp_copy_buffer = NULL;
@@ -146,12 +152,12 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
     return VL_SUCCESS;
 }
 
-vl_result_t vl_web_fonts_find_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, const char *family_name, int weight, int height, uint32_t glyph_id) {
+vl_result_t vl_web_fonts_find_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, const char *family_name, vl_web_font_weight_t weight, int height, uint32_t glyph_id) {
     if (!fonts || !family_name) return VL_ERROR;
-    vl_font_t *font = vl_web_fonts_get_font(fonts, family_name, weight, height);
+    vl_web_sized_font_t *font = vl_web_fonts_get_font(fonts, family_name, weight, height);
     if (!font) return VL_ERROR;
 
-    return rasterize_glyph_id(fonts, codepoint, font, glyph_id);
+    return rasterize_glyph_id(fonts, codepoint, font->font, glyph_id);
 }
 
 

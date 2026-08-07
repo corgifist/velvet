@@ -30,7 +30,7 @@ vl_result_t vl_html_node_print(vl_html_node_t *node) {
 }
 
 vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
-    if (!node || !node->children) return VL_ERROR;
+    if (!node) return VL_ERROR;
     for (int i = 0; i < indent; i++) {
         printf("\t");
     }

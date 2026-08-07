@@ -1,6 +1,7 @@
 #ifndef VELVET_WEB_FONTS_H
 #define VELVET_WEB_FONTS_H
 
+#include "velvet/font/shaper.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/font/atlas.h"
 #include "velvet/graphics/bitmap.h"
@@ -24,11 +25,18 @@ enum vl_web_font_weight {
 
 typedef enum vl_web_font_weight vl_web_font_weight_t;
 
+struct vl_web_sized_font {
+    vl_font_t *font;
+    vl_font_shaper_font_ref_t *shaper_ref;
+};
+
+typedef struct vl_web_sized_font vl_web_sized_font_t;
+
 struct vl_web_font {
     const vl_byte_t *font_data;
     size_t font_len;
     vl_web_font_weight_t weight; // 100, 200, 300 etc.
-    VL_DA(vl_font_t*) sizes;
+    VL_DA(vl_web_sized_font_t) sizes;
 };
 
 typedef struct vl_web_font vl_web_font_t;
@@ -61,13 +69,16 @@ struct vl_web_fonts {
 
     VL_DA(vl_web_font_family_t) families;
     VL_DA(vl_web_font_atlas_t) atlases;
+
+    vl_font_shaper_t *shaper;
 };
 
 typedef struct vl_web_fonts vl_web_fonts_t;
 
-VL_API vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts);
+struct vl_web;
+VL_API vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts, struct vl_web *owner);
 VL_API vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name, const vl_byte_t *font_data, size_t font_len, vl_web_font_weight_t weight);
-VL_API vl_font_t *vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *family_name, vl_web_font_weight_t weight, int height);
+VL_API vl_web_sized_font_t *vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *family_name, vl_web_font_weight_t weight, int height);
 VL_API vl_result_t vl_web_fonts_find_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, const char *family_name, vl_web_font_weight_t weight, int height, uint32_t glyph_id);
 VL_API vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts);
 

@@ -1,19 +1,21 @@
 #include "web/web.h"
 #include "dom/dom.h"
 #include "html/document.h"
+#include "platform/context.h"
 #include "support/memory.h"
 #include "web/fonts.h"
 
 // default fonts
 #include "Roboto/Regular.h"
 
-vl_result_t vl_web_init(vl_web_t *web, vl_html_node_t *node) {
+vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_node_t *node) {
     if (!web) return VL_ERROR;
     memset(web, 0, sizeof(*web));
     vl_dom_init_with_html_node(&web->dom, node);
     web->dom.owner = web;
+    web->platform_context = context;
     web->title = "velvet";
-    vl_web_fonts_init(&web->fonts);
+    vl_web_fonts_init(&web->fonts, web);
     web->fonts.owner = web;
     vl_web_fonts_add_font(&web->fonts, "Roboto", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR);
     return VL_SUCCESS;

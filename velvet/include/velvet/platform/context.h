@@ -90,9 +90,11 @@ typedef vl_result_t (*vl_ctx_font_free)(struct vl_font *font);
 struct vl_font_shaper;
 struct vl_font_shaper_run;
 struct vl_font_shaper_glyph;
+struct vl_font_shaper_font_ref;
 typedef struct vl_font_shaper_run* (*vl_ctx_font_shaper_run_new)(struct vl_font_shaper *shaper, vl_source_location_t loc);
-typedef struct vl_font_shaper *(*vl_ctx_font_shaper_new)(struct vl_platform_context *context, vl_source_location_t loc);
-typedef vl_result_t (*vl_ctx_font_shaper_add_font)(struct vl_font_shaper *shaper, struct vl_font *font);
+typedef struct vl_font_shaper* (*vl_ctx_font_shaper_new)(struct vl_platform_context *context, vl_source_location_t loc);
+typedef struct vl_font_shaper_font_ref* (*vl_ctx_font_shaper_add_font)(struct vl_font_shaper *shaper, struct vl_font *font);
+typedef vl_result_t (*vl_ctx_font_shaper_free_font)(struct vl_font_shaper *shaper, struct vl_font_shaper_font_ref *font);
 typedef vl_result_t (*vl_ctx_font_shaper_process)(struct vl_font_shaper *shaper, const char *text, size_t text_length);
 typedef bool (*vl_ctx_font_shaper_shape)(struct vl_font_shaper *shaper, struct vl_font_shaper_run *run);
 typedef struct vl_font_shaper_glyph* (*vl_ctx_font_shaper_iterate)(struct vl_font_shaper_run *run, struct vl_font_shaper_glyph *glyph);
@@ -141,6 +143,7 @@ struct vl_platform_context {
 
     vl_ctx_font_shaper_new font_shaper_new;
     vl_ctx_font_shaper_add_font font_shaper_add_font;
+    vl_ctx_font_shaper_free_font font_shaper_free_font;
     vl_ctx_font_shaper_process font_shaper_process;
     vl_ctx_font_shaper_run_new font_shaper_run_new;
     vl_ctx_font_shaper_shape font_shaper_shape;

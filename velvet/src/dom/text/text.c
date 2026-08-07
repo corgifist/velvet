@@ -3,6 +3,8 @@
 #include "dom/element.h"
 #include "font/font.h"
 #include "font/shaper.h"
+#include "graphics/color.h"
+#include "graphics/render.h"
 #include "support/da.h"
 #include "support/memory.h"
 #include "support/result.h"
@@ -30,12 +32,34 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
     if (!text->text) return VL_ERROR;
     vl_dom_t *owner = element->owner;
     vl_web_t *web = owner->owner;
-    vl_font_t *font = vl_web_fonts_get_font(&web->fonts, "Roboto", VL_WEB_FONT_REGULAR, 32);
+    vl_web_sized_font_t *font = vl_web_fonts_get_font(&web->fonts, "Roboto", VL_WEB_FONT_REGULAR, 32);
     vl_web_font_atlas_codepoint_t codepoint = {0};
-    for (int i = 0; i < strlen(text->text); i++) {
-        vl_web_fonts_find_glyph_id(&web->fonts, &codepoint, "Roboto", VL_WEB_FONT_REGULAR, 32, vl_font_get_glyph_id_by_codepoint(font, text->text[i]));
+    VL_ASSERT(font);
+    VL_DA(vl_font_shaper_font_ref_t*) font_stack = VL_DA_INIT(vl_font_shaper_font_ref_t*);
+    VL_DA(vl_font_shaper_font_ref_t*) reserved_font_stack = web->fonts.shaper->font_stack;
+    *VL_DA_PUSH(font_stack, vl_font_shaper_font_ref_t*) = font->shaper_ref;
+    web->fonts.shaper->font_stack = font_stack;
+    vl_font_shaper_process(web->fonts.shaper, text->text, strlen(text->text));
+    vl_font_shaper_run_t *run = vl_font_shaper_run_new(web->fonts.shaper);
+    vl_font_shaper_glyph_t glyph = {0};
+    float base_x = 0;
+    float base_y = 0;
+    while (vl_font_shaper_shape(web->fonts.shaper, run)) {
+        while (vl_font_shaper_iterate(run, &glyph)) {
+            vl_web_font_atlas_codepoint_t web_codepoint = {0};
+            VL_ASSERT(!vl_web_fonts_find_glyph_id(&web->fonts, &web_codepoint, "Roboto", VL_WEB_FONT_REGULAR, 32, glyph.id));
+            float lx = base_x + glyph.x + web_codepoint.codepoint->x1;
+            float ly = base_y + glyph.y + web_codepoint.codepoint->y1;
+            vl_graphics_render_batch_rect_colored_uv(web->render, VL_RECT_EX(
+                lx, ly,
+                lx + web_codepoint.codepoint->w, ly + web_codepoint.codepoint->h
+            ), web_codepoint.atlas->brush, VL_QUAD_WHITE, web_codepoint.codepoint->uv);
+            base_x += glyph.advance_x;
+        }
     }
-    vl_graphics_render_batch_rect(web->render, VL_RECT_EX(0, 0, 512, 512), codepoint.atlas->brush);
+    vl_font_shaper_run_free(run);
+    VL_DA_FREE(font_stack);
+    web->fonts.shaper->font_stack = reserved_font_stack;
     return VL_SUCCESS;
 }
 
