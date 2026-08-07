@@ -23,7 +23,7 @@
 #include <cglm/cam.h>
 #include <string.h>
 
-#define BATCH_MAX 256
+#define BATCH_MAX 288 // should be divisible by 3
 
 static void ensure_context(GLFWwindow *window) {
     static GLFWwindow *s_current_context = NULL;
@@ -125,6 +125,23 @@ vec4 sampleBitmap(int bitmapIndex, vec2 st) {
     return vec4(1.0);
 }
 
+vec4 sampleGradient(int first_stop, int stops_count, float phase) {
+    vec4 gradient_color = stops[first_stop].color;
+    if (phase < stops[first_stop].percentage) {
+        gradient_color = stops[first_stop].color;
+    } else if (phase > stops[first_stop + stops_count - 1].percentage) {
+        gradient_color = stops[first_stop + stops_count - 1].color;
+    } else {
+        for (int i = 0; i < stops_count - 1; i++) {
+            if (phase > stops[i].percentage && phase < stops[i + 1].percentage) {
+                gradient_color = mix(stops[i].color, stops[i + 1].color, (phase - stops[i].percentage) / (stops[i + 1].percentage - stops[i].percentage));
+                break;
+            }
+        }
+    }
+    return gradient_color;
+}
+
 void main() {
     vec4 color = vColor;
     if (vBrushIndex >= 0) {
@@ -133,27 +150,12 @@ void main() {
         } else if (brushes[vBrushIndex].brush_data.x == BRUSH_LINEAR_GRADIENT) {
             int first_stop = brushes[vBrushIndex].brush_data.y;
             int stops_count = brushes[vBrushIndex].brush_data.z;
-            int direction_mask = brushes[vBrushIndex].brush_data.w;
             vec2 begin = brushes[vBrushIndex].color.xy;
             vec2 end = brushes[vBrushIndex].color.zw;
             vec2 diff = end - begin;
             float denom = dot(diff, diff);
             float phase = (denom > 0.0) ? dot(vST - begin, diff) : 0.0;
-            phase = clamp(phase, 0.0, 1.0);
-            vec4 gradient_color = stops[first_stop].color;
-            if (phase < stops[first_stop].percentage) {
-                gradient_color = stops[first_stop].color;
-            } else if (phase > stops[first_stop + stops_count - 1].percentage) {
-                gradient_color = stops[first_stop + stops_count - 1].color;
-            } else {
-                for (int i = 0; i < stops_count - 1; i++) {
-                    if (phase > stops[i].percentage && phase < stops[i + 1].percentage) {
-                        gradient_color = mix(stops[i].color, stops[i + 1].color, (phase - stops[i].percentage) / (stops[i + 1].percentage - stops[i].percentage));
-                        break;
-                    }
-                }
-            }
-            color *= gradient_color;
+            color *= sampleGradient(first_stop, stops_count, phase);
         } else if (brushes[vBrushIndex].brush_data.x == BRUSH_BITMAP) {
             int bitmapIndex = brushes[vBrushIndex].brush_data.y;
             int format = brushes[vBrushIndex].brush_data.z;
