@@ -59,12 +59,6 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
         base_y += glyph->advance_y;
         brush = codepoint.atlas->brush;
     }
-    vl_graphics_render_batch_end(web->render);
-    vl_graphics_render_batch_begin(web->render);
-    vl_graphics_render_clear(web->render, VL_BLACK);
-    vl_graphics_render_batch_rect(
-        web->render, VL_RECT_EX(0, 0, 512, 512), brush
-    );
     return VL_SUCCESS;
 }
 
