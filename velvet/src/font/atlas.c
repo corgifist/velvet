@@ -55,6 +55,7 @@ vl_result_t vl_font_atlas_deinit(vl_font_atlas_t *atlas) {
 vl_result_t vl_font_atlas_free(vl_font_atlas_t *atlas) {
     if (!atlas) return VL_ERROR;
     vl_font_atlas_deinit(atlas);
+    VL_DA_FREE(atlas->codepoints);
     vl_free(atlas);
     return VL_SUCCESS;
 }

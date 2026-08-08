@@ -52,3 +52,10 @@ vl_result_t vl_dom_init_with_html_node(vl_dom_t *dom, vl_html_node_t *node) {
     dom->root = collect_elements(dom, node);
     return VL_SUCCESS;
 }
+
+vl_result_t vl_dom_deinit(vl_dom_t *dom) {
+    if (!dom) return VL_ERROR;
+    vl_dom_element_free(dom->root);
+    dom->root = NULL;
+    return VL_SUCCESS;
+}

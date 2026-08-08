@@ -815,10 +815,17 @@ void simple_dom_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_BLACK);
         vl_graphics_render_batch_begin(render);
-            vl_web_render(&web, NULL);
-        vl_graphics_render_batch_end(render);
+             vl_web_render(&web, NULL);
+         vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
+    vl_web_deinit(&web);
+    vl_html_document_free(doc);
+    vl_graphics_presentation_free(present);
+    vl_graphics_render_free(render);
+    vl_os_window_free(win);
+    vl_platform_context_free(ctx);
+    vl_memory_print_allocations();
 }
 
 int main(int argc, const char *argv[]) {

@@ -41,10 +41,10 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
     if (!text->layout.glyphs || text->rebuild_layout) {
         vl_dom_behavior_text_layout_free(element, &text->layout);
         vl_dom_behavior_text_layout_new(element, &text->layout, text->text);
+        text->rebuild_layout = false;
     }
     float base_x = 0;
     float base_y = 0;
-    vl_graphics_brush_t *brush = NULL;
     for (int i = 0; i < VL_DA_LENGTH(text->layout.glyphs); i++) {
         vl_dom_behavior_text_glyph_t *glyph = text->layout.glyphs + i;
         vl_web_font_atlas_codepoint_t codepoint = {0};
@@ -57,7 +57,6 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
         ), codepoint.atlas->brush, VL_QUAD_WHITE, codepoint.codepoint->uv);
         base_x += glyph->advance_x;
         base_y += glyph->advance_y;
-        brush = codepoint.atlas->brush;
     }
     return VL_SUCCESS;
 }
@@ -82,6 +81,7 @@ vl_result_t vl_dom_element_text_set_property(vl_dom_element_t *element, const ch
 vl_result_t vl_dom_element_text_free(vl_dom_element_t *element) {
     vl_dom_element_text_t *text = (vl_dom_element_text_t*) element;
     VL_DA_FREE(text->text);
-    vl_free(element);
+    vl_dom_behavior_text_layout_free(element, &text->layout);
+    vl_free(VL_DOM_ELEMENT_FUNCS(element));
     return VL_SUCCESS;
 }

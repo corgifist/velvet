@@ -30,7 +30,6 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
         VL_DA_APPEND(font_stack, priority_font->shaper_ref);
     }
     fonts->shaper->font_stack = font_stack;
-    printf("font stack len: %zu\n", VL_DA_LENGTH(font_stack));
     vl_font_shaper_process(fonts->shaper, text, strlen(text));
     while (vl_font_shaper_shape(fonts->shaper, run)) {
         if (run->newline) {

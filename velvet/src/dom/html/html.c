@@ -29,6 +29,6 @@ vl_result_t vl_dom_element_html_render(vl_dom_element_t *element, vl_dom_render_
 }
 
 vl_result_t vl_dom_element_html_free(vl_dom_element_t *element) {
-    vl_free(VL_PTR_BACKWARD(element, sizeof(vl_dom_element_funcs_t)));
+    vl_free(VL_DOM_ELEMENT_FUNCS(element));
     return VL_SUCCESS;
 }

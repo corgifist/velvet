@@ -47,7 +47,7 @@ static vl_result_t init_graphics(vl_platform_context_t *ctx, vl_platform_context
         ctx->graphics_render_new = vl_graphics_render_universal_new;
         ctx->graphics_render_clear = vl_graphics_render_universal_clear;
         ctx->graphics_render_batch_begin = vl_graphics_render_universal_batch_begin;
-        ctx->graphics_render_batch_quad_colored_uv = vl_graphics_render_universal_batch_quad_colored_uv;
+        ctx->graphics_render_batch_vertex = vl_graphics_render_universal_batch_vertex;
         ctx->graphics_render_batch_end = vl_graphics_render_universal_batch_end;
         ctx->graphics_render_resize = vl_graphics_render_universal_resize;
         ctx->graphics_render_free = vl_graphics_render_universal_free;

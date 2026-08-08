@@ -17,5 +17,6 @@ typedef struct vl_dom vl_dom_t;
 VL_API vl_result_t vl_dom_init_with_html_document(vl_dom_t *dom, vl_html_document_t *document);
 VL_API vl_result_t vl_dom_init_with_html_node(vl_dom_t *dom, vl_html_node_t *node);
 VL_API vl_result_t vl_dom_render(vl_dom_t *dom, vl_dom_render_opts_t *opts);
+VL_API vl_result_t vl_dom_deinit(vl_dom_t *dom);
 
 #endif // VELVET_DOM_H

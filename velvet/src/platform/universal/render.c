@@ -416,6 +416,18 @@ vl_result_t vl_graphics_render_universal_batch_quad_colored_uv(vl_graphics_rende
     return VL_SUCCESS;
 }
 
+vl_result_t vl_graphics_render_universal_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv) {
+    if (!render) return VL_ERROR;
+    vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
+    if (r->batch_offset + 1 > BATCH_MAX) {
+        vl_graphics_render_universal_batch_end(render);
+        vl_graphics_render_universal_batch_begin(render);
+    }
+    int brush_index = get_brush_index(render, brush);
+    batch_add_vertex(render, point.x, point.y, brush_index, color, uv);
+    return VL_SUCCESS;
+}
+
 static GLint interpret_extend_mode(vl_graphics_brush_extend_mode_t extend_mode) {
     switch (extend_mode) {
         case VL_GRAPHICS_BRUSH_EXTEND_CLAMP: return GL_CLAMP_TO_EDGE;
@@ -515,6 +527,8 @@ vl_result_t vl_graphics_render_universal_free(vl_graphics_render_t *render) {
     VL_DA_FREE(u->brush_da);
     VL_DA_FREE(u->stops_da);
     VL_DA_FREE(u->owned_brushes);
+    VL_DA_FREE(u->active_bitmaps);
+    VL_DA_FREE(u->active_samplers);
     vl_free(render);
     return VL_SUCCESS;
 }

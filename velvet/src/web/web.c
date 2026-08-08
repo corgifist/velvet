@@ -31,5 +31,7 @@ vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
 
 vl_result_t vl_web_deinit(vl_web_t *web) {
     if (!web) return VL_ERROR;
+    vl_dom_deinit(&web->dom);
+    vl_web_fonts_deinit(&web->fonts);
     return VL_SUCCESS;
 }

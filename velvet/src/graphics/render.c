@@ -25,13 +25,24 @@ vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
     return render->context->graphics_render_batch_begin(render);
 }
 
+vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv) {
+    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_vertex) return VL_ERROR;
+    return render->context->graphics_render_batch_vertex(render, point, brush, color, uv); 
+}
+
 vl_result_t vl_graphics_render_batch_quad_colored(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors) {
     return vl_graphics_render_batch_quad_colored_uv(render, quad, brush, colors, VL_QUAD_UV_DEFAULT);
 }
 
 vl_result_t vl_graphics_render_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
-    if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_quad_colored_uv) return VL_ERROR;
-    return render->context->graphics_render_batch_quad_colored_uv(render, quad, brush, colors, uv);
+    if (!render || !vl_platform_context_valid(render->context)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.p2, brush, colors.tr, uv.tr)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.p4, brush, colors.bl, uv.bl)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.p3, brush, colors.br, uv.br)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.p2, brush, colors.tr, uv.tr)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.p1, brush, colors.tl, uv.tl)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.p4, brush, colors.bl, uv.bl)) return VL_ERROR;
+    return VL_SUCCESS;
 }
 
 vl_result_t vl_graphics_render_batch_quad(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush) {

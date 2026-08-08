@@ -48,7 +48,7 @@ struct vl_graphics_brush;
 typedef struct vl_graphics_render* (*vl_ctx_graphics_render_new)(struct vl_os_window *window);
 typedef vl_result_t (*vl_ctx_graphics_render_clear)(struct vl_graphics_render *render, vl_color_t color);
 typedef vl_result_t (*vl_ctx_graphics_render_batch_begin)(struct vl_graphics_render *render);
-typedef vl_result_t (*vl_ctx_graphics_render_batch_quad_colored_uv)(struct vl_graphics_render *render, vl_quad_t quad, struct vl_graphics_brush *brush, vl_quad_colors_t colors, vl_quad_uv_t uv);
+typedef vl_result_t (*vl_ctx_graphics_render_batch_vertex)(struct vl_graphics_render *render, vl_vec2_t point, struct vl_graphics_brush *brush, vl_color_t color, vl_vec2_t uv);
 typedef vl_result_t (*vl_ctx_graphics_render_batch_end)(struct vl_graphics_render *render);
 typedef vl_result_t (*vl_ctx_graphics_render_resize)(struct vl_graphics_render *render, int w, int h);
 typedef vl_result_t (*vl_ctx_graphics_render_free)(struct vl_graphics_render *render);
@@ -115,7 +115,7 @@ struct vl_platform_context {
     vl_ctx_graphics_render_new graphics_render_new;
     vl_ctx_graphics_render_clear graphics_render_clear;
     vl_ctx_graphics_render_batch_begin graphics_render_batch_begin;
-    vl_ctx_graphics_render_batch_quad_colored_uv graphics_render_batch_quad_colored_uv;
+    vl_ctx_graphics_render_batch_vertex graphics_render_batch_vertex;
     vl_ctx_graphics_render_batch_end graphics_render_batch_end;
     vl_ctx_graphics_render_resize graphics_render_resize;
     vl_ctx_graphics_render_free graphics_render_free;

@@ -173,5 +173,28 @@ vl_result_t vl_web_fonts_find_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_
 
 vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
     if (!fonts) return VL_ERROR;
+    for (int i = 0; i < VL_DA_LENGTH(fonts->atlases); i++) {
+        vl_web_font_atlas_t *atlas = fonts->atlases + i;
+        vl_font_atlas_deinit(&atlas->atlas);
+        vl_graphics_brush_free(atlas->brush);
+        vl_graphics_bitmap_free(atlas->bitmap);
+    }
+    VL_DA_FREE(fonts->atlases);
+    for (int i = 0; i < VL_DA_LENGTH(fonts->families); i++) {
+        vl_web_font_family_t *family = fonts->families + i;
+        for (int j = 0; j < VL_DA_LENGTH(family->variations); j++) {
+            vl_web_font_t *variation = family->variations + j;
+            for (int k = 0; k < VL_DA_LENGTH(variation->sizes); k++) {
+                vl_web_sized_font_t *size = variation->sizes + k;
+                vl_font_shaper_free_font(fonts->shaper, size->shaper_ref);
+                vl_font_free(size->font);
+            }
+            VL_DA_FREE(variation->sizes);
+        }
+        VL_DA_FREE(family->variations);
+    }
+    VL_DA_FREE(fonts->families);
+
+    vl_font_shaper_free(fonts->shaper);
     return VL_SUCCESS;
 }
