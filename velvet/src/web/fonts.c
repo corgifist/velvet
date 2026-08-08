@@ -10,6 +10,7 @@
 #include "support/result.h"
 #include "graphics/render.h"
 #include "web/web.h"
+#include <stdint.h>
 
 vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts, vl_web_t *web) {
     if (!fonts) return VL_ERROR;
@@ -110,8 +111,10 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
         vl_web_font_atlas_t *atlas = fonts->atlases + i;
         vl_font_atlas_codepoint_t *search = vl_font_atlas_find_glyph_id(&atlas->atlas, font, glyph_id);
         if (search) {
-            codepoint->atlas = atlas;
-            codepoint->codepoint = search;
+            if (codepoint) {
+                codepoint->atlas = atlas;
+                codepoint->codepoint = search;
+            }
             return VL_SUCCESS;
         }
     }
@@ -147,19 +150,26 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
         }
     }
     vl_graphics_bitmap_update(free_atlas->bitmap, cursor_x, cursor_y, w, h, s_tmp_copy_buffer);
-    codepoint->codepoint = rasterized;
-    codepoint->atlas = free_atlas;
+    if (codepoint) {
+        codepoint->codepoint = rasterized;
+        codepoint->atlas = free_atlas;
+    }
     return VL_SUCCESS;
+}
+
+vl_result_t vl_web_fonts_find_glyph_id_with_font(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, vl_font_t *font, uint32_t glyph_id) {
+    if (!fonts || !font) return VL_ERROR;
+    return rasterize_glyph_id(fonts, codepoint, font, glyph_id);
 }
 
 vl_result_t vl_web_fonts_find_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, const char *family_name, vl_web_font_weight_t weight, int height, uint32_t glyph_id) {
     if (!fonts || !family_name) return VL_ERROR;
-    vl_web_sized_font_t *font = vl_web_fonts_get_font(fonts, family_name, weight, height);
-    if (!font) return VL_ERROR;
 
-    return rasterize_glyph_id(fonts, codepoint, font->font, glyph_id);
+    vl_web_sized_font_t *sized_font = vl_web_fonts_get_font(fonts, family_name, weight, height);
+    if (!sized_font) return VL_ERROR;
+
+    return vl_web_fonts_find_glyph_id_with_font(fonts, codepoint, sized_font->font, glyph_id);
 }
-
 
 vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
     if (!fonts) return VL_ERROR;

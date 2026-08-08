@@ -14,5 +14,6 @@ set(Velvet_Sources
     ${Velvet_Sources}
     src/dom/dom.c
     src/dom/element.c
+    src/dom/behavior/text.c
     PARENT_SCOPE
 )

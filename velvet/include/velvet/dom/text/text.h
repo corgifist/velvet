@@ -6,10 +6,13 @@
 #include "velvet/dom/element.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/da.h"
+#include "velvet/dom/behavior/text.h"
 
 struct vl_dom_element_text {
     vl_dom_element_t base;
     VL_DA(char) text;
+    vl_dom_behavior_text_layout_t layout;
+    bool rebuild_layout;
 };
 
 typedef struct vl_dom_element_text vl_dom_element_text_t;
