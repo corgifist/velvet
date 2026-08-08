@@ -4,6 +4,7 @@
 #include "dom/element.h"
 #include "font/font.h"
 #include "font/shaper.h"
+#include "graphics/brush.h"
 #include "graphics/color.h"
 #include "graphics/render.h"
 #include "support/da.h"
@@ -25,6 +26,9 @@ vl_dom_element_t *vl_dom_element_text_new(vl_source_location_t loc) {
     element->base.children = NULL;
     element->base.owner = NULL;
     element->base.tag = "text";
+    element->layout.priority_font_family = "Roboto";
+    element->layout.font_blueprint.height = 32;
+    element->layout.font_blueprint.weight = VL_WEB_FONT_REGULAR;
     return (vl_dom_element_t*) element;
 }
 
@@ -33,15 +37,14 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
     if (!text->text) return VL_ERROR;
     vl_dom_t *owner = element->owner;
     vl_web_t *web = owner->owner;
-    if (!text->layout.priority_font) {
-        text->layout.priority_font = vl_web_fonts_get_font(&web->fonts, "Roboto", VL_WEB_FONT_REGULAR, 16);
-    }
+
     if (!text->layout.glyphs || text->rebuild_layout) {
         vl_dom_behavior_text_layout_free(element, &text->layout);
         vl_dom_behavior_text_layout_new(element, &text->layout, text->text);
     }
     float base_x = 0;
     float base_y = 0;
+    vl_graphics_brush_t *brush = NULL;
     for (int i = 0; i < VL_DA_LENGTH(text->layout.glyphs); i++) {
         vl_dom_behavior_text_glyph_t *glyph = text->layout.glyphs + i;
         vl_web_font_atlas_codepoint_t codepoint = {0};
@@ -54,7 +57,14 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
         ), codepoint.atlas->brush, VL_QUAD_WHITE, codepoint.codepoint->uv);
         base_x += glyph->advance_x;
         base_y += glyph->advance_y;
+        brush = codepoint.atlas->brush;
     }
+    vl_graphics_render_batch_end(web->render);
+    vl_graphics_render_batch_begin(web->render);
+    vl_graphics_render_clear(web->render, VL_BLACK);
+    vl_graphics_render_batch_rect(
+        web->render, VL_RECT_EX(0, 0, 512, 512), brush
+    );
     return VL_SUCCESS;
 }
 

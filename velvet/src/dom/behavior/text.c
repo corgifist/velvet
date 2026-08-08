@@ -3,11 +3,12 @@
 #include "support/da.h"
 #include "support/result.h"
 #include "velvet/web/web.h"
+#include "web/fonts.h"
 
 
 vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element, 
     vl_dom_behavior_text_layout_t *layout, const char *text) {
-    if (!element || !layout || !layout->priority_font || !text) return VL_ERROR;
+    if (!element || !layout || !text) return VL_ERROR;
     if (!element->owner || !element->owner->owner) return VL_ERROR;
     vl_web_t *web = element->owner->owner;
     vl_web_fonts_t *fonts = &web->fonts;
@@ -18,11 +19,18 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(fonts->shaper);
     VL_DA(vl_font_shaper_font_ref_t*) font_stack = VL_DA_INIT(vl_font_shaper_font_ref_t*);
     VL_DA(vl_font_shaper_font_ref_t*) original_font_stack = fonts->shaper->font_stack;
-    VL_DA_APPEND(font_stack, layout->priority_font->shaper_ref);
-    for (int i = 0; i < VL_DA_LENGTH(original_font_stack); i++) {
-        VL_DA_APPEND(font_stack, original_font_stack[i]);
+    vl_web_sized_font_t *priority_font = vl_web_fonts_get_font(&web->fonts, layout->priority_font_family, 
+        layout->font_blueprint.weight, layout->font_blueprint.height);
+    vl_web_sized_font_t *default_arabic_font = vl_web_fonts_get_font(&web->fonts, "Noto Sans Arabic", 
+        VL_WEB_FONT_REGULAR, layout->font_blueprint.height);
+    if (default_arabic_font) {
+        VL_DA_APPEND(font_stack, default_arabic_font->shaper_ref);
+    }
+    if (priority_font) {
+        VL_DA_APPEND(font_stack, priority_font->shaper_ref);
     }
     fonts->shaper->font_stack = font_stack;
+    printf("font stack len: %zu\n", VL_DA_LENGTH(font_stack));
     vl_font_shaper_process(fonts->shaper, text, strlen(text));
     while (vl_font_shaper_shape(fonts->shaper, run)) {
         if (run->newline) {

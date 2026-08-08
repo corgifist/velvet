@@ -8,6 +8,8 @@
 // default fonts
 #include "Roboto/Regular.h"
 
+#include "NotoSans_Arabic/Regular.h"
+
 vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_node_t *node) {
     if (!web) return VL_ERROR;
     memset(web, 0, sizeof(*web));
@@ -18,6 +20,7 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_n
     vl_web_fonts_init(&web->fonts, web);
     web->fonts.owner = web;
     vl_web_fonts_add_font(&web->fonts, "Roboto", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR);
+    vl_web_fonts_add_font(&web->fonts, "Noto Sans Arabic", NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular), VL_WEB_FONT_REGULAR);
     return VL_SUCCESS;
 }
 

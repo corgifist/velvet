@@ -797,7 +797,7 @@ void arabic_test() {
 
 void simple_dom_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    const char *input = "Hello, World!\nHello, Velvet!";
+    const char *input = "Hello, World!\nHello, Velvet! لمّا كان الاعتراف بالكرامة المتأصلة في جميع";
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);
