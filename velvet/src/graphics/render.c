@@ -3,14 +3,17 @@
 #include "graphics/color.h"
 #include "graphics/geometry.h"
 #include "platform/context.h"
+#include "support/da.h"
 #include "support/result.h"
 #include "velvet/support/feature.h"
+#include <cglm/mat4.h>
 
 vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window) {
     if (!window || !vl_platform_context_valid(window->context) || !window->context->graphics_render_new) return NULL;
     vl_graphics_render_t *render = window->context->graphics_render_new(window);
     if (render) {
         render->context = window->context;
+        render->transform = VL_DA_INIT(vl_graphics_render_mat4_t);
     }
     return render;
 }
@@ -20,6 +23,15 @@ vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t co
     return render->context->graphics_render_clear(render, color);
 }
 
+vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, mat4 transform) {
+    if (!render || !transform) return VL_ERROR;
+    if (render->transform) {
+        vl_graphics_render_mat4_t *mat = VL_DA_PUSH(render->transform, vl_graphics_render_mat4_t);
+        glm_mat4_copy(transform, mat->mat);
+    }
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_begin) return VL_ERROR;
     return render->context->graphics_render_batch_begin(render);
@@ -27,6 +39,16 @@ vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
 
 vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_vertex) return VL_ERROR;
+    if (render->transform) {
+        for (int i = 0; i < VL_DA_LENGTH(render->transform); i++) {
+            printf("pre-transform: %f %f\n", point.x, point.y);
+            vec4 src = {point.x, point.y, 0, 1};
+            vec4 dst;
+            glm_mat4_mulv(render->transform[i].mat, src, dst);
+            point = VL_POINT(dst[0], dst[1]);
+            printf("post-transform: %f %f\n", point.x, point.y);
+        }
+    }
     return render->context->graphics_render_batch_vertex(render, point, brush, color, uv); 
 }
 
@@ -71,6 +93,15 @@ vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, vl_poin
 vl_result_t vl_graphics_render_batch_end(vl_graphics_render_t *render) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_end) return VL_ERROR;
     return render->context->graphics_render_batch_end(render);
+}
+
+vl_result_t vl_graphics_render_pop_transform(vl_graphics_render_t *render) {
+    if (!render) return VL_ERROR;
+    if (render->transform) {
+        if (VL_DA_LENGTH(render->transform) <= 0) return VL_ERROR;
+        VL_DA_DELETE(render->transform, VL_DA_LENGTH(render->transform) - 1);
+    }
+    return VL_SUCCESS;
 }
 
 vl_result_t vl_graphics_render_resize(vl_graphics_render_t *render, int w, int h) {

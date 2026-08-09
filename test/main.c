@@ -1,4 +1,5 @@
 
+#include <cglm/mat4.h>
 #include <complex.h>
 #include <math.h>
 #include <time.h>
@@ -794,6 +795,7 @@ void arabic_test() {
 }
 
 #include "velvet/web/web.h"
+#include <cglm/affine.h>
 
 void simple_dom_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
@@ -815,7 +817,12 @@ void simple_dom_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_BLACK);
         vl_graphics_render_batch_begin(render);
-             vl_web_render(&web, NULL);
+            mat4 offset = GLM_MAT4_IDENTITY;
+            glm_translate(offset, (vec3) {50, 50, 0});
+            vl_graphics_render_push_transform(render, offset);
+            vl_web_render(&web, NULL);
+            vl_graphics_render_pop_transform(render);
+            vl_graphics_render_batch_point(render, VL_POINT(50, 50), 5, VL_RED);
          vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
