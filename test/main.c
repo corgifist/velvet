@@ -828,6 +828,18 @@ void simple_dom_test() {
     vl_memory_print_allocations();
 }
 
+#include "velvet/font/segmentation.h"
+
+void segmentation_test() {
+    const char *text = "Hello, World!";
+    vl_font_segmentation_breaks_t breaks = NULL;
+    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_WORD, &breaks);
+    for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {
+        vl_font_segmentation_break_t *br = breaks + i;
+        printf("%i %.*s %zu %zu\n", i, (int) br->end - (int) br->begin, text + br->begin, br->begin, br->end);
+    }
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -853,7 +865,8 @@ int main(int argc, const char *argv[]) {
     // shaper_test();
     // arabic_test();
     // printf("feature: %i\n", VL_FEATURE(DOM_TEXT_NODE));
-    simple_dom_test();
+    // simple_dom_test();
+    segmentation_test();
 
     return 0;
 }
