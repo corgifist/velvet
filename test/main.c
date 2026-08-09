@@ -865,8 +865,8 @@ int main(int argc, const char *argv[]) {
     // shaper_test();
     // arabic_test();
     // printf("feature: %i\n", VL_FEATURE(DOM_TEXT_NODE));
-    // simple_dom_test();
-    segmentation_test();
+    simple_dom_test();
+    // segmentation_test();
 
     return 0;
 }

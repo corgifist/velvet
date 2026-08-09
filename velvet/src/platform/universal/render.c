@@ -29,6 +29,7 @@ static void ensure_context(GLFWwindow *window) {
     static GLFWwindow *s_current_context = NULL;
     if (window != s_current_context) {
         glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
         s_current_context = window;
     }
 }

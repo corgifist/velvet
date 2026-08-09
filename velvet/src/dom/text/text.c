@@ -43,21 +43,7 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
         vl_dom_behavior_text_layout_new(element, &text->layout, text->text);
         text->rebuild_layout = false;
     }
-    float base_x = 0;
-    float base_y = 0;
-    for (int i = 0; i < VL_DA_LENGTH(text->layout.glyphs); i++) {
-        vl_dom_behavior_text_glyph_t *glyph = text->layout.glyphs + i;
-        vl_web_font_atlas_codepoint_t codepoint = {0};
-        vl_web_fonts_find_glyph_id_with_font(&web->fonts, &codepoint, glyph->font, glyph->id);
-        float x = base_x + glyph->x + codepoint.codepoint->x1;
-        float y = base_y - glyph->y + codepoint.codepoint->y1;
-        vl_graphics_render_batch_rect_colored_uv(web->render, VL_RECT_EX(
-            x, y,
-            x + codepoint.codepoint->w, y + codepoint.codepoint->h
-        ), codepoint.atlas->brush, VL_QUAD_WHITE, codepoint.codepoint->uv);
-        base_x += glyph->advance_x;
-        base_y += glyph->advance_y;
-    }
+    vl_dom_behavior_text_layout_render(element, opts, &text->layout);
     return VL_SUCCESS;
 }
 
