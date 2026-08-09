@@ -817,11 +817,12 @@ void simple_dom_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_BLACK);
         vl_graphics_render_batch_begin(render);
-            mat4 offset = GLM_MAT4_IDENTITY;
-            glm_translate(offset, (vec3) {50, 50, 0});
-            vl_graphics_render_push_transform(render, offset);
+            // vl_graphics_render_push_translate(render, VL_VEC2(50, 50));
+            static float angle = 0;
+            angle += 3;
+            vl_graphics_render_push_rotate(render, angle);
             vl_web_render(&web, NULL);
-            vl_graphics_render_pop_transform(render);
+            vl_graphics_render_clear_transform(render);
             vl_graphics_render_batch_point(render, VL_POINT(50, 50), 5, VL_RED);
          vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);

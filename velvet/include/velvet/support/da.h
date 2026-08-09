@@ -9,6 +9,7 @@
 #include "velvet/support/memory.h"
 #include "velvet/support/api.h"
 #include "velvet/support/allocator.h"
+#include <stdint.h>
 
 /*
     velvet's dynamic array is fairly simple to understand using this graph

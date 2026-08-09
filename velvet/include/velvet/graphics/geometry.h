@@ -4,7 +4,12 @@
 #include <cglm/types.h>
 
 struct vl_vec2 {
-    float x, y;
+    union {
+        struct {
+            float x, y;
+        };
+        float m[2];
+    };
 };
 
 typedef struct vl_vec2 vl_vec2_t;
