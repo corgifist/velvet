@@ -201,7 +201,18 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
         if (VL_TOKEN_COMPARE(current, ";")) {
             if (tokenize(parser)) goto fail;
         }
-        VL_DA_APPEND(class->rules, rule);
+        bool rule_found = false;
+        for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
+            if (strcmp(class->rules[i].property, rule.property) == 0) {
+                vl_css_rule_deinit(class->rules + i);
+                class->rules[i] = rule;
+                rule_found = true;
+                break;
+            }
+        }
+        if (!rule_found) {
+            VL_DA_APPEND(class->rules, rule);
+        }
     }
     VL_TOKEN_CONSUME(parser, "}", goto fail);
 

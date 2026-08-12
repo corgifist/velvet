@@ -853,7 +853,7 @@ void segmentation_test() {
 
 void css_test() {
     vl_css_lexer_t lexer = {0};
-    const char *text = "html { padding: 16px; margin-left: 8px; color: red; outline-color: rgba(128 128 128 0.6) }";
+    const char *text = "html { padding: 16px; margin-left: 8px; color: red; outline-color: rgba(128 128 128 0.6); padding: 8px }";
     vl_css_parser_t parser = {0};
     vl_error_pool_t ep = {0};
     vl_css_parser_init(&parser, text, VL_SOURCE_LOCATION_HERE, &ep);
