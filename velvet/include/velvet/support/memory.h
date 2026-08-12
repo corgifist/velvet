@@ -22,6 +22,7 @@ typedef struct vl_source_location vl_source_location_t;
 
 #define VL_SOURCE_LOCATION(COMMENT) ((vl_source_location_t) {.file = __FILE__, .function = __func__, .line = __LINE__, .comment = (COMMENT), .__type = NULL})
 #define VL_SOURCE_LOCATION_HERE VL_SOURCE_LOCATION(NULL)
+#define VL_HERE VL_SOURCE_LOCATION_HERE
 
 #define VL_SOURCE_LOCATION_FORCE_TYPE(LOC, __TYPE) \
     ((vl_source_location_t) {.file = (LOC).file, .function = (LOC).function, .line = (LOC).line, .comment = (LOC).comment, .__type = (__TYPE)})
