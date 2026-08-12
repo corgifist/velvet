@@ -76,11 +76,48 @@ static vl_css_value_t parse_single_metric(vl_css_parser_t *parser, vl_css_rule_t
     );
 }
 
+#define VL_CSS_RGBA_CONST(CONST, R, G, B, A) \
+    VL_CSS_VALUE(VL_CSS_VALUE_COLOR_RGBA, CONST, {.rgba = VL_CSS_COLOR_RGBA(R, G, B, A)})
+
+static const struct {
+    const char *name;
+    vl_css_value_t value;
+} s_css_constants[] = {
+    {"red", VL_CSS_RGBA_CONST("red", 1, 0, 0, 1)}
+};
+
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     vl_css_token_t *current = parser->lookahead;
+    if (current->type == VL_CSS_TOKEN_TYPE_ID) {
+        for (int i = 0; i < VL_ARR_LEN(s_css_constants); i++) {
+            if (current->text_length == strlen(s_css_constants[i].name) && 
+                    memcmp(current->text, s_css_constants[i].name, current->text_length) == 0) {
+                if (tokenize(parser)) return VL_CSS_VALUE_NONE();
+                return s_css_constants[i].value;
+            }
+        }
+    }
     if (current->type == VL_CSS_TOKEN_TYPE_NUMBER && (current + 1)->type == VL_CSS_TOKEN_TYPE_ID) {
         // single metric: 10px / 5em / 25%
         return parse_single_metric(parser, rule);
+    }
+
+    if (VL_TOKEN_COMPARE(current, "rgba") && VL_TOKEN_COMPARE(current + 1, "(")) {
+        if (tokenize(parser) || tokenize(parser)) goto fail; // skip 'rgba' and '('
+        float components[4] = {0.0, 0.0, 0.0, 1.0};
+        int component = 0;
+        while (!VL_TOKEN_COMPARE(current, ")")) {
+            if (component >= 4) goto fail;
+            if (current->type != VL_CSS_TOKEN_TYPE_NUMBER) goto fail;
+            float value = strtod(current->text, NULL);
+            components[component++] = value;
+            if (tokenize(parser)) goto fail; // skip the number
+            if (VL_TOKEN_COMPARE(current, ",") || VL_TOKEN_COMPARE(current, "/")) {
+                if (tokenize(parser)) goto fail; // skip possible delimiter
+            }
+        }
+        if (tokenize(parser)) goto fail; // skip ')'
+        return VL_CSS_VALUE_RGBA(components[0], components[1], components[2], components[3]);
     }
 
     fail:

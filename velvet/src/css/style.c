@@ -20,6 +20,10 @@ static void print_size_metric(vl_css_size_metric_t *metric) {
 }
 
 vl_result_t vl_css_value_print(vl_css_value_t value) {
+    if (value.repr) {
+        printf("%s", value.repr);
+        return VL_SUCCESS;
+    }
     switch (value.type) {
     case VL_CSS_VALUE_NONE: {
         printf("none");
@@ -34,6 +38,10 @@ vl_result_t vl_css_value_print(vl_css_value_t value) {
             print_size_metric(value.as.metric4 + i);
             if (i != 3) printf(" ");
         }
+        return VL_SUCCESS;
+    }
+    case VL_CSS_VALUE_COLOR_RGBA: {
+        printf("rgba(%.00f, %.00f, %.00f, %.02f)", value.as.rgba.r, value.as.rgba.g, value.as.rgba.b, value.as.rgba.a);
         return VL_SUCCESS;
     }
     }
