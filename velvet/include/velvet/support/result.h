@@ -5,6 +5,7 @@ enum vl_result {
     VL_RESULT_FORCE_SIGNED = -2147483647,
     VL_SUCCESS = 0,
     VL_ERROR = 1,
+    VL_STOP = 2,
     VL_RESULT_FORCE_INT = 2147483647
 };
 

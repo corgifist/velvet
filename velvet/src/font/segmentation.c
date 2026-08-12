@@ -12,6 +12,7 @@ static UBreakIteratorType get_iter_type(vl_font_segmentation_type_t type) {
     switch (type) {
     case VL_FONT_SEGMENTATION_WORD: return UBRK_WORD;
     case VL_FONT_SEGMENTATION_SENTENCE: return UBRK_SENTENCE;
+    case VL_FONT_SEGMENTATION_LINE: return UBRK_LINE;
     default: return UBRK_CHARACTER;
     }
 }

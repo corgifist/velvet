@@ -6,8 +6,9 @@
 #include "velvet/support/result.h"
 
 enum vl_font_segmentation_type {
-    VL_FONT_SEGMENTATION_WORD,
-    VL_FONT_SEGMENTATION_SENTENCE
+    VL_FONT_SEGMENTATION_WORD = 0,
+    VL_FONT_SEGMENTATION_SENTENCE,
+    VL_FONT_SEGMENTATION_LINE,
 };
 
 typedef enum vl_font_segmentation_type vl_font_segmentation_type_t;

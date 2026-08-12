@@ -8,6 +8,9 @@
 #include <unicode/umachine.h>
 
 #include "large_test.h"
+#include "velvet/css/lexer.h"
+#include "velvet/css/parser.h"
+#include "velvet/css/style.h"
 #include "velvet/dom/dom.h"
 #include "velvet/dom/element.h"
 #include "velvet/font/atlas.h"
@@ -839,13 +842,25 @@ void simple_dom_test() {
 #include "velvet/font/segmentation.h"
 
 void segmentation_test() {
-    const char *text = "Hello, World!";
+    const char *text = "Hello, world! こんにちは世界";
     vl_font_segmentation_breaks_t breaks = NULL;
-    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_WORD, &breaks);
+    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_LINE, &breaks);
     for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {
         vl_font_segmentation_break_t *br = breaks + i;
         printf("%i %.*s %zu %zu\n", i, (int) br->end - (int) br->begin, text + br->begin, br->begin, br->end);
     }
+}
+
+void css_test() {
+    vl_css_lexer_t lexer = {0};
+    const char *text = "html { padding: 16px; margin-left: 8px }";
+    vl_css_parser_t parser = {0};
+    vl_error_pool_t ep = {0};
+    vl_css_parser_init(&parser, text, VL_SOURCE_LOCATION_HERE, &ep);
+    vl_css_class_t class = {0};
+    VL_ASSERT(!vl_css_parser_get(&parser, &class));
+    vl_css_class_print(&class);
+    vl_error_pool_dump(&ep);
 }
 
 int main(int argc, const char *argv[]) {
@@ -873,8 +888,9 @@ int main(int argc, const char *argv[]) {
     // shaper_test();
     // arabic_test();
     // printf("feature: %i\n", VL_FEATURE(DOM_TEXT_NODE));
-    simple_dom_test();
+    // simple_dom_test();
     // segmentation_test();
+    css_test();
 
     return 0;
 }
