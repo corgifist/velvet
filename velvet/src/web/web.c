@@ -1,6 +1,7 @@
 #include "web/web.h"
 #include "css/stylesheet.h"
 #include "dom/dom.h"
+#include "dom/element.h"
 #include "html/document.h"
 #include "platform/context.h"
 #include "support/memory.h"
@@ -58,6 +59,7 @@ vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
         printf("---------------\n");
         vl_css_stylesheet_print(&web->stylesheet);
         printf("---------------\n");
+        vl_dom_element_update_style(web->dom.root);
         web->refresh_styles = false;
     }
     return vl_dom_render(&web->dom, opts);

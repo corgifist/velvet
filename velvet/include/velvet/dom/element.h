@@ -1,6 +1,7 @@
 #ifndef VL_DOM_ELEMENT_H
 #define VL_DOM_ELEMENT_H
 
+#include "velvet/css/style.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
@@ -39,8 +40,12 @@ typedef struct vl_dom_element_funcs vl_dom_element_funcs_t;
 struct vl_dom;
 struct vl_dom_element {
     struct vl_dom *owner;
+    struct vl_dom_element *parent;
+
     const char *tag;
     VL_DA(struct vl_dom_element*) children;
+    VL_DA(char) class_name;
+    vl_css_style_t style;
 };
 
 typedef struct vl_dom_element vl_dom_element_t;
@@ -56,7 +61,9 @@ typedef vl_dom_element_t* (*vl_dom_element_new_func)(vl_source_location_t loc);
     vl_dom_element_new_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 VL_API vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc);
 VL_API vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts);
+VL_API vl_result_t vl_dom_element_update_style(vl_dom_element_t *element);
 VL_API vl_result_t vl_dom_element_set_string(vl_dom_element_t *element, const char *property, const char *value);
+VL_API vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *property, vl_dom_element_property_type_t type, const void *value);
 VL_API vl_result_t vl_dom_element_free(vl_dom_element_t *element);
 
 #endif // VL_DOM_ELEMENT_H

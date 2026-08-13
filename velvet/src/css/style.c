@@ -3,6 +3,25 @@
 #include "support/global_error_pool.h"
 #include "support/result.h"
 
+vl_result_t vl_css_style_init_(vl_css_style_t *style, vl_source_location_t loc) {
+    if (!style) return VL_ERROR;
+    style->applied_rules = VL_DA_INIT(vl_css_rule_t*);
+    return VL_SUCCESS;
+}
+
+vl_css_value_t vl_css_style_get_property(vl_css_style_t *style, const char *property, vl_css_value_t fallback) {
+    if (!style || !property) return fallback;
+    if (style->applied_rules) {
+        for (int i = 0; i < VL_DA_LENGTH(style->applied_rules); i++) {
+            vl_css_rule_t *rule = style->applied_rules[i];
+            if (rule->property && strcmp(rule->property, property) == 0) {
+                return rule->value;
+            }
+        }
+    }
+    return fallback;
+}
+
 vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
     if (!dst || !rule) return VL_ERROR;
     dst->property = VL_DA_COPY(rule->property);
@@ -49,6 +68,26 @@ vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
     return VL_SUCCESS;
 }
 
+static void print_rule(vl_css_rule_t *rule) {
+    printf("%s: ", rule->property);
+    vl_css_value_print(rule->value);
+    printf(";");
+}
+
+vl_result_t vl_css_style_print(vl_css_style_t *style) {
+    if (!style) return VL_ERROR;
+    if (style->applied_rules) {
+        size_t len = VL_DA_LENGTH(style->applied_rules);
+        for (int i = 0; i < len; i++) {
+            vl_css_rule_t *rule = style->applied_rules[i];
+            print_rule(rule);
+            if (i != len - 1) printf(" ");
+        }
+        printf("\n");
+    }
+    return VL_SUCCESS;
+}
+
 static void print_metric_unit(vl_css_size_metric_t *metric) {
     switch (metric->type) {
     case VL_CSS_SIZE_METRIC_NONE: {
@@ -68,10 +107,6 @@ static void print_size_metric(vl_css_size_metric_t *metric) {
 }
 
 vl_result_t vl_css_value_print(vl_css_value_t value) {
-    if (value.repr) {
-        printf("%s", value.repr);
-        return VL_SUCCESS;
-    }
     switch (value.type) {
     case VL_CSS_VALUE_NONE: {
         printf("none");
@@ -98,9 +133,8 @@ vl_result_t vl_css_value_print(vl_css_value_t value) {
 
 vl_result_t vl_css_rule_print(vl_css_rule_t *rule) {
     if (!rule) return VL_ERROR;
-    printf("%s: ", rule->property);
-    vl_css_value_print(rule->value);
-    printf(";\n");
+    print_rule(rule);
+    printf("\n");
     return VL_SUCCESS;
 }
 
@@ -114,6 +148,12 @@ vl_result_t vl_css_class_print(vl_css_class_t *class) {
         }
     }
     printf("}\n");
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_style_deinit(vl_css_style_t *style) {
+    if (!style) return VL_ERROR;
+    VL_DA_FREE(style->applied_rules);
     return VL_SUCCESS;
 }
 

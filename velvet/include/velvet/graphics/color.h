@@ -28,20 +28,23 @@ typedef struct vl_quad_colors vl_quad_colors_t;
 #define VL_QUAD_COLORS(TL, TR, BL, BR) \
     ((vl_quad_colors_t) {.tl = (TL), .tr = (TR), .bl = (BL), .br = (BR)})
 
+#define VL_QUAD_COLOR(COLOR) \
+    VL_QUAD_COLORS(COLOR, COLOR, COLOR, COLOR)
+
 #define VL_QUAD_WHITE \
-    VL_QUAD_COLORS(VL_WHITE, VL_WHITE, VL_WHITE, VL_WHITE)
+    VL_QUAD_COLOR(VL_WHITE)
 
 #define VL_QUAD_BLACK \
-    VL_QUAD_COLORS(VL_BLACK, VL_BLACK, VL_BLACK, VL_BLACK)
+    VL_QUAD_COLOR(VL_BLACK)
 
 #define VL_QUAD_RED \
-    VL_QUAD_COLORS(VL_RED, VL_RED, VL_RED, VL_RED)
+    VL_QUAD_COLOR(VL_RED)
 
 #define VL_QUAD_GREEN \
-    VL_QUAD_COLORS(VL_GREEN, VL_GREEN, VL_GREEN, VL_GREEN)
+    VL_QUAD_COLOR(VL_GREEN)
 
 #define VL_QUAD_BLUE \
-    VL_QUAD_COLORS(VL_BLUE, VL_BLUE, VL_BLUE, VL_BLUE)
+    VL_QUAD_COLOR(VL_BLUE)
 
 struct vl_gradient_stop {
     float percentage;

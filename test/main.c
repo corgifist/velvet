@@ -870,7 +870,7 @@ void styling_test() {
         Cascading Style Sheets are awesome!
         <style>
         body {
-            color: red;
+            color: green;
         }
         </style>
         <style>

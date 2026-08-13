@@ -1,5 +1,7 @@
 #include "velvet/dom/behavior/text.h"
+#include "css/style.h"
 #include "font/shaper.h"
+#include "graphics/color.h"
 #include "support/da.h"
 #include "support/result.h"
 #include "velvet/web/web.h"
@@ -62,6 +64,14 @@ vl_result_t vl_dom_behavior_text_layout_render(vl_dom_element_t *element, vl_dom
     vl_web_t *web = element->owner->owner;
     float base_x = 0;
     float base_y = 0;
+    vl_css_value_t text_color = vl_css_style_get_property(&element->style, "color", VL_CSS_VALUE_RGBA(255, 255, 255, 1));
+    vl_color_t normalized_color = VL_COLOR(
+        text_color.as.rgba.r / 255.0f,
+        text_color.as.rgba.g / 255.0f,
+        text_color.as.rgba.b / 255.0f,
+        text_color.as.rgba.a
+    );
+    vl_quad_colors_t quad_color = VL_QUAD_COLOR(normalized_color);
     for (int i = 0; i < VL_DA_LENGTH(layout->glyphs); i++) {
         vl_dom_behavior_text_glyph_t *glyph = layout->glyphs + i;
         vl_web_font_atlas_codepoint_t codepoint = {0};
@@ -71,7 +81,7 @@ vl_result_t vl_dom_behavior_text_layout_render(vl_dom_element_t *element, vl_dom
         vl_graphics_render_batch_rect_colored_uv(web->render, VL_RECT_EX(
             x, y,
             x + codepoint.codepoint->w, y + codepoint.codepoint->h
-        ), codepoint.atlas->brush, VL_QUAD_WHITE, codepoint.codepoint->uv);
+        ), codepoint.atlas->brush, quad_color, codepoint.codepoint->uv);
         base_x += glyph->advance_x;
         base_y += glyph->advance_y;
     }

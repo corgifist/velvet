@@ -46,6 +46,17 @@ vl_result_t vl_css_stylesheet_merge(vl_css_stylesheet_t *dst, const vl_css_style
     return VL_SUCCESS;
 }
 
+vl_css_class_t *vl_css_stylesheet_find_class(vl_css_stylesheet_t *stylesheet, const char *class) {
+    if (!stylesheet || !class) return NULL;
+    if (stylesheet->classes) {
+        for (int i = 0; i < VL_DA_LENGTH(stylesheet->classes); i++) {
+            vl_css_class_t *c = stylesheet->classes + i;
+            if (c->name && strcmp(c->name, class) == 0) return c;
+        }
+    }
+    return NULL;
+}
+
 vl_result_t vl_css_stylesheet_deinit(vl_css_stylesheet_t *stylesheet) {
     if (!stylesheet) return VL_ERROR;
     if (stylesheet->classes) {
