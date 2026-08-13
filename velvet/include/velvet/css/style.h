@@ -91,6 +91,11 @@ struct vl_css_style {
 
 typedef struct vl_css_style vl_css_style_t;
 
+VL_API vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule);
+
+VL_API vl_result_t vl_css_class_merge(vl_css_class_t *dst, const vl_css_class_t *class);
+VL_API vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src);
+
 VL_API vl_result_t vl_css_value_print(vl_css_value_t value);
 VL_API vl_result_t vl_css_rule_print(vl_css_rule_t *rule);
 VL_API vl_result_t vl_css_class_print(vl_css_class_t *class);

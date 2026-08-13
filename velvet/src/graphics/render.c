@@ -144,5 +144,6 @@ vl_result_t vl_graphics_render_resize(vl_graphics_render_t *render, int w, int h
 
 vl_result_t vl_graphics_render_free(vl_graphics_render_t *render) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_free) return VL_ERROR;
+    VL_DA_FREE(render->transform);
     return render->context->graphics_render_free(render);
 }

@@ -51,13 +51,8 @@ vl_result_t vl_dom_element_text_set_property(vl_dom_element_t *element, const ch
     vl_dom_element_text_t *text = (vl_dom_element_text_t*) element;
     if (strcmp(property, "innerText") == 0) {
         if (type != VL_DOM_ELEMENT_PROPERTY_STRING) VL_ASSERT(0 && "innerText property requires a STRING");
-        if (text->text) {
-            VL_DA_FREE(text->text);
-        }
-        size_t len = strlen(value);
-        text->text = VL_DA_INIT_WITH_CAPACITY(char, len + 1);
-        text->text[len] = '\0';
-        memcpy(text->text, value, len);
+        if (text->text) VL_DA_FREE(text->text);
+        text->text = VL_DA_INIT_FROM_STRING(value);
         text->rebuild_layout = true;
         return VL_SUCCESS;
     }

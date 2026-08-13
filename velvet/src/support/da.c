@@ -35,14 +35,28 @@ void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc,
     return mem + sizeof(vl_da_header_t);
 }
 
-void *vl_da_init_from_string(const char *string, vl_source_location_t loc, vl_allocator_t allocator) {
-    VL_ASSERT(string && "const char *string is NULL");
-    unsigned long length = strlen(string);
-    VL_DA(char) da = vl_da_init(1, length + 1, loc, allocator);
+VL_DA(char) vl_da_init_from_string(const char *string, vl_source_location_t loc, vl_allocator_t allocator) {
+    if (!string) return NULL;
+    return vl_da_init_from_string_with_size(string, strlen(string), loc, allocator);
+}
+
+VL_DA(char) vl_da_init_from_string_with_size(const char *string, size_t string_len, vl_source_location_t loc, vl_allocator_t allocator) {
+    if (!string) return NULL;
+    VL_DA(char) da = vl_da_init(1, string_len + 1, loc, allocator);
     if (!da) return NULL;
-    memcpy(da, string, length);
-    da[length] = '\0';
+    memcpy(da, string, string_len);
+    da[string_len] = '\0';
+    VL_DA_HEADER(da)->count = string_len + 1;
     return da;
+}
+
+VL_DA vl_da_copy(VL_DA da, vl_source_location_t loc, vl_allocator_t allocator) {
+    if (!da) return NULL;
+    vl_da_header_t *src_header = VL_DA_HEADER(da);
+    VL_DA new_da = vl_da_init(src_header->element_size, src_header->capacity, loc, allocator);
+    memcpy(VL_PTR_BACKWARD(new_da, sizeof(vl_da_header_t)), src_header, sizeof(vl_da_header_t));
+    memcpy(new_da, da, src_header->element_size * src_header->count);
+    return new_da;
 }
 
 void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_source_location_t loc) {

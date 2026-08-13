@@ -27,7 +27,11 @@ vl_result_t vl_error_pool_init_(vl_error_pool_t *pool, vl_source_location_t loc)
     if (!pool) return VL_ERROR;
     pool->count = pool->__offset = 0;
     pool->__capacity = VL_ERROR_POOL_INITIAL_CAPACITY;
-    pool->buffer = vl_malloc(VL_ERROR_POOL_INITIAL_CAPACITY, loc);
+    if (pool == vl_global_error_pool()) {
+        pool->buffer = malloc(VL_ERROR_POOL_INITIAL_CAPACITY);
+    } else {
+        pool->buffer = vl_malloc(VL_ERROR_POOL_INITIAL_CAPACITY, loc);
+    }
     return VL_SUCCESS;
 }
 
@@ -37,7 +41,11 @@ static void vl_error_pool_ensure_capacity(vl_error_pool_t *pool, size_t mem_len,
             pool->__capacity + VL_ERROR_POOL_INITIAL_CAPACITY / 2,
             pool->__capacity + mem_len + mem_len / 2
         );
-        pool->buffer = vl_realloc(pool->buffer, new_capacity, loc);
+        if (pool == vl_global_error_pool()) {
+            pool->buffer = realloc(pool->buffer, new_capacity);
+        } else {
+            pool->buffer = vl_realloc(pool->buffer, new_capacity, loc);
+        }
         pool->__capacity = new_capacity;
     }
 }

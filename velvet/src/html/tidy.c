@@ -65,11 +65,11 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
             body_node = VL_DA_APPEND(html_node.children, empty_body_node);
         }
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
-            if (node->children[i].tag && body_node
-                    && (strcmp(node->children[i].tag, "body") != 0)
-                    && (strcmp(node->children[i].tag, "head") != 0)) {
+            if (body_node && (node->children[i].tag
+                    && strcmp(node->children[i].tag, "body") != 0
+                    && strcmp(node->children[i].tag, "head") != 0)
+                    || (!node->children[i].tag && node->children[i].text)) {
                 VL_DA_APPEND(body_node->children, node->children[i]);
-                break;
             }
         }
         VL_DA_FREE(node->attributes);

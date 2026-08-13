@@ -13,8 +13,10 @@ vl_dom_element_t *vl_dom_element_body_new(vl_source_location_t loc) {
 }
 
 vl_result_t vl_dom_element_body_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts) {
-    for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
-        vl_dom_element_render(element->children[i], opts);
+    if (element->children) {
+        for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
+            vl_dom_element_render(element->children[i], opts);
+        }
     }
     return VL_SUCCESS;
 }

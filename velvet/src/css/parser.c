@@ -170,9 +170,7 @@ static vl_css_value_t dispatch_parse_value(vl_css_parser_t *parser, vl_css_rule_
 static vl_result_t parse_rule(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     vl_css_token_t *current = parser->lookahead;
     if (current->type != VL_CSS_TOKEN_TYPE_ID) return VL_ERROR;
-    rule->property = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
-    memcpy(rule->property, current->text, current->text_length);
-    rule->property[current->text_length] = '\0';
+    rule->property = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
     if (tokenize(parser)) goto fail;
     VL_TOKEN_CONSUME(parser, ":", goto fail);
     rule->value = dispatch_parse_value(parser, rule);
@@ -189,9 +187,7 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
     if (current->type == VL_CSS_TOKEN_TYPE_STOP) {
         return VL_STOP;
     }
-    class->name = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
-    memcpy(class->name, current->text, current->text_length);
-    class->name[current->text_length] = '\0';
+    class->name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
     if (tokenize(parser)) goto fail;
     VL_TOKEN_CONSUME(parser, "{", goto fail);
     class->rules = VL_DA_INIT(vl_css_rule_t);

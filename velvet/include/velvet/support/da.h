@@ -9,7 +9,7 @@
 #include "velvet/support/memory.h"
 #include "velvet/support/api.h"
 #include "velvet/support/allocator.h"
-#include <stdint.h>
+#include "velvet/support/variadic.h"
 
 /*
     velvet's dynamic array is fairly simple to understand using this graph
@@ -43,6 +43,7 @@ typedef struct vl_da_header vl_da_header_t;
     used strictly for pointing that some pointer is a dynamic array
 */
 #define VL_DA(TYPE) TYPE*
+typedef void* VL_DA;
 
 // dynamic array of chars (simply char*)
 #define VL_DA_STRING VL_DA(char)
@@ -68,12 +69,24 @@ typedef struct vl_da_header vl_da_header_t;
 #define VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, ALLOCATOR) \
     (vl_da_init(sizeof(TYPE), CAPACITY, VL_SOURCE_LOCATION_HERE, (ALLOCATOR)))
 
-
 #define VL_DA_INIT_FROM_STRING(STRING) \
     VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, VL_ALLOCATOR_DEFAULT())
 
 #define VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, ALLOCATOR) \
     (vl_da_init_from_string(STRING, VL_SOURCE_LOCATION_HERE, ALLOCATOR))
+
+#define VL_DA_INIT_FROM_STRING_WITH_SIZE(STRING, SIZE) \
+    VL_DA_INIT_FROM_STRING_WITH_SIZE_AND_ALLOCATOR(STRING, SIZE, VL_ALLOCATOR_DEFAULT())
+
+#define VL_DA_INIT_FROM_STRING_WITH_SIZE_AND_ALLOCATOR(STRING, SIZE, ALLOCATOR) \
+    (vl_da_init_from_string_with_size(STRING, SIZE, VL_HERE, ALLOCATOR))
+
+#define VL_DA_COPY1(DA) \
+    (vl_da_copy(DA, VL_HERE, VL_ALLOCATOR_DEFAULT()))
+#define VL_DA_COPY2(DA, LOC) \
+    (vl_da_copy(DA, VL_HERE, ALLOCATOR))
+#define VL_DA_COPY(DA, ...) \
+    VL_VA_DISPATCH(VL_DA_COPY, DA __VA_ARGS__)
 
 /*
     appends VALUE to the dynamic array DA
@@ -140,14 +153,35 @@ typedef struct vl_da_header vl_da_header_t;
 VL_API void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc, vl_allocator_t allocator);
 
 /**
- * initializes a dynamic array and copies the content of const char *string into it
+ * initializes a dynamic array and copies the content of const char *string
  *
  * @param string a source string
  * @param loc a location from which vl_da_init_from_string is called
  * @param allocator a dynamic memory allocator
  * @return pointer to the created dynamic array
  */
-VL_API void *vl_da_init_from_string(const char *string, vl_source_location_t loc, vl_allocator_t allocator);
+VL_API VL_DA(char) vl_da_init_from_string(const char *string, vl_source_location_t loc, vl_allocator_t allocator);
+
+/**
+ * initializes a dynamic array and copies the content of const char *string with length string_len in it
+ *
+ * @param string a source string
+ * @param string_len length of the source string
+ * @param loc a location from which vl_da_init_from_string is called
+ * @param allocator a dynamic memory allocator
+ * @return pointer to the created dynamic array
+ */
+VL_API VL_DA(char) vl_da_init_from_string_with_size(const char *string, size_t string_len, vl_source_location_t loc, vl_allocator_t allocator);
+
+/**
+ * creates a new dynamic array and copies the content of da into it
+ *
+ * @param da source dynamic array
+ * @param loc location for vl_malloc
+ * @param allocator dynamic memory allocator
+ * @return pointer to the created dynamic array
+ */
+VL_API VL_DA vl_da_copy(VL_DA da, vl_source_location_t loc, vl_allocator_t allocator);
 
 /*
     VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size);  

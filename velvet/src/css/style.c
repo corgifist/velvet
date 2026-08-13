@@ -1,5 +1,53 @@
 #include "velvet/css/style.h"
+#include "support/da.h"
+#include "support/global_error_pool.h"
 #include "support/result.h"
+
+vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
+    if (!dst || !rule) return VL_ERROR;
+    dst->property = VL_DA_COPY(rule->property);
+    dst->value = rule->value;
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_merge(vl_css_class_t *dst, const vl_css_class_t *class) {
+    if (!dst || !class) return VL_ERROR;
+    if (strcmp(dst->name, class->name) != 0) {
+        vl_global_error_pool_append("cannot merge two distinct css classes %s and %s", dst->name, class->name);
+        return VL_ERROR;
+    }
+    for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
+        vl_css_rule_t *rule = class->rules + i;
+        vl_css_rule_t *duplicate_rule = NULL;
+        for (int j = 0; j < VL_DA_LENGTH(dst->rules); j++) {
+            vl_css_rule_t *dst_rule = dst->rules + j;
+            if (strcmp(dst_rule->property, rule->property) == 0) {
+                duplicate_rule = dst_rule;
+                break;
+            }
+        }
+        if (duplicate_rule) {
+            vl_css_rule_deinit(rule);
+            vl_css_rule_copy(duplicate_rule, rule);
+        } else {
+            vl_css_rule_t copy_rule = {0};
+            vl_css_rule_copy(&copy_rule, rule);
+            VL_DA_APPEND(dst->rules, copy_rule);
+        }
+    }
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
+    if (!dst || !src) return VL_ERROR;
+    dst->name = VL_DA_COPY(src->name);
+    dst->rules = VL_DA_INIT_WITH_CAPACITY(vl_css_rule_t, VL_DA_LENGTH(src->rules));
+    VL_DA_HEADER(dst->rules)->count = VL_DA_LENGTH(src->rules);
+    for (int i = 0; i < VL_DA_LENGTH(src->rules); i++) {
+        vl_css_rule_copy(dst->rules + i, src->rules + i);
+    }
+    return VL_SUCCESS;
+}
 
 static void print_metric_unit(vl_css_size_metric_t *metric) {
     switch (metric->type) {

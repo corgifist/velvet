@@ -1,5 +1,6 @@
 #include "velvet/dom/element.h"
 #include "support/memory.h"
+#include "support/result.h"
 #include "velvet/support/feature.h"
 #include <string.h>
 
@@ -15,6 +16,8 @@
     #include "velvet/dom/html/html.h"
 #endif // VL_FEATURE(DOM_HTML_NODE)
 
+#include "velvet/dom/style/style.h"
+
 typedef struct {
     const char *tag;
     vl_dom_element_new_func new_; // just to make sure we don't collide with the C++ new
@@ -24,7 +27,8 @@ static const vl_dom_element_pair_t s_elements[] = {
 #if VL_FEATURE(DOM_TEXT_NODE)
     {"text", vl_dom_element_text_new},
     {"body", vl_dom_element_body_new},
-    {"html", vl_dom_element_html_new}
+    {"html", vl_dom_element_html_new},
+    {"style", vl_dom_element_style_new}
 #endif // VL_FEATURE(DOM_TEXT_NODE)
 };
 
@@ -40,6 +44,7 @@ vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc)
 vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts) {
     if (!element) return VL_ERROR;
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
+    if (!funcs->render) return VL_SUCCESS;
     return funcs->render(element, opts);
 }
 

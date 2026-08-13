@@ -10,6 +10,8 @@ if (BUILD_DOM_HTML_NODE)
     add_subdirectory(html)
 endif()
 
+add_subdirectory(style)
+
 set(Velvet_Sources
     ${Velvet_Sources}
     src/dom/dom.c

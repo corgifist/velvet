@@ -31,6 +31,7 @@
 #include "velvet/support/error_pool.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/result.h"
+#include "velvet/support/variadic.h"
 #include "velvet/velvet.h"
 #include "velvet/support/managed_assert.h"
 
@@ -807,7 +808,7 @@ void simple_dom_test() {
     vl_html_document_print(doc);
     VL_ASSERT(doc);
     vl_web_t web = {0};
-    vl_web_init(ctx, &web, &doc->root);
+    vl_web_init(ctx, &web, doc);
 
     vl_os_window_t *win = vl_os_window_new(ctx, "Web test", 640, 480);
     vl_graphics_render_t *render = vl_graphics_render_new(win);
@@ -863,6 +864,51 @@ void css_test() {
     vl_error_pool_dump(&ep);
 }
 
+void styling_test() {
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
+    const char *input = VL_STRINGIFY(
+        Cascading Style Sheets are awesome!
+        <style>
+        body {
+            color: red;
+        }
+        </style>
+        <style>
+        body {
+            padding: 8px;
+        }
+        </style>
+    );
+    vl_html_document_t *doc = vl_html_document_new(input);
+    vl_html_document_print(doc);
+    VL_ASSERT(doc);
+    vl_web_t web = {0};
+    vl_web_init(ctx, &web, doc);
+
+    vl_os_window_t *win = vl_os_window_new(ctx, "Web test", 640, 480);
+    vl_graphics_render_t *render = vl_graphics_render_new(win);
+    vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, render);
+    web.render = render;
+
+    bool close;
+    while (!vl_os_window_should_close(win, &close) && !close) {
+        vl_os_window_poll_events(ctx);
+        vl_graphics_presentation_begin(present);
+        vl_graphics_render_clear(render, VL_BLACK);
+        vl_graphics_render_batch_begin(render);
+            vl_web_render(&web, NULL);
+         vl_graphics_render_batch_end(render);
+        vl_graphics_presentation_end(present);
+    }
+    vl_web_deinit(&web);
+    vl_html_document_free(doc);
+    vl_graphics_presentation_free(present);
+    vl_graphics_render_free(render);
+    vl_os_window_free(win);
+    vl_platform_context_free(ctx);
+    vl_memory_print_allocations();
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -890,7 +936,8 @@ int main(int argc, const char *argv[]) {
     // printf("feature: %i\n", VL_FEATURE(DOM_TEXT_NODE));
     // simple_dom_test();
     // segmentation_test();
-    css_test();
+    // css_test();
+    styling_test();
 
     return 0;
 }

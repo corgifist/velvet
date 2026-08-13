@@ -27,6 +27,11 @@ vl_dom_element_t *collect_elements(vl_dom_t *owner, vl_html_node_t *node) {
     if (node->text) {
         vl_dom_element_set_string(element, "innerText", node->text);
     }
+    if (node->tag && strcmp(node->tag, "style") == 0) {
+        VL_DA(char) css_code = vl_html_node_collect_text(node);
+        vl_dom_element_set_string(element, "innerText", css_code);
+        VL_DA_FREE(css_code);
+    }
     if (!node->text && node->children && VL_DA_LENGTH(node->children) != 0) {
         if (!element->children)
             element->children = VL_DA_INIT(vl_dom_element_t*);

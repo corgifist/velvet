@@ -29,6 +29,30 @@ vl_result_t vl_html_node_print(vl_html_node_t *node) {
     return vl_html_node_print_with_indent(node, 0);
 }
 
+static void recurse_text_node(vl_html_node_t *node, VL_DA(char) *text) {
+    if (node->text && (!node->children || (node->children && VL_DA_LENGTH(node->children) == 0))) {
+        size_t len = strlen(node->text);
+        for (int i = 0; i < len; i++) {
+            *VL_DA_PUSH(*text, char) = node->text[i];
+        }
+    } else {
+        for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
+            recurse_text_node(node->children + i, text);
+        }
+    }
+}
+
+VL_DA(char) vl_html_node_collect_text(vl_html_node_t *node) {
+    if (!node) return NULL;
+    if (node->text) {
+        return VL_DA_INIT_FROM_STRING(node->text);
+    }
+    VL_DA(char) text = VL_DA_INIT(char);
+    recurse_text_node(node, &text);
+    *VL_DA_PUSH(text, char) = '\0';
+    return text;
+}
+
 vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
     if (!node) return VL_ERROR;
     for (int i = 0; i < indent; i++) {

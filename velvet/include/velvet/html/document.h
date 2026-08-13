@@ -38,6 +38,8 @@ VL_API vl_result_t vl_html_node_print(vl_html_node_t *node);
 VL_API vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent);
 VL_API vl_result_t vl_html_node_deinit(vl_html_node_t *node);
 
+VL_API VL_DA(char) vl_html_node_collect_text(vl_html_node_t *node);
+
 VL_API vl_html_document_t *vl_html_document_new(const char *input);
 VL_API vl_html_document_t *vl_html_document_new_with_ep(const char *input, vl_error_pool_t *ep);
 VL_API vl_result_t vl_html_document_init(vl_html_document_t *document, const char *input);

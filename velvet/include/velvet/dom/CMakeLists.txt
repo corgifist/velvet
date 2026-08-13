@@ -6,5 +6,6 @@ set(Velvet_Headers
     include/velvet/dom/text/text.h
     include/velvet/dom/body/body.h
     include/velvet/dom/html/html.h
+    include/velvet/dom/style/style.h
     PARENT_SCOPE
 )

@@ -56,7 +56,7 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
 }
 
 vl_result_t vl_dom_behavior_text_layout_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts, vl_dom_behavior_text_layout_t *layout) {
-    if (!element->owner) {
+    if (!element->owner || !layout || !layout->glyphs) {
         return VL_ERROR;
     }
     vl_web_t *web = element->owner->owner;

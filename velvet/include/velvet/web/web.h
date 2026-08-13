@@ -1,6 +1,7 @@
 #ifndef VELVET_WEB_H
 #define VELVET_WEB_H
 
+#include "velvet/css/stylesheet.h"
 #include "velvet/platform/context.h"
 #include "velvet/html/document.h"
 #include "velvet/dom/render.h"
@@ -11,6 +12,8 @@
 struct vl_web {
     const char *title;
     vl_dom_t dom;
+    vl_css_stylesheet_t stylesheet;
+    bool refresh_styles;
 
     vl_platform_context_t *platform_context;
     vl_graphics_render_t *render;
@@ -19,7 +22,7 @@ struct vl_web {
 
 typedef struct vl_web vl_web_t;
 
-VL_API vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_node_t *node);
+VL_API vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_document_t *node);
 VL_API vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts);
 VL_API vl_result_t vl_web_deinit(vl_web_t *web);
 
