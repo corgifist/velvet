@@ -46,6 +46,7 @@ struct vl_dom_element {
     VL_DA(struct vl_dom_element*) children;
     VL_DA(char) class_name;
     vl_css_style_t style;
+    vl_css_class_selector_t element_selector;
 };
 
 typedef struct vl_dom_element vl_dom_element_t;

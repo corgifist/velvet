@@ -189,7 +189,14 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
     if (current->type == VL_CSS_TOKEN_TYPE_STOP) {
         return VL_STOP;
     }
-    class->name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+    vl_css_class_selector_t selector = {0};
+    selector.id_chain = VL_DA_INIT(vl_css_class_id_t);
+    vl_css_class_id_t id = {0};
+    id.type = VL_CSS_CLASS_ID_ELEMENT;
+    id.name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+    VL_DA_APPEND(selector.id_chain, id);
+    class->selectors = VL_DA_INIT(vl_css_class_selector_t);
+    VL_DA_APPEND(class->selectors, selector);
     if (tokenize(parser)) goto fail;
     VL_TOKEN_CONSUME(parser, "{", goto fail);
     class->rules = VL_DA_INIT(vl_css_rule_t);

@@ -78,8 +78,29 @@ struct vl_css_rule {
 
 typedef struct vl_css_rule vl_css_rule_t;
 
-struct vl_css_class {
+enum vl_css_class_id_type {
+    VL_CSS_CLASS_ID_ELEMENT = 1,
+    VL_CSS_CLASS_ID_CLASS,
+    VL_CSS_CLASS_ID_ALL
+};
+
+typedef enum vl_css_class_id_type vl_css_class_id_type_t;
+
+struct vl_css_class_id {
+    vl_css_class_id_type_t type;
     VL_DA(char) name;
+};
+
+typedef struct vl_css_class_id vl_css_class_id_t;
+
+struct vl_css_class_selector {
+    VL_DA(vl_css_class_id_t) id_chain;
+};
+
+typedef struct vl_css_class_selector vl_css_class_selector_t;
+
+struct vl_css_class {
+    VL_DA(vl_css_class_selector_t) selectors;
     VL_DA(vl_css_rule_t) rules;
 };
 
@@ -97,19 +118,25 @@ typedef struct vl_css_style vl_css_style_t;
     vl_css_style_init_va_expand(__VA_ARGS__, VL_HERE)
 VL_API vl_result_t vl_css_style_init_(vl_css_style_t *style, vl_source_location_t loc);
 VL_API vl_css_value_t vl_css_style_get_property(vl_css_style_t *style, const char *property, vl_css_value_t fallback);
+VL_API vl_result_t vl_css_style_from_class(vl_css_style_t *style, const vl_css_class_t *class);
+VL_API vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style);
 
-VL_API vl_result_t vl_css_class_merge(vl_css_class_t *dst, const vl_css_class_t *class);
 VL_API vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src);
-
 VL_API vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule);
+VL_API vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_css_class_selector_t *selector);
+VL_API vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t *id);
 
 VL_API vl_result_t vl_css_style_print(vl_css_style_t *style);
 VL_API vl_result_t vl_css_class_print(vl_css_class_t *class);
+VL_API vl_result_t vl_css_class_selector_print(vl_css_class_selector_t *selector);
+VL_API vl_result_t vl_css_class_id_print(vl_css_class_id_t *id);
 VL_API vl_result_t vl_css_rule_print(vl_css_rule_t *rule);
 VL_API vl_result_t vl_css_value_print(vl_css_value_t value);
 
 VL_API vl_result_t vl_css_style_deinit(vl_css_style_t *style);
 VL_API vl_result_t vl_css_class_deinit(vl_css_class_t *class);
+VL_API vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector);
+VL_API vl_result_t vl_css_class_id_deinit(vl_css_class_id_t *id);
 VL_API vl_result_t vl_css_rule_deinit(vl_css_rule_t *rule);
 
 #endif // VELVET_CSS_STYLE_H

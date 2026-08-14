@@ -38,7 +38,14 @@ static const vl_dom_element_pair_t s_elements[] = {
 vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc) {
     for (int i = 0; i < VL_ARR_LEN(s_elements); i++) {
         if (strcmp(s_elements[i].tag, tag) == 0) {
-            return s_elements[i].new_(loc);
+            vl_dom_element_t *element = s_elements[i].new_(loc);
+            if (element) {
+                element->element_selector.id_chain = VL_DA_INIT(vl_css_class_id_t);
+                vl_css_class_id_t *id = VL_DA_PUSH(element->element_selector.id_chain, vl_css_class_id_t);
+                id->type = VL_CSS_CLASS_ID_ELEMENT;
+                id->name = VL_DA_INIT_FROM_STRING(tag);
+            }
+            return element;
         }
     }
     return NULL;
@@ -69,12 +76,16 @@ vl_result_t vl_dom_element_update_style(vl_dom_element_t *element) {
         }
         return VL_SUCCESS;
     }
-    vl_css_class_t *element_class = vl_css_stylesheet_find_class(&web->stylesheet, element->tag);
-    if (element_class) {
-        for (int i = 0; i < VL_DA_LENGTH(element_class->rules); i++) {
-            *VL_DA_PUSH(element->style.applied_rules, vl_css_rule_t*) = element_class->rules + i;
-        }
+
+    VL_DA(vl_css_class_t*) matched_classes = NULL;
+    vl_css_stylesheet_broad_query(&web->stylesheet, &element->element_selector, &matched_classes);
+    for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
+        vl_css_style_t tmp_style = {0};
+        vl_css_style_from_class(&tmp_style, matched_classes[i]);
+        vl_css_style_merge(&element->style, &tmp_style);
+        vl_css_style_deinit(&tmp_style);
     }
+    VL_DA_FREE(matched_classes);
     vl_css_style_print(&element->style);
     if (element->children) {
         for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
@@ -107,6 +118,7 @@ vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *p
 
 vl_result_t vl_dom_element_free(vl_dom_element_t *element) {
     if (!element) return VL_ERROR;
+    vl_css_class_selector_deinit(&element->element_selector);
     if (element->children) {
         for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
             vl_dom_element_free(element->children[i]);

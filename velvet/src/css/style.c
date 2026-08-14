@@ -22,6 +22,42 @@ vl_css_value_t vl_css_style_get_property(vl_css_style_t *style, const char *prop
     return fallback;
 }
 
+vl_result_t vl_css_style_from_class(vl_css_style_t *style, const vl_css_class_t *class) {
+    if (!style || !class) return VL_ERROR;
+    if (!style->applied_rules) {
+        style->applied_rules = VL_DA_INIT(vl_css_rule_t*);
+    }
+    if (class->rules) {
+        for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
+            *VL_DA_PUSH(style->applied_rules, vl_css_rule_t*) = class->rules + i;
+        }
+    }
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style) {
+    if (!dst || !style) return VL_ERROR;
+    if (!dst->applied_rules || !style->applied_rules) return VL_ERROR;
+    size_t len = VL_DA_LENGTH(style->applied_rules);
+    for (int i = 0; i < len; i++) {
+        vl_css_rule_t *rule = style->applied_rules[i];
+        vl_css_rule_t *duplicate_rule = NULL;
+        for (int j = 0; j < VL_DA_LENGTH(dst->applied_rules); j++) {
+            vl_css_rule_t *dst_rule = dst->applied_rules[j];
+            if (dst_rule->property && strcmp(rule->property, dst_rule->property) == 0) {
+                duplicate_rule = dst_rule;
+                break;
+            }
+        }
+        if (duplicate_rule) {
+            *duplicate_rule = *rule;
+        } else {
+            VL_DA_APPEND(dst->applied_rules, rule);
+        }
+    }
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
     if (!dst || !rule) return VL_ERROR;
     dst->property = VL_DA_COPY(rule->property);
@@ -29,37 +65,14 @@ vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
     return VL_SUCCESS;
 }
 
-vl_result_t vl_css_class_merge(vl_css_class_t *dst, const vl_css_class_t *class) {
-    if (!dst || !class) return VL_ERROR;
-    if (strcmp(dst->name, class->name) != 0) {
-        vl_global_error_pool_append("cannot merge two distinct css classes %s and %s", dst->name, class->name);
-        return VL_ERROR;
-    }
-    for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
-        vl_css_rule_t *rule = class->rules + i;
-        vl_css_rule_t *duplicate_rule = NULL;
-        for (int j = 0; j < VL_DA_LENGTH(dst->rules); j++) {
-            vl_css_rule_t *dst_rule = dst->rules + j;
-            if (strcmp(dst_rule->property, rule->property) == 0) {
-                duplicate_rule = dst_rule;
-                break;
-            }
-        }
-        if (duplicate_rule) {
-            vl_css_rule_deinit(rule);
-            vl_css_rule_copy(duplicate_rule, rule);
-        } else {
-            vl_css_rule_t copy_rule = {0};
-            vl_css_rule_copy(&copy_rule, rule);
-            VL_DA_APPEND(dst->rules, copy_rule);
-        }
-    }
-    return VL_SUCCESS;
-}
-
 vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
     if (!dst || !src) return VL_ERROR;
-    dst->name = VL_DA_COPY(src->name);
+    if (src->selectors) {
+        dst->selectors = VL_DA_INIT_WITH_CAPACITY(vl_css_class_selector_t, VL_DA_LENGTH(src->selectors));
+        for (int i = 0; i < VL_DA_LENGTH(src->selectors); i++) {
+            vl_css_class_selector_copy(VL_DA_PUSH(dst->selectors, vl_css_class_selector_t), src->selectors + i);
+        }
+    }
     if (src->rules) {
         dst->rules = VL_DA_INIT_WITH_CAPACITY(vl_css_rule_t, VL_DA_LENGTH(src->rules));
         VL_DA_HEADER(dst->rules)->count = VL_DA_LENGTH(src->rules);
@@ -67,6 +80,24 @@ vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
             vl_css_rule_copy(dst->rules + i, src->rules + i);
         }
     }
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_css_class_selector_t *selector) {
+    if (!dst || !selector) return VL_ERROR;
+    if (selector->id_chain) {
+        dst->id_chain = VL_DA_INIT_WITH_CAPACITY(vl_css_class_id_t, VL_DA_LENGTH(selector->id_chain));
+        for (int i = 0; i < VL_DA_LENGTH(selector->id_chain); i++) {
+            vl_css_class_id_copy(VL_DA_PUSH(dst->id_chain, vl_css_class_id_t), selector->id_chain + i);
+        }
+    }
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t *id) {
+    if (!dst || !id) return VL_ERROR;
+    dst->type = id->type;
+    dst->name = VL_DA_COPY(id->name);
     return VL_SUCCESS;
 }
 
@@ -140,9 +171,44 @@ vl_result_t vl_css_rule_print(vl_css_rule_t *rule) {
     return VL_SUCCESS;
 }
 
+
+static void print_class_id(vl_css_class_id_t *id) {
+    if (!id) return;
+    switch (id->type) {
+    case VL_CSS_CLASS_ID_ALL: {
+        printf("*");
+        return;
+    }
+    case VL_CSS_CLASS_ID_ELEMENT: break;
+    case VL_CSS_CLASS_ID_CLASS: {
+        printf(".");
+        break;
+    }
+    }
+    printf("%s", id->name);
+}
+
+static void print_class_selector(vl_css_class_selector_t *selector) {
+    if (!selector->id_chain) return;
+    size_t len = VL_DA_LENGTH(selector->id_chain);
+    for (int i = 0; i < len; i++) {
+        print_class_id(selector->id_chain + i);
+        if (i != len - 1) printf(" ");
+    }
+}
+
 vl_result_t vl_css_class_print(vl_css_class_t *class) {
     if (!class) return VL_ERROR;
-    printf("%s {\n", class->name);
+    if (class->selectors) {
+        size_t len = VL_DA_LENGTH(class->selectors);
+        for (int i = 0; i < len; i++) {
+            print_class_selector(class->selectors + i);
+            if (i != len - 1) printf(", ");
+        }
+    } else {
+        printf("unknown selector");
+    }
+    printf(" {\n");
     if (class->rules) {
         for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
             printf("\t");
@@ -150,6 +216,37 @@ vl_result_t vl_css_class_print(vl_css_class_t *class) {
         }
     }
     printf("}\n");
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_selector_print(vl_css_class_selector_t *selector) {
+    if (!selector) return VL_ERROR;
+    print_class_selector(selector);
+    printf("\n");
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_id_print(vl_css_class_id_t *id) {
+    if (!id) return VL_ERROR;
+    print_class_id(id);
+    printf("\n");
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector) {
+    if (!selector) return VL_ERROR;
+    if (selector->id_chain) {
+        for (int i = 0; i < VL_DA_LENGTH(selector->id_chain); i++) {
+            vl_css_class_id_deinit(selector->id_chain + i);
+        }
+        VL_DA_FREE(selector->id_chain);
+    }
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_id_deinit(vl_css_class_id_t *id) {
+    if (!id) return VL_ERROR;
+    VL_DA_FREE(id->name);
     return VL_SUCCESS;
 }
 
@@ -167,7 +264,12 @@ vl_result_t vl_css_rule_deinit(vl_css_rule_t *rule) {
 
 vl_result_t vl_css_class_deinit(vl_css_class_t *class) {
     if (!class) return VL_ERROR;
-    VL_DA_FREE(class->name);
+    if (class->selectors) {
+        for (int i = 0; i < VL_DA_LENGTH(class->selectors); i++) {
+            vl_css_class_selector_deinit(class->selectors + i);
+        }
+        VL_DA_FREE(class->selectors);
+    }
     if (class->rules) {
         for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
             vl_css_rule_deinit(class->rules + i);
