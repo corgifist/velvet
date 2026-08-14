@@ -869,6 +869,9 @@ void styling_test() {
     const char *input = VL_STRINGIFY(
         Cascading Style Sheets are awesome!
         <style>
+        .class {
+            color: yellow;
+        }
         body {
             color: green;
         }

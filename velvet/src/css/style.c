@@ -60,10 +60,12 @@ vl_result_t vl_css_class_merge(vl_css_class_t *dst, const vl_css_class_t *class)
 vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
     if (!dst || !src) return VL_ERROR;
     dst->name = VL_DA_COPY(src->name);
-    dst->rules = VL_DA_INIT_WITH_CAPACITY(vl_css_rule_t, VL_DA_LENGTH(src->rules));
-    VL_DA_HEADER(dst->rules)->count = VL_DA_LENGTH(src->rules);
-    for (int i = 0; i < VL_DA_LENGTH(src->rules); i++) {
-        vl_css_rule_copy(dst->rules + i, src->rules + i);
+    if (src->rules) {
+        dst->rules = VL_DA_INIT_WITH_CAPACITY(vl_css_rule_t, VL_DA_LENGTH(src->rules));
+        VL_DA_HEADER(dst->rules)->count = VL_DA_LENGTH(src->rules);
+        for (int i = 0; i < VL_DA_LENGTH(src->rules); i++) {
+            vl_css_rule_copy(dst->rules + i, src->rules + i);
+        }
     }
     return VL_SUCCESS;
 }

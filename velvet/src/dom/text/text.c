@@ -44,7 +44,6 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element, vl_dom_render_
         vl_dom_behavior_text_layout_new(element, &text->layout, text->text);
         text->rebuild_layout = false;
     }
-    vl_css_style_print(&element->style);
     vl_dom_behavior_text_layout_render(element, opts, &text->layout);
     return VL_SUCCESS;
 }

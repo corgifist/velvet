@@ -9,8 +9,10 @@ vl_result_t vl_css_stylesheet_init_(vl_css_stylesheet_t *stylesheet, const char 
     vl_css_parser_t parser = {0};
     vl_css_parser_init(&parser, text, loc);
     vl_css_class_t class = {0};
-    while (vl_css_parser_get(&parser, &class) != VL_STOP) {
-        VL_DA_APPEND(stylesheet->classes, class);
+    vl_result_t result;
+    while ((result = vl_css_parser_get(&parser, &class)) != VL_STOP) {
+        if (result == VL_SUCCESS)
+            VL_DA_APPEND(stylesheet->classes, class);
     }
     vl_css_parser_deinit(&parser);
     return VL_SUCCESS;
@@ -29,7 +31,7 @@ vl_result_t vl_css_stylesheet_merge(vl_css_stylesheet_t *dst, const vl_css_style
         vl_css_class_t *duplicate_class = NULL;
         for (int j = 0; j < VL_DA_LENGTH(dst->classes); j++) {
             vl_css_class_t *dst_class = dst->classes + j;
-            if (strcmp(class->name, dst_class->name) == 0) {
+            if (class->name && dst_class->name && strcmp(class->name, dst_class->name) == 0) {
                 duplicate_class = dst_class;
                 break;
             }

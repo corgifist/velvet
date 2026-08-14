@@ -75,6 +75,7 @@ vl_result_t vl_dom_element_update_style(vl_dom_element_t *element) {
             *VL_DA_PUSH(element->style.applied_rules, vl_css_rule_t*) = element_class->rules + i;
         }
     }
+    vl_css_style_print(&element->style);
     if (element->children) {
         for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
             vl_dom_element_update_style(element->children[i]);
