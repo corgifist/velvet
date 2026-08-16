@@ -871,6 +871,7 @@ void styling_test() {
         <style>
         .class {
             color: yellow;
+            padding: 16px;
         }
         body {
             color: green;

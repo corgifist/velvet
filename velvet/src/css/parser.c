@@ -124,7 +124,6 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
 
     fail:
     return VL_CSS_VALUE_NONE();
-
 }
 
 static vl_css_value_t parse_shorthand_metric4(vl_css_parser_t *parser, vl_css_rule_t *rule) {
@@ -176,10 +175,70 @@ static vl_result_t parse_rule(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     if (tokenize(parser)) goto fail;
     VL_TOKEN_CONSUME(parser, ":", goto fail);
     rule->value = dispatch_parse_value(parser, rule);
-
+    if (rule->value.type == VL_CSS_VALUE_NONE) goto fail;
     return VL_SUCCESS;
     fail:
     vl_css_rule_deinit(rule);
+    return VL_ERROR;
+}
+
+static vl_result_t parse_class_id(vl_css_parser_t *parser, vl_css_class_id_t *id) {
+    vl_css_token_t *current = parser->lookahead;
+
+    if (VL_TOKEN_COMPARE(current, "*")) {
+        id->type = VL_CSS_CLASS_ID_ALL;
+        id->name = NULL;
+        if (tokenize(parser)) goto fail;
+        return VL_SUCCESS;
+    }
+    if (current->type == VL_CSS_TOKEN_TYPE_ID) {
+        id->type = VL_CSS_CLASS_ID_ELEMENT;
+        id->name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+        if (tokenize(parser)) goto fail;
+        return VL_SUCCESS;
+    }
+    if (VL_TOKEN_COMPARE(current, ".") && (current + 1)->type == VL_CSS_TOKEN_TYPE_ID) {
+        if (tokenize(parser)) goto fail; // skip '.'
+        id->type = VL_CSS_CLASS_ID_CLASS;
+        id->name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+        if (tokenize(parser)) goto fail; // skip id
+        return VL_SUCCESS;
+    }
+
+    fail:
+    return VL_ERROR;
+}
+
+static vl_result_t parse_class_selector(vl_css_parser_t *parser, vl_css_class_selector_t *selector) {
+    if (!selector->id_chain) {
+        selector->id_chain = VL_DA_INIT(vl_css_class_id_t);
+    }
+    while (true) {
+        vl_css_class_id_t id = {0};
+        if (VL_TOKEN_COMPARE(parser->lookahead, ",") || VL_TOKEN_COMPARE(parser->lookahead, "{")) break; // moving onto the next selector
+        if (parse_class_id(parser, &id)) goto fail;
+        VL_DA_APPEND(selector->id_chain, id);
+    }
+    return VL_SUCCESS;
+    fail:
+    vl_css_class_selector_deinit(selector);
+    return VL_ERROR;
+}
+
+static vl_result_t parse_class_selectors(vl_css_parser_t *parser, vl_css_class_t *class) {
+    vl_css_token_t *current = parser->lookahead;
+    if (!class->selectors) {
+        class->selectors = VL_DA_INIT(vl_css_class_selector_t);
+    }
+    while (!VL_TOKEN_COMPARE(current, "{")) {
+        vl_css_class_selector_t selector = {0};
+        if (parse_class_selector(parser, &selector)) goto fail;
+        VL_DA_APPEND(class->selectors, selector); 
+        if (VL_TOKEN_COMPARE(current, ",") && tokenize(parser)) goto fail;
+    }
+    return VL_SUCCESS;
+    fail:
+    vl_css_class_deinit(class);
     return VL_ERROR;
 }
 
@@ -189,20 +248,26 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
     if (current->type == VL_CSS_TOKEN_TYPE_STOP) {
         return VL_STOP;
     }
-    vl_css_class_selector_t selector = {0};
-    selector.id_chain = VL_DA_INIT(vl_css_class_id_t);
-    vl_css_class_id_t id = {0};
-    id.type = VL_CSS_CLASS_ID_ELEMENT;
-    id.name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
-    VL_DA_APPEND(selector.id_chain, id);
-    class->selectors = VL_DA_INIT(vl_css_class_selector_t);
-    VL_DA_APPEND(class->selectors, selector);
-    if (tokenize(parser)) goto fail;
+    if (parse_class_selectors(parser, class)) goto fail;
     VL_TOKEN_CONSUME(parser, "{", goto fail);
     class->rules = VL_DA_INIT(vl_css_rule_t);
     while (!VL_TOKEN_COMPARE(current, "}")) {
         vl_css_rule_t rule = {0};
-        if (parse_rule(parser, &rule)) goto fail;
+        if (parse_rule(parser, &rule)) {
+            vl_css_rule_deinit(&rule);
+            while (true) {
+                if (VL_TOKEN_COMPARE(current, ";")) {
+                    tokenize(parser);
+                    break;
+                }
+                if (VL_TOKEN_COMPARE(current, "}")) {
+                    tokenize(parser);
+                    return VL_SUCCESS;
+                }
+                tokenize(parser);
+            }
+            continue;
+        }
         if (VL_TOKEN_COMPARE(current, ";")) {
             if (tokenize(parser)) goto fail;
         }
@@ -224,7 +289,7 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
     return VL_SUCCESS;
     fail:
     vl_css_class_deinit(class);
-
+    tokenize(parser); // skip faulty token to avoid infinite loops
     return VL_ERROR;
 }
 

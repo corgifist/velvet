@@ -12,8 +12,11 @@ vl_result_t vl_css_stylesheet_init_(vl_css_stylesheet_t *stylesheet, const char 
     vl_css_class_t class = {0};
     vl_result_t result;
     while ((result = vl_css_parser_get(&parser, &class)) != VL_STOP) {
-        if (result == VL_SUCCESS)
+        if (result == VL_SUCCESS) {
             VL_DA_APPEND(stylesheet->classes, class);
+            class = (vl_css_class_t) {0};
+        }
+
     }
     vl_css_parser_deinit(&parser);
     return VL_SUCCESS;
