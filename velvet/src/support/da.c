@@ -54,8 +54,7 @@ VL_DA vl_da_copy(VL_DA da, vl_source_location_t loc, vl_allocator_t allocator) {
     if (!da) return NULL;
     vl_da_header_t *src_header = VL_DA_HEADER(da);
     VL_DA new_da = vl_da_init(src_header->element_size, src_header->capacity, loc, allocator);
-    memcpy(VL_PTR_BACKWARD(new_da, sizeof(vl_da_header_t)), src_header, sizeof(vl_da_header_t));
-    memcpy(new_da, da, src_header->element_size * src_header->count);
+    memcpy(VL_DA_HEADER(new_da), VL_DA_HEADER(da), sizeof(vl_da_header_t) + src_header->element_size * src_header->count);
     return new_da;
 }
 
@@ -100,6 +99,7 @@ void vl_da_free(VL_DA(void) *da, vl_source_location_t loc) {
     vl_da_header_t *header = VL_DA_HEADER(*da);
     if (!header) return;
     VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));
+    header->magic = 0; // invalidate magic to prevent double-freeing
     vl_afree(header->allocator, header);
     *da = NULL;
 }

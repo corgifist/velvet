@@ -24,7 +24,7 @@ VL_API vl_result_t vl_css_stylesheet_init_(vl_css_stylesheet_t *stylesheet, cons
     vl_css_stylesheet_init_empty_va_expand(__VA_ARGS__, VL_HERE)
 VL_API vl_result_t vl_css_stylesheet_init_empty_(vl_css_stylesheet_t *stylesheet, vl_source_location_t loc);
 VL_API vl_result_t vl_css_stylesheet_merge(vl_css_stylesheet_t *dst, const vl_css_stylesheet_t *sheet);
-VL_API vl_result_t vl_css_stylesheet_broad_query(vl_css_stylesheet_t *sheet, vl_css_class_selector_t *selector, VL_DA(vl_css_class_t*) *result);
+VL_API vl_result_t vl_css_stylesheet_broad_query(vl_css_stylesheet_t *sheet, const vl_css_class_selector_t *selector, VL_DA(vl_css_class_t*) *result);
 VL_API vl_result_t vl_css_stylesheet_deinit(vl_css_stylesheet_t *stylesheet);
 
 VL_API vl_result_t vl_css_stylesheet_print(vl_css_stylesheet_t *stylesheet);

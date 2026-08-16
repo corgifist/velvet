@@ -79,11 +79,18 @@ vl_result_t vl_dom_element_update_style(vl_dom_element_t *element) {
 
     VL_DA(vl_css_class_t*) matched_classes = NULL;
     vl_css_stylesheet_broad_query(&web->stylesheet, &element->element_selector, &matched_classes);
-    for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
-        vl_css_style_t tmp_style = {0};
-        vl_css_style_from_class(&tmp_style, matched_classes[i]);
-        vl_css_style_merge(&element->style, &tmp_style);
-        vl_css_style_deinit(&tmp_style);
+    if (element->class_selectors) {
+        for (int i = 0; i < VL_DA_LENGTH(element->class_selectors); i++) {
+            vl_css_stylesheet_broad_query(&web->stylesheet, element->class_selectors, &matched_classes);
+        }
+    }
+    if (matched_classes) {
+        for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
+            vl_css_style_t tmp_style = {0};
+            vl_css_style_from_class(&tmp_style, matched_classes[i]);
+            vl_css_style_merge(&element->style, &tmp_style);
+            vl_css_style_deinit(&tmp_style);
+        }
     }
     VL_DA_FREE(matched_classes);
     vl_css_style_print(&element->style);
@@ -96,10 +103,37 @@ vl_result_t vl_dom_element_update_style(vl_dom_element_t *element) {
 }
 
 static vl_result_t element_set_class_name(vl_dom_element_t *element, const char *class_string) {
+    if (element->class_selectors) {
+        for (int i = 0; i < VL_DA_LENGTH(element->class_selectors); i++) {
+            vl_css_class_selector_deinit(element->class_selectors + i);
+        }
+        VL_DA_FREE(element->class_selectors);
+    }
+    element->class_selectors = VL_DA_INIT(vl_css_class_selector_t);
     const char *begin = class_string;
     const char *end = class_string;
     VL_DA_FREE(element->class_name);
     element->class_name = VL_DA_INIT_FROM_STRING(class_string);
+    const char *class_begin = element->class_name;
+    const char *class_end = element->class_name;
+    const char *limit = element->class_name + VL_DA_LENGTH(element->class_name);
+    while (class_end < limit) {
+        if (*class_end == ' ' || *class_end == '\0') {
+            vl_css_class_selector_t selector = {0};
+            selector.id_chain = VL_DA_INIT(vl_css_class_id_t);
+            vl_css_class_id_t id = {0};
+            id.type = VL_CSS_CLASS_ID_CLASS;
+            id.name = VL_DA_INIT_FROM_STRING_WITH_SIZE(class_begin, class_end - class_begin);
+            VL_DA_APPEND(selector.id_chain, id);
+            VL_DA_APPEND(element->class_selectors, selector);
+            class_end++;
+            class_begin = class_end;
+        }
+        class_end++;
+    }
+    for (int i = 0; i < VL_DA_LENGTH(element->class_selectors); i++) {
+        vl_css_class_selector_print(element->class_selectors + i);
+    }
     return VL_SUCCESS;
 }
 
@@ -119,6 +153,12 @@ vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *p
 vl_result_t vl_dom_element_free(vl_dom_element_t *element) {
     if (!element) return VL_ERROR;
     vl_css_class_selector_deinit(&element->element_selector);
+    if (element->class_selectors) {
+        for (int i = 0; i < VL_DA_LENGTH(element->class_selectors); i++) {
+            vl_css_class_selector_deinit(element->class_selectors + i);
+        }
+        VL_DA_FREE(element->class_selectors);
+    }
     if (element->children) {
         for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
             vl_dom_element_free(element->children[i]);

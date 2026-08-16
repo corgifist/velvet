@@ -33,6 +33,10 @@ vl_dom_element_t *collect_elements(vl_dom_t *owner, vl_dom_element_t *parent, vl
         vl_dom_element_set_string(element, "innerText", css_code);
         VL_DA_FREE(css_code);
     }
+    vl_html_attribute_t *class_attribute = vl_html_node_find_attribute(node, "class");
+    if (class_attribute && class_attribute->value) {
+        vl_dom_element_set_string(element, "className", class_attribute->value);
+    }
     if (!node->text && node->children && VL_DA_LENGTH(node->children) != 0) {
         if (!element->children)
             element->children = VL_DA_INIT(vl_dom_element_t*);

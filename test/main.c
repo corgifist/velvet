@@ -867,19 +867,18 @@ void css_test() {
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     const char *input = VL_STRINGIFY(
-        Cascading Style Sheets are awesome!
+        <body class="my-class id1 id2">
+            Cascading Style Sheets are awesome!
+        </body>
         <style>
-        .class {
+        body {
+            color: red;
+        }
+        body {
+            color: blue;
+        }
+        .my-class {
             color: yellow;
-            padding: 16px;
-        }
-        body {
-            color: green;
-        }
-        </style>
-        <style>
-        body {
-            padding: 8px;
         }
         </style>
     );

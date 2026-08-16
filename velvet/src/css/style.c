@@ -1,6 +1,5 @@
 #include "velvet/css/style.h"
 #include "support/da.h"
-#include "support/global_error_pool.h"
 #include "support/result.h"
 
 vl_result_t vl_css_style_init_(vl_css_style_t *style, vl_source_location_t loc) {
@@ -41,16 +40,16 @@ vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style)
     size_t len = VL_DA_LENGTH(style->applied_rules);
     for (int i = 0; i < len; i++) {
         vl_css_rule_t *rule = style->applied_rules[i];
-        vl_css_rule_t *duplicate_rule = NULL;
+        vl_css_rule_t **duplicate_rule = NULL;
         for (int j = 0; j < VL_DA_LENGTH(dst->applied_rules); j++) {
             vl_css_rule_t *dst_rule = dst->applied_rules[j];
             if (dst_rule->property && strcmp(rule->property, dst_rule->property) == 0) {
-                duplicate_rule = dst_rule;
+                duplicate_rule = dst->applied_rules + j;
                 break;
             }
         }
         if (duplicate_rule) {
-            *duplicate_rule = *rule;
+            *duplicate_rule = rule;
         } else {
             VL_DA_APPEND(dst->applied_rules, rule);
         }
@@ -75,9 +74,8 @@ vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
     }
     if (src->rules) {
         dst->rules = VL_DA_INIT_WITH_CAPACITY(vl_css_rule_t, VL_DA_LENGTH(src->rules));
-        VL_DA_HEADER(dst->rules)->count = VL_DA_LENGTH(src->rules);
         for (int i = 0; i < VL_DA_LENGTH(src->rules); i++) {
-            vl_css_rule_copy(dst->rules + i, src->rules + i);
+            vl_css_rule_copy(VL_DA_PUSH(dst->rules, vl_css_rule_t), src->rules + i);
         }
     }
     return VL_SUCCESS;

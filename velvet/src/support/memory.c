@@ -119,6 +119,7 @@ void vl_free_(void *mem, vl_source_location_t loc) {
     s_allocations_count--;
     s_bytes_allocated -= allocation->size;
     memset(allocation, 0, sizeof(vl_memory_allocation_t) + allocation->size);
+    allocation->magic = 0; // making sure magic is set to zero to prevent double-freeing
     free(allocation);
 }
 

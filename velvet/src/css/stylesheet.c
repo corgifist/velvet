@@ -14,9 +14,8 @@ vl_result_t vl_css_stylesheet_init_(vl_css_stylesheet_t *stylesheet, const char 
     while ((result = vl_css_parser_get(&parser, &class)) != VL_STOP) {
         if (result == VL_SUCCESS) {
             VL_DA_APPEND(stylesheet->classes, class);
-            class = (vl_css_class_t) {0};
         }
-
+        class = (vl_css_class_t) {0};
     }
     vl_css_parser_deinit(&parser);
     return VL_SUCCESS;
@@ -40,7 +39,7 @@ vl_result_t vl_css_stylesheet_merge(vl_css_stylesheet_t *dst, const vl_css_style
     return VL_SUCCESS;
 }
 
-vl_result_t vl_css_stylesheet_broad_query(vl_css_stylesheet_t *sheet, vl_css_class_selector_t *target_selector, vl_css_class_t ***result) {
+vl_result_t vl_css_stylesheet_broad_query(vl_css_stylesheet_t *sheet, const vl_css_class_selector_t *target_selector, vl_css_class_t ***result) {
     if (!sheet || !target_selector || !result) return VL_ERROR;
     if (!*result) {
         *result = VL_DA_INIT(vl_css_class_t*);
@@ -61,7 +60,6 @@ vl_result_t vl_css_stylesheet_broad_query(vl_css_stylesheet_t *sheet, vl_css_cla
                 for (int k = 0; k < len; k++) {
                     vl_css_class_id_t *id = selector->id_chain + k;
                     vl_css_class_id_t *target_id = target_selector->id_chain + k;
-                    if (id->type == VL_CSS_CLASS_ID_ALL) continue;
                     if (id->type != target_id->type) {
                         id_pass = false;
                         break;
@@ -90,8 +88,8 @@ vl_result_t vl_css_stylesheet_deinit(vl_css_stylesheet_t *stylesheet) {
         for (int i = 0; i < VL_DA_LENGTH(stylesheet->classes); i++) {
             vl_css_class_deinit(stylesheet->classes + i);
         }
+        VL_DA_FREE(stylesheet->classes);
     }
-    VL_DA_FREE(stylesheet->classes);
     return VL_SUCCESS;
 }
 

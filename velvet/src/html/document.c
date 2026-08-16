@@ -53,6 +53,17 @@ VL_DA(char) vl_html_node_collect_text(vl_html_node_t *node) {
     return text;
 }
 
+vl_html_attribute_t *vl_html_node_find_attribute(vl_html_node_t *node, const char *name) {
+    if (!node || !name) return NULL;
+    if (node->attributes) {
+        for (int i = 0; i < VL_DA_LENGTH(node->attributes); i++) {
+            vl_html_attribute_t *attribute = node->attributes + i;
+            if (attribute->name && strcmp(attribute->name, name) == 0) return attribute;
+        }
+    }
+    return NULL;
+}
+
 vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
     if (!node) return VL_ERROR;
     for (int i = 0; i < indent; i++) {
