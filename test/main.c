@@ -867,7 +867,7 @@ void css_test() {
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     const char *input = VL_STRINGIFY(
-        <body class="my-class id1 id2">
+        <body class="higher-priority lower-priority">
             Cascading Style Sheets are awesome!
         </body>
         <style>
@@ -877,6 +877,15 @@ void styling_test() {
         body {
             color: blue;
         }
+
+        .lower-priority {
+            color: aqua;
+        }
+
+        .higher-priority {
+            color: fuchsia;
+        }
+
         .my-class {
             color: yellow;
         }

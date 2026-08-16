@@ -87,7 +87,9 @@ static const struct {
     {"green", VL_CSS_VALUE_RGBA(0, 255, 0, 1)},
     {"blue", VL_CSS_VALUE_RGBA(0, 0, 255, 1)},
     {"yellow", VL_CSS_VALUE_RGBA(255, 255, 0, 1)},
-    {"aqua", VL_CSS_VALUE_RGBA(0, 255, 255, 1)}
+    {"aqua", VL_CSS_VALUE_RGBA(0, 255, 255, 1)},
+    {"aquamarine", VL_CSS_VALUE_RGBA(127, 255, 212, 1)},
+    {"fuchsia", VL_CSS_VALUE_RGBA(255, 0, 255, 1)}
 };
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {

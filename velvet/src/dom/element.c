@@ -81,14 +81,19 @@ vl_result_t vl_dom_element_update_style(vl_dom_element_t *element) {
     vl_css_stylesheet_broad_query(&web->stylesheet, &element->element_selector, &matched_classes);
     if (element->class_selectors) {
         for (int i = 0; i < VL_DA_LENGTH(element->class_selectors); i++) {
-            vl_css_stylesheet_broad_query(&web->stylesheet, element->class_selectors, &matched_classes);
+            vl_css_stylesheet_broad_query(&web->stylesheet, element->class_selectors + i, &matched_classes);
         }
     }
     if (matched_classes) {
+        printf("matched %zu classes for tag %s\n", VL_DA_LENGTH(matched_classes), element->tag);
         for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
             vl_css_style_t tmp_style = {0};
             vl_css_style_from_class(&tmp_style, matched_classes[i]);
             vl_css_style_merge(&element->style, &tmp_style);
+            printf("-----------\nmerge %i\n", i);
+            vl_css_class_print(matched_classes[i]);
+            vl_css_style_print(&element->style);
+            printf("-----------\n");
             vl_css_style_deinit(&tmp_style);
         }
     }
