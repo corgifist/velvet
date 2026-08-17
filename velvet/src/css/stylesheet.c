@@ -13,7 +13,7 @@ vl_result_t vl_css_stylesheet_init_(vl_css_stylesheet_t *stylesheet, const char 
     vl_result_t result;
     while ((result = vl_css_parser_get(&parser, &class)) != VL_STOP) {
         if (result == VL_SUCCESS) {
-            VL_DA_APPEND(stylesheet->classes, class);
+            vl_css_stylesheet_add_class(stylesheet, &class);
         }
         class = (vl_css_class_t) {0};
     }
@@ -24,6 +24,22 @@ vl_result_t vl_css_stylesheet_init_(vl_css_stylesheet_t *stylesheet, const char 
 vl_result_t vl_css_stylesheet_init_empty_(vl_css_stylesheet_t *stylesheet, vl_source_location_t loc) {
     if (!stylesheet) return VL_ERROR;
     stylesheet->classes = VL_DA_INIT(vl_css_class_t);
+    stylesheet->max_priority = 1;
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_stylesheet_add_class(vl_css_stylesheet_t *stylesheet, vl_css_class_t *class) {
+    if (!stylesheet || !class) return VL_ERROR;
+    if (stylesheet->classes) {
+        vl_css_class_t tmp_class = *class;
+        if (tmp_class.rules) {
+            int priority = stylesheet->max_priority++;
+            for (int i = 0; i < VL_DA_LENGTH(tmp_class.rules); i++) {
+                tmp_class.rules[i].priority = priority;
+            }
+        }
+        VL_DA_APPEND(stylesheet->classes, tmp_class);
+    }
     return VL_SUCCESS;
 }
 
@@ -33,7 +49,7 @@ vl_result_t vl_css_stylesheet_merge(vl_css_stylesheet_t *dst, const vl_css_style
         for (int i = 0; i < VL_DA_LENGTH(sheet->classes); i++) {
             vl_css_class_t copy_class = {0};
             vl_css_class_copy(&copy_class, sheet->classes + i);
-            VL_DA_APPEND(dst->classes, copy_class);
+            vl_css_stylesheet_add_class(dst, &copy_class);
         }
     }
     return VL_SUCCESS;

@@ -14,6 +14,7 @@ struct vl_css_parser {
 
     vl_css_token_t lookahead[VL_CSS_PARSER_LOOKAHEAD];
     vl_error_pool_t *ep;
+    int max_priority;
 };
 
 typedef struct vl_css_parser vl_css_parser_t;

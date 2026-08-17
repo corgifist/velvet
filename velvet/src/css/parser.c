@@ -45,6 +45,7 @@ vl_result_t vl_css_parser_init_(vl_css_parser_t *parser, const char *text, vl_so
             return VL_ERROR;
         }
     }
+    parser->max_priority = 1;
     return VL_SUCCESS;
 }
 
@@ -89,7 +90,8 @@ static const struct {
     {"yellow", VL_CSS_VALUE_RGBA(255, 255, 0, 1)},
     {"aqua", VL_CSS_VALUE_RGBA(0, 255, 255, 1)},
     {"aquamarine", VL_CSS_VALUE_RGBA(127, 255, 212, 1)},
-    {"fuchsia", VL_CSS_VALUE_RGBA(255, 0, 255, 1)}
+    {"fuchsia", VL_CSS_VALUE_RGBA(255, 0, 255, 1)},
+    {"white", VL_CSS_VALUE_RGBA(255, 255, 255, 1)}
 };
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
@@ -255,6 +257,7 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
     if (parse_class_selectors(parser, class)) goto fail;
     VL_TOKEN_CONSUME(parser, "{", goto fail);
     class->rules = VL_DA_INIT(vl_css_rule_t);
+    int class_priority = parser->max_priority++;
     while (!VL_TOKEN_COMPARE(current, "}")) {
         vl_css_rule_t rule = {0};
         if (parse_rule(parser, &rule)) {
@@ -272,10 +275,15 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
             }
             continue;
         }
+        if (VL_TOKEN_COMPARE(current, "!") && VL_TOKEN_COMPARE(current + 1, "important")) {
+            if (tokenize(parser) || tokenize(parser)) goto fail;
+            rule.important = true;
+        }
         if (VL_TOKEN_COMPARE(current, ";")) {
             if (tokenize(parser)) goto fail;
         }
         bool rule_found = false;
+        rule.priority = class_priority;
         for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
             if (strcmp(class->rules[i].property, rule.property) == 0) {
                 vl_css_rule_deinit(class->rules + i);

@@ -74,6 +74,8 @@ typedef struct vl_css_value vl_css_value_t;
 struct vl_css_rule {
     VL_DA(char) property;
     vl_css_value_t value;
+    bool important;
+    int priority;
 };
 
 typedef struct vl_css_rule vl_css_rule_t;

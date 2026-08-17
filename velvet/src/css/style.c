@@ -49,7 +49,9 @@ vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style)
             }
         }
         if (duplicate_rule) {
-            *duplicate_rule = rule;
+            if (rule->priority > (*duplicate_rule)->priority) {
+                *duplicate_rule = rule;
+            }
         } else {
             VL_DA_APPEND(dst->applied_rules, rule);
         }
@@ -61,6 +63,7 @@ vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
     if (!dst || !rule) return VL_ERROR;
     dst->property = VL_DA_COPY(rule->property);
     dst->value = rule->value;
+    dst->priority = rule->priority;
     return VL_SUCCESS;
 }
 
@@ -100,8 +103,11 @@ vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t
 }
 
 static void print_rule(vl_css_rule_t *rule) {
-    printf("%s: ", rule->property);
+    printf("%i %s: ", rule->priority, rule->property);
     vl_css_value_print(rule->value);
+    if (rule->important) {
+        printf(" !important");
+    }
     printf(";");
 }
 

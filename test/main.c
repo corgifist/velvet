@@ -890,6 +890,11 @@ void styling_test() {
             color: yellow;
         }
         </style>
+        <style>
+        .external-class {
+            color: white;
+        }
+        </style>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
