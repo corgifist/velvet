@@ -49,8 +49,15 @@ vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style)
             }
         }
         if (duplicate_rule) {
-            if (rule->priority > (*duplicate_rule)->priority) {
+            vl_css_rule_t *old_rule = *duplicate_rule;
+            if ((!old_rule->important && !rule->important) || (old_rule->important && rule->important)) {
+                if (rule->priority > old_rule->priority) {
+                    *duplicate_rule = rule;
+                }
+            } else if (!old_rule->important && rule->important) {
                 *duplicate_rule = rule;
+            } else if (old_rule->important && !rule->important) {
+                // we're not merging styles here
             }
         } else {
             VL_DA_APPEND(dst->applied_rules, rule);
@@ -64,6 +71,7 @@ vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
     dst->property = VL_DA_COPY(rule->property);
     dst->value = rule->value;
     dst->priority = rule->priority;
+    dst->important = rule->important;
     return VL_SUCCESS;
 }
 

@@ -91,7 +91,8 @@ static const struct {
     {"aqua", VL_CSS_VALUE_RGBA(0, 255, 255, 1)},
     {"aquamarine", VL_CSS_VALUE_RGBA(127, 255, 212, 1)},
     {"fuchsia", VL_CSS_VALUE_RGBA(255, 0, 255, 1)},
-    {"white", VL_CSS_VALUE_RGBA(255, 255, 255, 1)}
+    {"white", VL_CSS_VALUE_RGBA(255, 255, 255, 1)},
+    {"brown", VL_CSS_VALUE_RGBA(165, 42, 42, 1)}
 };
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
@@ -182,6 +183,10 @@ static vl_result_t parse_rule(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     VL_TOKEN_CONSUME(parser, ":", goto fail);
     rule->value = dispatch_parse_value(parser, rule);
     if (rule->value.type == VL_CSS_VALUE_NONE) goto fail;
+    if (VL_TOKEN_COMPARE(current, "!") && VL_TOKEN_COMPARE(current + 1, "important")) {
+        if (tokenize(parser) || tokenize(parser)) goto fail;
+        rule->important = true;
+    }
     return VL_SUCCESS;
     fail:
     vl_css_rule_deinit(rule);
@@ -274,10 +279,6 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
                 tokenize(parser);
             }
             continue;
-        }
-        if (VL_TOKEN_COMPARE(current, "!") && VL_TOKEN_COMPARE(current + 1, "important")) {
-            if (tokenize(parser) || tokenize(parser)) goto fail;
-            rule.important = true;
         }
         if (VL_TOKEN_COMPARE(current, ";")) {
             if (tokenize(parser)) goto fail;

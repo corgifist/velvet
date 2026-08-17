@@ -90,10 +90,6 @@ vl_result_t vl_dom_element_update_style(vl_dom_element_t *element) {
             vl_css_style_t tmp_style = {0};
             vl_css_style_from_class(&tmp_style, matched_classes[i]);
             vl_css_style_merge(&element->style, &tmp_style);
-            printf("-----------\nmerge %i\n", i);
-            vl_css_class_print(matched_classes[i]);
-            vl_css_style_print(&element->style);
-            printf("-----------\n");
             vl_css_style_deinit(&tmp_style);
         }
     }
