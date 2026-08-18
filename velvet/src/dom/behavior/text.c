@@ -2,11 +2,12 @@
 #include "css/style.h"
 #include "font/shaper.h"
 #include "graphics/color.h"
+#include "graphics/geometry.h"
 #include "support/da.h"
 #include "support/result.h"
 #include "velvet/web/web.h"
 #include "web/fonts.h"
-
+#include "support/math.h"
 
 vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element, 
     vl_dom_behavior_text_layout_t *layout, const char *text) {
@@ -86,6 +87,33 @@ vl_result_t vl_dom_behavior_text_layout_render(vl_dom_element_t *element, vl_dom
         base_y += glyph->advance_y;
     }
     return VL_SUCCESS;
+}
+
+vl_vec2_t vl_dom_behavior_text_layout_get_size(vl_dom_element_t *element, vl_dom_behavior_text_layout_t *layout) {
+    if (!element || !layout) return VL_VEC2(0, 0);
+    vl_vec2_t size = {0};
+    vl_web_t *web = element->owner->owner;
+    if (layout->glyphs) {
+        float base_x = 0;
+        float base_y = 0;
+        float max_x = 0;
+        float max_y = 0;
+        for (int i = 0; i < VL_DA_LENGTH(layout->glyphs); i++) {
+            vl_dom_behavior_text_glyph_t *glyph = layout->glyphs + i;
+            vl_web_font_atlas_codepoint_t codepoint = {0};
+            vl_web_fonts_find_glyph_id_with_font(&web->fonts, &codepoint, glyph->font, glyph->id);
+            float x = base_x + glyph->x + codepoint.codepoint->x1;
+            float y = base_y - glyph->y + codepoint.codepoint->y1;
+            float x2 = x + codepoint.codepoint->w;
+            float y2 = y + codepoint.codepoint->h;
+            max_x = VL_MAX(max_x, x2);
+            max_y = VL_MAX(max_y, y2);
+            base_x += glyph->advance_x;
+            base_y += glyph->advance_y;
+        }
+        size = (vl_vec2_t) {max_x, max_y};
+    }
+    return size;
 }
 
 vl_result_t vl_dom_behavior_text_layout_free(vl_dom_element_t *element, vl_dom_behavior_text_layout_t *layout) {

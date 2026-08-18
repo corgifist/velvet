@@ -15,6 +15,7 @@ typedef struct vl_dom_element_body vl_dom_element_body_t;
 
 vl_dom_element_t *vl_dom_element_body_new(vl_source_location_t loc);
 vl_result_t vl_dom_element_body_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts);
+vl_vec2_t vl_dom_element_body_get_metric2(vl_dom_element_t *element, vl_dom_element_metric_type_t metric);
 vl_result_t vl_dom_element_body_free(vl_dom_element_t *element);
 
 #endif // VELVET_DOM_ELEMENT_BODY_H

@@ -1,6 +1,7 @@
 #include "velvet/dom/element.h"
 #include "css/style.h"
 #include "css/stylesheet.h"
+#include "os/window.h"
 #include "support/memory.h"
 #include "support/result.h"
 #include "velvet/support/feature.h"
@@ -85,7 +86,6 @@ vl_result_t vl_dom_element_update_style(vl_dom_element_t *element) {
         }
     }
     if (matched_classes) {
-        printf("matched %zu classes for tag %s\n", VL_DA_LENGTH(matched_classes), element->tag);
         for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
             vl_css_style_t tmp_style = {0};
             vl_css_style_from_class(&tmp_style, matched_classes[i]);
@@ -151,6 +151,43 @@ vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *p
     return funcs->set_property(element, property, type, value);
 }
 
+static float process_metric(float parent_size, vl_css_size_metric_t metric) {
+    if (metric.type == VL_CSS_SIZE_METRIC_PERCENTAGE) return parent_size * metric.value;
+    return metric.value;
+}
+
+vl_vec2_t vl_dom_element_get_metric2(vl_dom_element_t *element, vl_dom_element_metric_type_t metric) {
+    if (!element) return VL_VEC2(0, 0);
+    vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
+    vl_os_window_t *window = element->owner->owner->render->owner;
+    if (element->calculating_metric) return VL_VEC2(0, 0);
+    element->calculating_metric = true;
+    vl_vec2_t result = {0};
+    vl_vec2_t parent_size = {0};
+    if (element->tag && strcmp(element->tag, "html") == 0 && element->parent == NULL) {
+        parent_size = VL_VEC2(window->io.window_size.x, 0);
+    } else {
+        parent_size = vl_dom_element_get_metric2(element->parent, VL_DOM_ELEMENT_METRIC_SIZE);
+    }
+    switch (metric) {
+    case VL_DOM_ELEMENT_METRIC_SIZE: {
+        vl_css_value_t width_value = vl_css_style_get_property(&element->style, "width", 
+            VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PERCENTAGE(100))
+        );
+        vl_vec2_t content_size = funcs->get_metric2 ? funcs->get_metric2(element, metric) : (vl_vec2_t) {0};
+        result.x = process_metric(parent_size.x, width_value.as.metric1);
+        result.y = content_size.y;
+        break;
+    }
+    default: {
+        if (funcs->get_metric2) result = funcs->get_metric2(element, metric);
+        break;
+    }
+    }
+    element->calculating_metric = false;
+    return result;
+}
+
 vl_result_t vl_dom_element_free(vl_dom_element_t *element) {
     if (!element) return VL_ERROR;
     vl_css_class_selector_deinit(&element->element_selector);
@@ -159,6 +196,9 @@ vl_result_t vl_dom_element_free(vl_dom_element_t *element) {
             vl_css_class_selector_deinit(element->class_selectors + i);
         }
         VL_DA_FREE(element->class_selectors);
+    }
+    if (element->class_name) {
+        VL_DA_FREE(element->class_name);
     }
     if (element->children) {
         for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {

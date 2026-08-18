@@ -103,6 +103,10 @@ static void update_window_io(vl_os_window_t *window) {
     float scale_x, scale_y;
     glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &scale_x, &scale_y);
     window->io.content_scale = (scale_x + scale_y) / 2.0f;
+
+    int window_width, window_height;
+    glfwGetWindowSize(win->handle, &window_width, &window_height);
+    window->io.window_size = VL_VEC2(window_width, window_height);
 }
 
 vl_result_t vl_os_window_universal_poll_events() {

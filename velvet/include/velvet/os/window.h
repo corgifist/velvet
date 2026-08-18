@@ -22,6 +22,7 @@ struct vl_os_window_io {
     bool mouse_down[VL_MOUSE_BUTTON_COUNT];
 
     float content_scale;
+    vl_vec2_t window_size;
 };
 
 typedef struct vl_os_window_io vl_os_window_io_t;

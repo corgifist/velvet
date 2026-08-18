@@ -48,6 +48,7 @@ struct vl_dom_element {
     vl_css_style_t style;
     vl_css_class_selector_t element_selector;
     VL_DA(vl_css_class_selector_t) class_selectors;
+    bool calculating_metric;
 };
 
 typedef struct vl_dom_element vl_dom_element_t;
@@ -66,6 +67,7 @@ VL_API vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_rende
 VL_API vl_result_t vl_dom_element_update_style(vl_dom_element_t *element);
 VL_API vl_result_t vl_dom_element_set_string(vl_dom_element_t *element, const char *property, const char *value);
 VL_API vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *property, vl_dom_element_property_type_t type, const void *value);
+VL_API vl_vec2_t vl_dom_element_get_metric2(vl_dom_element_t *element, vl_dom_element_metric_type_t metric);
 VL_API vl_result_t vl_dom_element_free(vl_dom_element_t *element);
 
 #endif // VL_DOM_ELEMENT_H

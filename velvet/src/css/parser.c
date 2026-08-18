@@ -54,7 +54,8 @@ static vl_css_size_metric_type_t map_str_to_metric_type(const char *str) {
         const char *unit;
         vl_css_size_metric_type_t type;
     } s_metric_unit_map[] = {
-        "px", VL_CSS_SIZE_METRIC_PIXELS
+        "px", VL_CSS_SIZE_METRIC_PIXELS,
+        "%", VL_CSS_SIZE_METRIC_PERCENTAGE
     };
 
     for (int i = 0; i < VL_ARR_LEN(s_metric_unit_map); i++) {
@@ -72,6 +73,7 @@ static vl_css_value_t parse_single_metric(vl_css_parser_t *parser, vl_css_rule_t
     if (tokenize(parser)) return VL_CSS_VALUE_NONE();
     vl_css_size_metric_type_t metric_type = map_str_to_metric_type(current->text);
     if (tokenize(parser) || metric_type == VL_CSS_SIZE_METRIC_NONE) return VL_CSS_VALUE_NONE();
+    if (metric_type == VL_CSS_SIZE_METRIC_PERCENTAGE) metric_type /= 100.0f;
     return VL_CSS_VALUE_METRIC1(
         VL_CSS_SIZE_METRIC(metric_type, value)
     );

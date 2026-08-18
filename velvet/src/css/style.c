@@ -143,11 +143,15 @@ static void print_metric_unit(vl_css_size_metric_t *metric) {
         printf("px");
         break;
     }
+    case VL_CSS_SIZE_METRIC_PERCENTAGE: {
+        printf("%");
+        break;
+    }
     }
 }
 
 static void print_size_metric(vl_css_size_metric_t *metric) {
-    printf("%0.2f", metric->value);
+    printf("%0.2f", metric->type == VL_CSS_SIZE_METRIC_PERCENTAGE ? metric->value * 100.0f : metric->value);
     print_metric_unit(metric);
 }
 
