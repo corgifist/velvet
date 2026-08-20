@@ -99,11 +99,38 @@ static const struct {
     {"turquoise", VL_CSS_VALUE_RGBA(64, 224, 208, 1)},
     {"wheat", VL_CSS_VALUE_RGBA(245, 222, 179, 1)},
     {"salmon", VL_CSS_VALUE_RGBA(250, 128, 114, 1)},
-    {"snow", VL_CSS_VALUE_RGBA(255, 250, 250, 1)}
+    {"snow", VL_CSS_VALUE_RGBA(255, 250, 250, 1)},
+    {"powderblue", VL_CSS_VALUE_RGBA(176, 224, 230, 1)}
 };
 
+static vl_css_value_t parse_generic_color(vl_css_parser_t *parser, vl_css_rule_t *rule, int max_components) {
+    if (tokenize(parser) || tokenize(parser)) goto fail; // skip 'rgba' / 'rgba' and '('
+    vl_css_token_t *current = parser->lookahead;
+    float components[4] = {0.0, 0.0, 0.0, 1.0};
+    int component = 0;
+    while (!VL_TOKEN_COMPARE(current, ")")) {
+        if (component >= 4) goto fail;
+        if (current->type != VL_CSS_TOKEN_TYPE_NUMBER) goto fail;
+        float value = strtod(current->text, NULL);
+        components[component++] = value;
+        if (tokenize(parser)) goto fail; // skip the number
+        if (VL_TOKEN_COMPARE(current, ",") || VL_TOKEN_COMPARE(current, "/")) {
+            if (tokenize(parser)) goto fail; // skip possible delimiter
+        }
+    }
+    if (tokenize(parser)) goto fail; // skip ')'
+    switch (max_components) {
+        case 4: return VL_CSS_VALUE_RGBA(components[0], components[1], components[2], components[3]);
+    }
+    fail:
+    return VL_CSS_VALUE_NONE();
+}
+
 static const char *s_const_literals[] = {
-    "inherit"
+    "inherit",
+    "initial",
+    "unset",
+    "revert"
 };
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
@@ -123,21 +150,7 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
     }
 
     if (VL_TOKEN_COMPARE(current, "rgba") && VL_TOKEN_COMPARE(current + 1, "(")) {
-        if (tokenize(parser) || tokenize(parser)) goto fail; // skip 'rgba' and '('
-        float components[4] = {0.0, 0.0, 0.0, 1.0};
-        int component = 0;
-        while (!VL_TOKEN_COMPARE(current, ")")) {
-            if (component >= 4) goto fail;
-            if (current->type != VL_CSS_TOKEN_TYPE_NUMBER) goto fail;
-            float value = strtod(current->text, NULL);
-            components[component++] = value;
-            if (tokenize(parser)) goto fail; // skip the number
-            if (VL_TOKEN_COMPARE(current, ",") || VL_TOKEN_COMPARE(current, "/")) {
-                if (tokenize(parser)) goto fail; // skip possible delimiter
-            }
-        }
-        if (tokenize(parser)) goto fail; // skip ')'
-        return VL_CSS_VALUE_RGBA(components[0], components[1], components[2], components[3]);
+        return parse_generic_color(parser, rule, 4);
     }
 
     if (current->type == VL_CSS_TOKEN_TYPE_ID) {

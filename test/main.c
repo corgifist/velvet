@@ -869,11 +869,14 @@ void styling_test() {
     const char *input = VL_STRINGIFY(
         <style>
             body {
+                background-color: powderblue;
                 color: aqua;
+                font-size: 16px;
             }
             p {
                 color: red;
                 background-color: brown;
+                font-size: 32px;
             }
             .green {
                 background-color: salmon;
@@ -883,12 +886,27 @@ void styling_test() {
                 background-color: snow;
                 color: blue;
             }
+            .p-override {
+                background-color: unset;
+            }
+            .small {
+                font-size: 8px;
+            }
+            .medium {
+                font-size: 16px;
+            }
+            .huge {
+                font-size: 32px;
+            }
         </style>
         <body>
             Aqua
             <p>Red</p>
             <p class="green">Green</p>
             <p class="blue">Blue</p>
+            <p class="p-override small">Small</p>
+            <p class="p-override medium">Medium</p>
+            <p class="p-override huge">Huge</p>
         </body>
     );
     vl_html_document_t *doc = vl_html_document_new(input);

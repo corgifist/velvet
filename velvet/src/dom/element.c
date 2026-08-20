@@ -70,9 +70,16 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
     if (!funcs->render) return VL_SUCCESS;
     vl_web_t *web = element->owner->owner;
-    vl_graphics_render_push_translate(web->render, element->layout.position);
     vl_css_value_t background_color = vl_css_layout_node_get_property(&element->layout, "background-color", VL_CSS_VALUE_NONE());
-    if (background_color.type != VL_CSS_VALUE_NONE && VL_CSS_VALUE_COLOR_COMPATIBLE(background_color)) {
+    bool suitable_as_bg_color = VL_CSS_VALUE_COLOR_COMPATIBLE(background_color);
+    bool is_body = (element->tag && strcmp(element->tag, "body") == 0);
+    if (suitable_as_bg_color && is_body) {
+        vl_color_t raw_color = vl_css_value_to_rgba(background_color);
+        vl_css_layout_node_t *web_root = element->layout.parent->parent;
+        vl_graphics_render_batch_rect_colored(web->render, VL_RECT_EX(0, 0, web_root->size.x, web_root->size.y), NULL, VL_QUAD_COLOR(raw_color));
+    }
+    vl_graphics_render_push_translate(web->render, element->layout.position);
+    if (suitable_as_bg_color && !is_body) {
         vl_color_t raw_color = vl_css_value_to_rgba(background_color);
         vl_graphics_render_batch_rect_colored(web->render, VL_RECT(VL_VEC2(0, 0), element->layout.size), NULL, VL_QUAD_COLOR(raw_color));
     }

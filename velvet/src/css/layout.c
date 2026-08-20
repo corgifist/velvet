@@ -126,6 +126,9 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
     if (result.type == VL_CSS_VALUE_NONE || VL_CSS_CONST_LITERAL_EQUAL(result, "inherit")) {
         result = vl_css_layout_node_get_property(node->parent, property, fallback);
     }
+    if (VL_CSS_CONST_LITERAL_EQUAL(result, "unset") || VL_CSS_CONST_LITERAL_EQUAL(result, "initial")) {
+        result = fallback;
+    }
     return result;
 }
 

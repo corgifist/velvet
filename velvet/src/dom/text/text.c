@@ -29,8 +29,6 @@ vl_dom_element_t *vl_dom_element_text_new(vl_source_location_t loc) {
     element->base.owner = NULL;
     element->base.tag = "text";
     element->layout.priority_font_family = "Roboto";
-    element->layout.font_blueprint.height = 32;
-    element->layout.font_blueprint.weight = VL_WEB_FONT_REGULAR;
     return (vl_dom_element_t*) element;
 }
 

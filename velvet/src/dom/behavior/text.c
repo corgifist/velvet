@@ -22,10 +22,15 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     }
     layout->glyphs = VL_DA_INIT(vl_dom_behavior_text_glyph_t);
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(fonts->shaper);
+    vl_css_value_t font_size = vl_css_layout_node_get_property(&element->layout, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+    int height = 16;
+    if (font_size.type == VL_CSS_VALUE_SIZE_METRIC1) {
+        height = font_size.as.metric1.value;
+    }
     vl_web_sized_font_t *priority_font = vl_web_fonts_get_font(&web->fonts, layout->priority_font_family, 
-        layout->font_blueprint.weight, layout->font_blueprint.height);
+        VL_WEB_FONT_REGULAR, height);
     vl_web_sized_font_t *default_arabic_font = vl_web_fonts_get_font(&web->fonts, "Noto Sans Arabic", 
-        VL_WEB_FONT_REGULAR, layout->font_blueprint.height);
+        VL_WEB_FONT_REGULAR, height);
     vl_font_shaper_push_font(fonts->shaper, priority_font->shaper_ref);
     vl_font_shaper_process(fonts->shaper, text, strlen(text));
     while (vl_font_shaper_shape(fonts->shaper, run)) {
@@ -35,7 +40,7 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
             VL_DA_APPEND(layout->glyphs, newline);
         }
         vl_font_shaper_glyph_t shaper_glyph = {0};
-        vl_web_sized_font_t *sized_font = vl_web_fonts_get_font_by_unit_font(fonts, run->font, layout->font_blueprint.weight, layout->font_blueprint.height);
+        vl_web_sized_font_t *sized_font = vl_web_fonts_get_font_by_unit_font(fonts, run->font, VL_WEB_FONT_REGULAR, height);
         while (vl_font_shaper_iterate(run, &shaper_glyph)) {
             vl_dom_behavior_text_glyph_t text_glyph = {0};
             float scale = sized_font->font->height;

@@ -17,17 +17,9 @@ struct vl_dom_behavior_text_glyph {
 typedef struct vl_dom_behavior_text_glyph vl_dom_behavior_text_glyph_t;
 typedef VL_DA(vl_dom_behavior_text_glyph_t) vl_dom_behavior_text_glyphs_t;
 
-struct vl_dom_behavior_text_font_blueprint {
-    int height;
-    vl_web_font_weight_t weight;
-};
-
-typedef struct vl_dom_behavior_text_font_blueprint vl_dom_behavior_text_font_blueprint_t;
-
 struct vl_dom_behavior_text_layout {
     vl_dom_behavior_text_glyphs_t glyphs;
     const char *priority_font_family;
-    vl_dom_behavior_text_font_blueprint_t font_blueprint;
 };
 
 typedef struct vl_dom_behavior_text_layout vl_dom_behavior_text_layout_t;
