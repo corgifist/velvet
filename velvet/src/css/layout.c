@@ -20,19 +20,14 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     return VL_SUCCESS;
 }
 
+static const char *s_inherited_properties[] = {
+    "color"
+};
+
 vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     vl_css_style_deinit(&node->style);
     vl_css_style_init(&node->style);
-    if (strcmp(node->tag, "text") == 0) {
-        vl_css_layout_node_t *parent = node->parent;
-        if (parent && parent->style.applied_rules) {
-            for (int i = 0; i < VL_DA_LENGTH(parent->style.applied_rules); i++) {
-                VL_DA_APPEND(node->style.applied_rules, parent->style.applied_rules[i]);
-            }
-        }
-        return VL_SUCCESS;
-    }
 
     VL_DA(vl_css_class_t*) matched_classes = NULL;
     vl_css_stylesheet_broad_query(node->stylesheet, &node->tag_selector, &matched_classes);
@@ -65,7 +60,7 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
         if (strcmp(child->tag, "body") == 0) {
-            child->size = VL_VEC2(node->parent->size.x, 0);
+            node->size.x = node->parent->size.x;
             vl_css_layout_node_process(child);
             node->size = child->size;
         }
@@ -74,11 +69,17 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 }
 
 static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
+    vl_vec2_t cursor = {0};
+
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
         vl_css_layout_node_process(child);
-        node->size.y += child->size.y;
+        child->position.x = 0;
+        child->position.y = cursor.y;
+        cursor.y += child->size.y;
     }
+    node->size.y = cursor.y;
+    node->size.x = node->parent->size.x;
     return VL_SUCCESS;
 }
 
@@ -87,7 +88,8 @@ static const struct {
     layout_func layout;
 } s_layout_overrides[] = {
     {"html", layout_html}, 
-    {"body", layout_generic_div}
+    {"body", layout_generic_div},
+    {"p", layout_generic_div}
 };
 
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
@@ -113,6 +115,18 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
 vl_vec2_t vl_css_layout_node_get_raw_content_size(vl_css_layout_node_t *node) {
     if (!node || !node->get_content_size) return VL_VEC2(0, 0);
     return node->get_content_size(node);
+}
+
+vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const char *property, vl_css_value_t fallback) {
+    if (!node || !property) return fallback;
+    vl_css_value_t result = fallback;
+    if (node->style.applied_rules) {
+        result = vl_css_style_get_property(&node->style, property, VL_CSS_VALUE_NONE());
+    }
+    if (result.type == VL_CSS_VALUE_NONE || VL_CSS_CONST_LITERAL_EQUAL(result, "inherit")) {
+        result = vl_css_layout_node_get_property(node->parent, property, fallback);
+    }
+    return result;
 }
 
 vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node) {

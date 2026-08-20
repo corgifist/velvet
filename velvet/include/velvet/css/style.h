@@ -11,7 +11,8 @@ enum vl_css_value_type {
     VL_CSS_VALUE_NONE = 0,
     VL_CSS_VALUE_SIZE_METRIC1,
     VL_CSS_VALUE_SIZE_METRIC4,
-    VL_CSS_VALUE_COLOR_RGBA
+    VL_CSS_VALUE_COLOR_RGBA,
+    VL_CSS_VALUE_CONST_LITERAL
 };
 
 typedef enum vl_css_value_type vl_css_value_type_t;
@@ -56,6 +57,7 @@ struct vl_css_value {
         vl_css_size_metric_t metric1;
         vl_css_size_metric_t metric4[4];
         vl_css_color_rgba_t rgba;
+        const char *const_literal;
     } as;
 };
 
@@ -73,6 +75,14 @@ typedef struct vl_css_value vl_css_value_t;
 
 #define VL_CSS_VALUE_RGBA(R, G, B, A) \
     VL_CSS_VALUE(VL_CSS_VALUE_COLOR_RGBA, {.rgba = VL_CSS_COLOR_RGBA(R, G, B, A)})
+
+#define VL_CSS_VALUE_CONST_LITERAL(LITERAL) \
+    VL_CSS_VALUE(VL_CSS_VALUE_CONST_LITERAL, {.const_literal = (const char*) (LITERAL)})
+
+#define VL_CSS_CONST_LITERAL_EQUAL(CSS_VALUE, LITERAL) \
+    ((CSS_VALUE).type == VL_CSS_VALUE_CONST_LITERAL \
+        && (CSS_VALUE).as.const_literal \
+        && strcmp((CSS_VALUE).as.const_literal, (LITERAL)) == 0)
 
 struct vl_css_rule {
     VL_DA(char) property;

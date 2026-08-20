@@ -2,6 +2,7 @@
 #include "css/layout.h"
 #include "css/style.h"
 #include "css/stylesheet.h"
+#include "graphics/render.h"
 #include "os/window.h"
 #include "support/memory.h"
 #include "support/result.h"
@@ -22,6 +23,7 @@
 #endif // VL_FEATURE(DOM_HTML_NODE)
 
 #include "velvet/dom/style/style.h"
+#include "velvet/dom/p/p.h"
 
 typedef struct {
     const char *tag;
@@ -33,7 +35,8 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"text", vl_dom_element_text_new},
     {"body", vl_dom_element_body_new},
     {"html", vl_dom_element_html_new},
-    {"style", vl_dom_element_style_new}
+    {"style", vl_dom_element_style_new},
+    {"p", vl_dom_element_p_new}
 #endif // VL_FEATURE(DOM_TEXT_NODE)
 };
 
@@ -65,7 +68,11 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_
     if (!element) return VL_ERROR;
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
     if (!funcs->render) return VL_SUCCESS;
-    return funcs->render(element, opts);
+    vl_web_t *web = element->owner->owner;
+    vl_graphics_render_push_translate(web->render, element->layout.position);
+    vl_result_t result = funcs->render(element, opts);
+    vl_graphics_render_pop_transform(web->render);
+    return result;
 }
 
 vl_result_t vl_dom_element_set_string(vl_dom_element_t *element, const char *property, const char *value) {

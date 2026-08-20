@@ -1,6 +1,8 @@
 #include "platform/universal/kb_text_shape.h"
 #include "support/da.h"
 #include "support/global_error_pool.h"
+#include <unicode/umachine.h>
+#include <unicode/utf8.h>
 #define KB_TEXT_SHAPE_IMPLEMENTATION
 #include "velvet/font/shaper.h"
 #include "platform/context.h"
@@ -56,18 +58,6 @@ vl_result_t vl_font_shaper_universal_free_font(vl_font_shaper_t *shaper, vl_font
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     vl_font_shaper_font_ref_universal_t *f = (vl_font_shaper_font_ref_universal_t*) font;
     kbts_FreeFont(&f->font);
-    while (true && shaper->font_stack) {
-        for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
-            if (shaper->font_stack[i] == font) {
-                VL_DA_DELETE(shaper->font_stack, i);
-                goto next_iteration;
-            }
-        }
-        break;
-
-        next_iteration:
-        continue;
-    }
     vl_free(font);
     return VL_SUCCESS;
 }
@@ -78,23 +68,22 @@ vl_result_t vl_font_shaper_univesal_process(vl_font_shaper_t *shaper, const char
         vl_global_error_pool_append("font stack is either empty or NULL for vl_font_shaper_t %p", shaper);
         return VL_ERROR;
     }
-    kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_DONT_KNOW);
     for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
         vl_font_shaper_font_ref_universal_t *uf = (vl_font_shaper_font_ref_universal_t*) shaper->font_stack[i];
         kbts_ShapePushFont(s->context, &uf->font);
     }
+    kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_DONT_KNOW);
     kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_CODEPOINT_INDEX);
+    kbts_ShapeEnd(s->context);
     for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
         kbts_ShapePopFont(s->context);
     }
-    kbts_ShapeEnd(s->context);
     return VL_SUCCESS;
 }
 
 bool vl_font_shaper_universal_shape(vl_font_shaper_t *shaper, vl_font_shaper_run_t *run) {
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
-    kbts_shape_error err = kbts_ShapeError(s->context);
     bool status = kbts_ShapeRun(s->context, &r->run);
     if (!status) return false;
     run->newline = r->run.Flags & KBTS_BREAK_FLAG_LINE_HARD;
@@ -119,8 +108,7 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
 
 vl_result_t vl_font_shaper_run_universal_reset(vl_font_shaper_run_t *run) {
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
-    r->iterator = NULL;
-    r->run = (kbts_run) {0};
+    VL_ZERO_OUT(r);
     return VL_SUCCESS;
 }
 
@@ -128,9 +116,6 @@ vl_result_t vl_font_shaper_universal_free(vl_font_shaper_t *shaper) {
     if (!shaper) return VL_ERROR;
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     kbts_DestroyShapeContext(s->context);
-    while (shaper->font_stack && VL_DA_LENGTH(shaper->font_stack) != 0) {
-        vl_font_shaper_universal_free_font(shaper, shaper->font_stack[0]);
-    }
     VL_DA_FREE(shaper->font_stack);
     vl_free(shaper);
     return VL_SUCCESS;

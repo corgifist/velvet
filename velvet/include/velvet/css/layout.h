@@ -23,6 +23,7 @@ struct vl_css_layout_node {
     vl_css_style_t style;
 
     vl_vec2_t size;
+    vl_vec2_t position;
     bool calculating_layout;
 };
 
@@ -32,6 +33,7 @@ VL_API vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const cha
 VL_API vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node);
 VL_API vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node);
 VL_API vl_vec2_t vl_css_layout_node_get_raw_content_size(vl_css_layout_node_t *node);
+VL_API vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const char *property, vl_css_value_t fallback);
 VL_API vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node);
 
 #endif // VELVET_CSS_LAYOUT_H

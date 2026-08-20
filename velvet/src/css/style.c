@@ -13,7 +13,7 @@ vl_css_value_t vl_css_style_get_property(vl_css_style_t *style, const char *prop
     if (style->applied_rules) {
         for (int i = 0; i < VL_DA_LENGTH(style->applied_rules); i++) {
             vl_css_rule_t *rule = style->applied_rules[i];
-            if (rule->property && strcmp(rule->property, property) == 0) {
+            if (rule->property && rule->value.type != VL_CSS_VALUE_NONE && strcmp(rule->property, property) == 0) {
                 return rule->value;
             }
         }
@@ -144,7 +144,7 @@ static void print_metric_unit(vl_css_size_metric_t *metric) {
         break;
     }
     case VL_CSS_SIZE_METRIC_PERCENTAGE: {
-        printf("%");
+        printf("%%");
         break;
     }
     }
@@ -174,6 +174,10 @@ vl_result_t vl_css_value_print(vl_css_value_t value) {
     }
     case VL_CSS_VALUE_COLOR_RGBA: {
         printf("rgba(%.00f, %.00f, %.00f, %.02f)", value.as.rgba.r, value.as.rgba.g, value.as.rgba.b, value.as.rgba.a);
+        return VL_SUCCESS;
+    }
+    case VL_CSS_VALUE_CONST_LITERAL: {
+        printf("%s", value.as.const_literal);
         return VL_SUCCESS;
     }
     }

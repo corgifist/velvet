@@ -70,7 +70,7 @@ vl_result_t vl_css_stylesheet_broad_query(vl_css_stylesheet_t *sheet, const vl_c
                     match = true;
                     break;
                 }
-                if (!selector->id_chain) continue;
+                if (!selector->id_chain || !target_selector->id_chain) continue;
                 bool id_pass = true;
                 size_t len = VL_MIN(VL_DA_LENGTH(selector->id_chain), VL_DA_LENGTH(target_selector->id_chain));
                 for (int k = 0; k < len; k++) {

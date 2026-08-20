@@ -1,5 +1,6 @@
 #include "web/web.h"
 #include "css/layout.h"
+#include "css/style.h"
 #include "css/stylesheet.h"
 #include "dom/dom.h"
 #include "dom/element.h"

@@ -97,6 +97,10 @@ static const struct {
     {"brown", VL_CSS_VALUE_RGBA(165, 42, 42, 1)}
 };
 
+static const char *s_const_literals[] = {
+    "inherit"
+};
+
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     vl_css_token_t *current = parser->lookahead;
     if (current->type == VL_CSS_TOKEN_TYPE_ID) {
@@ -129,6 +133,16 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
         }
         if (tokenize(parser)) goto fail; // skip ')'
         return VL_CSS_VALUE_RGBA(components[0], components[1], components[2], components[3]);
+    }
+
+    if (current->type == VL_CSS_TOKEN_TYPE_ID) {
+        for (int i = 0; i < VL_ARR_LEN(s_const_literals); i++) {
+            int const_len = strlen(s_const_literals[i]);
+            if (const_len == current->text_length && memcmp(s_const_literals[i], current->text, const_len) == 0) {
+                tokenize(parser);
+                return VL_CSS_VALUE_CONST_LITERAL(s_const_literals[i]);
+            }
+        }
     }
 
     fail:

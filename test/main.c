@@ -867,38 +867,26 @@ void css_test() {
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     const char *input = VL_STRINGIFY(
-        <body class="higher-priority my-class importancy-test lower-priority">
-            Cascading Style Sheets are awesome!
+        <style>
+            body {
+                color: aqua;
+            }
+            p {
+                color: red;
+            }
+            .green {
+                color: green;
+            }
+            .blue {
+                color: blue;
+            }
+        </style>
+        <body>
+            Aqua
+            <p>Red</p>
+            <p class="green">Green</p>
+            <p class="blue">Blue</p>
         </body>
-        <style>
-        body {
-            color: red;
-        }
-        body {
-            color: blue;
-        }
-
-        .importancy-test {
-            color: brown !important;
-        }
-
-        .lower-priority {
-            color: aqua;
-        }
-
-        .higher-priority {
-            color: fuchsia;
-        }
-
-        .my-class {
-            color: yellow;
-        }
-        </style>
-        <style>
-        .external-class {
-            color: white;
-        }
-        </style>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

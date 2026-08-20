@@ -65,7 +65,8 @@ vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name
     variation->font_len = font_len;
     variation->weight = weight;
     variation->sizes = VL_DA_INIT(vl_web_sized_font_t);
-
+    variation->unit_font = vl_font_new(fonts->owner->platform_context, family_name, 1, 1.0f, font_data, font_len);
+    variation->unit_font_ref = vl_font_shaper_add_font(fonts->shaper, variation->unit_font);
     return VL_SUCCESS;
 }
 
@@ -93,13 +94,26 @@ vl_web_sized_font_t *vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *fa
 
     if (!sized_font) {
         vl_font_t *font = vl_font_new(fonts->owner->render->context, family_name, height, 2.0f, variation->font_data, variation->font_len);
-        vl_font_shaper_font_ref_t *font_ref = vl_font_shaper_add_font(fonts->shaper, font);
         vl_web_sized_font_t sf = {0};
         sf.font = font;
-        sf.shaper_ref = font_ref;
+        sf.shaper_ref = variation->unit_font_ref;
         sized_font = VL_DA_APPEND(variation->sizes, sf);
     }
     return sized_font;
+}
+
+vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, vl_font_t *unit_font, vl_web_font_weight_t weight, int height) {
+    if (!fonts || !unit_font) return NULL;
+    for (int i = 0; i < VL_DA_LENGTH(fonts->families); i++) {
+        vl_web_font_family_t *family = fonts->families + i;
+        for (int j = 0; j < VL_DA_LENGTH(family->variations); j++) {
+            vl_web_font_t *variation = family->variations + i;
+            if (unit_font == variation->unit_font) {
+                return vl_web_fonts_get_font(fonts, family->name, weight, height);
+            }
+        }
+    }
+    return NULL;
 }
 
 static vl_byte_t *s_tmp_copy_buffer = NULL;
@@ -186,9 +200,10 @@ vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
             vl_web_font_t *variation = family->variations + j;
             for (int k = 0; k < VL_DA_LENGTH(variation->sizes); k++) {
                 vl_web_sized_font_t *size = variation->sizes + k;
-                vl_font_shaper_free_font(fonts->shaper, size->shaper_ref);
                 vl_font_free(size->font);
             }
+            vl_font_shaper_free_font(fonts->shaper, variation->unit_font_ref);
+            vl_font_free(variation->unit_font);
             VL_DA_FREE(variation->sizes);
         }
         VL_DA_FREE(family->variations);

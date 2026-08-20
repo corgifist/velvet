@@ -11,6 +11,7 @@ if (BUILD_DOM_HTML_NODE)
 endif()
 
 add_subdirectory(style)
+add_subdirectory(p)
 
 set(Velvet_Sources
     ${Velvet_Sources}

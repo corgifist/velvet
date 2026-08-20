@@ -53,10 +53,13 @@ VL_API vl_result_t vl_font_shaper_run_free(vl_font_shaper_run_t *run);
     vl_font_shaper_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 VL_API vl_font_shaper_t *vl_font_shaper_new_(vl_platform_context_t *context, vl_source_location_t loc);
 VL_API vl_font_shaper_font_ref_t *vl_font_shaper_add_font(vl_font_shaper_t *shaper, vl_font_t *font);
-VL_API vl_result_t vl_font_shaper_free_font(vl_font_shaper_t *shaper, vl_font_shaper_font_ref_t *font);
+VL_API vl_result_t vl_font_shaper_push_font(vl_font_shaper_t *shaper, vl_font_shaper_font_ref_t *font_ref);
 VL_API vl_result_t vl_font_shaper_process(vl_font_shaper_t *shaper, const char *text, size_t text_length);
 VL_API bool vl_font_shaper_shape(vl_font_shaper_t *shaper, vl_font_shaper_run_t *run);
 VL_API vl_font_shaper_glyph_t *vl_font_shaper_iterate(vl_font_shaper_run_t *run, vl_font_shaper_glyph_t *glyph);
+VL_API vl_result_t vl_font_shaper_pop_font(vl_font_shaper_t *shaper);
+VL_API vl_result_t vl_font_shaper_pop_all_fonts(vl_font_shaper_t *shaper);
+VL_API vl_result_t vl_font_shaper_free_font(vl_font_shaper_t *shaper, vl_font_shaper_font_ref_t *font);
 VL_API vl_result_t vl_font_shaper_free(vl_font_shaper_t *shaper);
 
 #endif // VELVET_FONT_SHAPER
