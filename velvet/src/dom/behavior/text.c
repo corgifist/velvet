@@ -65,7 +65,7 @@ vl_result_t vl_dom_behavior_text_layout_render(vl_dom_element_t *element, vl_dom
     vl_web_t *web = element->owner->owner;
     float base_x = 0;
     float base_y = 0;
-    vl_css_value_t text_color = vl_css_style_get_property(&element->style, "color", VL_CSS_VALUE_RGBA(255, 255, 255, 1));
+    vl_css_value_t text_color = vl_css_style_get_property(&element->layout.style, "color", VL_CSS_VALUE_RGBA(255, 255, 255, 1));
     vl_color_t normalized_color = VL_COLOR(
         text_color.as.rgba.r / 255.0f,
         text_color.as.rgba.g / 255.0f,

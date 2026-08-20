@@ -4,5 +4,6 @@ set(Velvet_Sources
     src/css/parser.c
     src/css/style.c
     src/css/stylesheet.c
+    src/css/layout.c
     PARENT_SCOPE
 )

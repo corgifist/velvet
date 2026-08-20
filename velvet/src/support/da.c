@@ -58,6 +58,14 @@ VL_DA vl_da_copy(VL_DA da, vl_source_location_t loc, vl_allocator_t allocator) {
     return new_da;
 }
 
+void vl_da_clear(VL_DA *da) {
+    if (!da || !*da) return;
+    vl_da_header_t orig_header = *VL_DA_HEADER(*da);
+    vl_allocator_t allocator = orig_header.allocator;
+    vl_da_header_t *new_header = vl_arealloc(allocator, VL_DA_HEADER(*da), sizeof(vl_da_header_t) + orig_header.element_size * VL_DA_DEFAULT_CAPACITY);
+    *da = VL_PTR_FORWARD(new_header, sizeof(vl_da_header_t));
+}
+
 void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_source_location_t loc) {
     if (!da || !*da) return NULL;
     VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));

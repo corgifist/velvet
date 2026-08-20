@@ -25,8 +25,8 @@ vl_result_t vl_dom_element_html_render(vl_dom_element_t *element, vl_dom_render_
         }
     }
     if (body_element) {
-        vl_vec2_t body_size = vl_dom_element_get_metric2(body_element, VL_DOM_ELEMENT_METRIC_SIZE);
-        printf("body size: %f %f\n", body_size.x, body_size.y);
+        vl_vec2_t body_size = element->layout.size;
+        // printf("body size: %f %f\n", body_size.x, body_size.y);
         vl_graphics_render_batch_rect(element->owner->owner->render, VL_RECT(VL_VEC2(0, 0), body_size), NULL);
         vl_dom_element_render(body_element, opts);
     }

@@ -18,7 +18,7 @@ vl_vec2_t vl_dom_behavior_div_get_size(vl_dom_element_t *parent) {
     vl_vec2_t size = {0};
     if (parent->children) {
         for (int i = 0; i < VL_DA_LENGTH(parent->children); i++) {
-            vl_vec2_t child_size = vl_dom_element_get_metric2(parent->children[i], VL_DOM_ELEMENT_METRIC_SIZE);
+            vl_vec2_t child_size = vl_dom_element_get_content_size(parent->children[i]);
             size.x = VL_MAX(child_size.x, size.x);
             size.y += child_size.y;
         }

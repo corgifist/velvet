@@ -1,4 +1,5 @@
 #include "velvet/dom/dom.h"
+#include "css/layout.h"
 #include "dom/element.h"
 #include "dom/render.h"
 #include "html/document.h"
@@ -25,6 +26,9 @@ vl_dom_element_t *collect_elements(vl_dom_t *owner, vl_dom_element_t *parent, vl
     }
     element->owner = owner;
     element->parent = parent;
+    if (parent) {
+        element->layout.parent = &parent->layout;
+    }
     if (node->text) {
         vl_dom_element_set_string(element, "innerText", node->text);
     }
@@ -46,6 +50,7 @@ vl_dom_element_t *collect_elements(vl_dom_t *owner, vl_dom_element_t *parent, vl
                 continue;
             }
             VL_DA_APPEND(element->children, child);
+            *VL_DA_PUSH(element->layout.children, vl_css_layout_node_t*) = &child->layout;
         }
     }
     return element;

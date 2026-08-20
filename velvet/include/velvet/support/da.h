@@ -48,7 +48,6 @@ typedef void* VL_DA;
 // dynamic array of chars (simply char*)
 #define VL_DA_STRING VL_DA(char)
 
-
 /*
     initializes a dynamic array of type TYPE with initial capacity of VL_DA_DEFAULT_CAPACITY
     using the default memory allocator
@@ -121,6 +120,9 @@ typedef void* VL_DA;
 */
 #define VL_DA_DELETE(DA, INDEX) \
     (vl_da_delete((VL_DA(void)*) &(DA), (INDEX), VL_SOURCE_LOCATION_HERE))
+
+#define VL_DA_CLEAR(DA) \
+    vl_da_clear(&(DA))
 
 /*
     returns a pointer to the header of the dynamic array
@@ -214,6 +216,12 @@ VL_API void *vl_da_append(VL_DA(void) *da, void *item, size_t item_size, vl_sour
 */
 VL_API void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc);
 
+/**
+ * Clear the content of the dynamic array
+ * 
+ * @param da pointer to the dynamic array
+ */
+ VL_API void vl_da_clear(VL_DA *da);
 
 /**
  * deallocates a dynamic array

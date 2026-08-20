@@ -1,4 +1,5 @@
 #include "web/web.h"
+#include "css/layout.h"
 #include "css/stylesheet.h"
 #include "dom/dom.h"
 #include "dom/element.h"
@@ -13,11 +14,21 @@
 
 #include "NotoSans_Arabic/Regular.h"
 
+static void propagate_stylesheet(vl_css_layout_node_t *node, vl_css_stylesheet_t *sheet) {
+    node->stylesheet = sheet;
+    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
+        propagate_stylesheet(node->children[i], sheet);
+    }
+}
+
 vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_document_t *document) {
     if (!web) return VL_ERROR;
     memset(web, 0, sizeof(*web));
     vl_dom_init_with_html_node(&web->dom, &document->root);
     web->dom.owner = web;
+    web->dom.root->layout.parent = &web->root_layout_node;
+    vl_css_layout_node_init(&web->root_layout_node, "root");
+    propagate_stylesheet(&web->dom.root->layout, &web->stylesheet);
 
     web->platform_context = context;
     web->title = "velvet";
@@ -59,7 +70,9 @@ vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
         printf("---------------\n");
         vl_css_stylesheet_print(&web->stylesheet);
         printf("---------------\n");
-        vl_dom_element_update_style(web->dom.root);
+        vl_os_window_t *window = web->render->owner;
+        web->root_layout_node.size = VL_VEC2(window->io.window_size.x, window->io.window_size.y);
+        vl_dom_element_process(web->dom.root);
         web->refresh_styles = false;
     }
     return vl_dom_render(&web->dom, opts);
@@ -68,6 +81,7 @@ vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
 vl_result_t vl_web_deinit(vl_web_t *web) {
     if (!web) return VL_ERROR;
     vl_css_stylesheet_deinit(&web->stylesheet);
+    vl_css_layout_node_deinit(&web->root_layout_node);
     vl_dom_deinit(&web->dom);
     vl_web_fonts_deinit(&web->fonts);
     return VL_SUCCESS;

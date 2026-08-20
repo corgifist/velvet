@@ -111,7 +111,7 @@ vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t
 }
 
 static void print_rule(vl_css_rule_t *rule) {
-    printf("%i %s: ", rule->priority, rule->property);
+    printf("%s: ", rule->property);
     vl_css_value_print(rule->value);
     if (rule->important) {
         printf(" !important");

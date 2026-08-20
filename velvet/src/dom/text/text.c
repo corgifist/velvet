@@ -21,7 +21,7 @@ vl_dom_element_t *vl_dom_element_text_new(vl_source_location_t loc) {
     if (!funcs) return NULL;
     funcs->render = vl_dom_element_text_render;
     funcs->set_property = vl_dom_element_text_set_property;
-    funcs->get_metric2 = vl_dom_element_text_get_metric2;
+    funcs->get_content_size = vl_dom_element_text_get_content_size;
     funcs->free = vl_dom_element_text_free;
     vl_dom_element_text_t *element = VL_PTR_FORWARD(funcs, sizeof(*funcs));
     element->text = NULL;
@@ -61,13 +61,14 @@ vl_result_t vl_dom_element_text_set_property(vl_dom_element_t *element, const ch
     return VL_ERROR;
 }
 
-vl_vec2_t vl_dom_element_text_get_metric2(vl_dom_element_t *element, vl_dom_element_metric_type_t metric) {
-    if (!element) return VL_VEC2(0, 0);
+vl_vec2_t vl_dom_element_text_get_content_size(vl_dom_element_t *element) {
     vl_dom_element_text_t *text = (vl_dom_element_text_t*) element;
-    if (metric == VL_DOM_ELEMENT_METRIC_SIZE) {
-        return vl_dom_behavior_text_layout_get_size(element, &text->layout);
+    if (!text->layout.glyphs || text->rebuild_layout) {
+        vl_dom_behavior_text_layout_free(element, &text->layout);
+        vl_dom_behavior_text_layout_new(element, &text->layout, text->text);
+        text->rebuild_layout = false;
     }
-    return VL_VEC2(0, 0);
+    return vl_dom_behavior_text_layout_get_size(element, &text->layout);
 }
 
 vl_result_t vl_dom_element_text_free(vl_dom_element_t *element) {

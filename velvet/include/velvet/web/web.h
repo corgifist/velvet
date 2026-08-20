@@ -1,6 +1,7 @@
 #ifndef VELVET_WEB_H
 #define VELVET_WEB_H
 
+#include "velvet/css/layout.h"
 #include "velvet/css/stylesheet.h"
 #include "velvet/platform/context.h"
 #include "velvet/html/document.h"
@@ -13,6 +14,7 @@ struct vl_web {
     const char *title;
     vl_dom_t dom;
     vl_css_stylesheet_t stylesheet;
+    vl_css_layout_node_t root_layout_node;
     bool refresh_styles;
 
     vl_platform_context_t *platform_context;

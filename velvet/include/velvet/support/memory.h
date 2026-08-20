@@ -6,7 +6,7 @@
 #define VELVET_MEMORY_H
 
 #include "velvet/support/api.h"
-
+#include "velvet/support/variadic.h"
 #include "velvet/common.h"
 
 struct vl_source_location {
@@ -20,7 +20,14 @@ struct vl_source_location {
 
 typedef struct vl_source_location vl_source_location_t;
 
-#define VL_SOURCE_LOCATION(COMMENT) ((vl_source_location_t) {.file = __FILE__, .function = __func__, .line = __LINE__, .comment = (COMMENT), .__type = NULL})
+#define VL_SOURCE_LOCATION(COMMENT) \
+    ((vl_source_location_t) { \
+        .file = __FILE__, \
+        .function = __func__, \
+        .line = __LINE__, \
+        .comment = (COMMENT), \
+        .__type = NULL} \
+    )
 #define VL_SOURCE_LOCATION_HERE VL_SOURCE_LOCATION(NULL)
 #define VL_HERE VL_SOURCE_LOCATION_HERE
 
@@ -48,11 +55,9 @@ typedef struct vl_source_location vl_source_location_t;
 #define VL_NEW_VA_EXPAND(TYPE, LOC, ...) ((TYPE*) vl_malloc(sizeof(TYPE), VL_SOURCE_LOCATION_FORCE_TYPE(LOC, #TYPE)))
 #define VL_NEW(...) VL_NEW_VA_EXPAND(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 
-#ifdef __GNUC__
+#if defined(__GNUC__)
     #define VL_PACK(...) __VA_ARGS__ __attribute__((__packed__))
-#endif
-
-#ifdef _MSC_VER
+#elif defined(_MSC_VER)
     #define VL_PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
 #endif
 
@@ -73,6 +78,19 @@ typedef uint8_t vl_byte_t;
 
 #define VL_ARR_LEN(ARR) \
     (sizeof((ARR)) / sizeof(*(ARR)))
+
+/**
+ * Zero out either a pointer to an object or an array of objects
+ * Usage: VL_ZERO_OUT(PTR) / VL_ZERO_OUT(PTR, SIZE)
+ * @param PTR pointer to be zeroed out
+ * @param SIZE optional size of an array (in bytes, not in the count of elements)
+ */
+#define VL_ZERO_OUT(...) \
+    VL_VA_DISPATCH(VL_ZERO_OUT, __VA_ARGS__)
+#define VL_ZERO_OUT1(PTR) \
+    memset((PTR), 0, sizeof(*PTR))
+#define VL_ZERO_OUT2(PTR, SIZE) \
+    memset(PTR, 0, SIZE)
 
 VL_API void *vl_malloc_(size_t size, vl_source_location_t loc);
 VL_API void *vl_realloc_(void *mem, size_t size, vl_source_location_t loc);
