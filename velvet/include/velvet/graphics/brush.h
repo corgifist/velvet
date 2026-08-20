@@ -6,7 +6,7 @@
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
 #include "velvet/graphics/geometry.h"
-#include "velvet/graphics/color.h"
+#include "velvet/support/color.h"
 #include "velvet/graphics/bitmap.h"
 
 #include <cglm/mat3x2.h>

@@ -1,5 +1,7 @@
-#ifndef VELVET_GRAPHICS_COLOR_H
-#define VELVET_GRAPHICS_COLOR_H
+#ifndef VELVET_SUPPORT_COLOR_H
+#define VELVET_SUPPORT_COLOR_H
+
+#include "velvet/support/variadic.h"
 
 struct vl_color {
     float r, g, b, a;
@@ -7,8 +9,14 @@ struct vl_color {
 
 typedef struct vl_color vl_color_t;
 
-#define VL_COLOR(R, G, B, A) \
+#define VL_COLOR1(X) \
+    VL_COLOR4(X, X, X, X)
+#define VL_COLOR3(R, G, B) \
+    VL_COLOR4(R, G, B, 1)
+#define VL_COLOR4(R, G, B, A) \
     ((vl_color_t) {.r = ((float) (R)), .g = ((float) (G)), .b = ((float) (B)), .a = ((float) (A))})
+#define VL_COLOR(...) \
+    VL_VA_DISPATCH(VL_COLOR, __VA_ARGS__)
 
 #define VL_WHITE VL_COLOR(1, 1, 1, 1)
 #define VL_RED VL_COLOR(1, 0, 0, 1)

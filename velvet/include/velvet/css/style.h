@@ -1,6 +1,7 @@
 #ifndef VELVET_CSS_STYLE_H
 #define VELVET_CSS_STYLE_H
 
+#include "velvet/support/color.h"
 #include "velvet/support/memory.h"
 #include "velvet/common.h"
 #include "velvet/support/result.h"
@@ -79,6 +80,9 @@ typedef struct vl_css_value vl_css_value_t;
 #define VL_CSS_VALUE_CONST_LITERAL(LITERAL) \
     VL_CSS_VALUE(VL_CSS_VALUE_CONST_LITERAL, {.const_literal = (const char*) (LITERAL)})
 
+#define VL_CSS_VALUE_COLOR_COMPATIBLE(VALUE) \
+    (VALUE.type == VL_CSS_VALUE_COLOR_RGBA)
+
 #define VL_CSS_CONST_LITERAL_EQUAL(CSS_VALUE, LITERAL) \
     ((CSS_VALUE).type == VL_CSS_VALUE_CONST_LITERAL \
         && (CSS_VALUE).as.const_literal \
@@ -147,6 +151,8 @@ VL_API vl_result_t vl_css_class_selector_print(vl_css_class_selector_t *selector
 VL_API vl_result_t vl_css_class_id_print(vl_css_class_id_t *id);
 VL_API vl_result_t vl_css_rule_print(vl_css_rule_t *rule);
 VL_API vl_result_t vl_css_value_print(vl_css_value_t value);
+
+VL_API vl_color_t vl_css_value_to_rgba(vl_css_value_t value);
 
 VL_API vl_result_t vl_css_style_deinit(vl_css_style_t *style);
 VL_API vl_result_t vl_css_class_deinit(vl_css_class_t *class);

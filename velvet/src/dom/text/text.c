@@ -6,7 +6,7 @@
 #include "font/font.h"
 #include "font/shaper.h"
 #include "graphics/brush.h"
-#include "graphics/color.h"
+#include "support/color.h"
 #include "graphics/geometry.h"
 #include "graphics/render.h"
 #include "support/da.h"

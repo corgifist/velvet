@@ -6,7 +6,7 @@
 #define VELVET_PLATFORM_UNIVERSAL_RENDER_H
 
 #include "graphics/bitmap.h"
-#include "graphics/color.h"
+#include "support/color.h"
 #include "graphics/geometry.h"
 #include "velvet/support/da.h"
 #include "velvet/graphics/brush.h"

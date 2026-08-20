@@ -70,16 +70,16 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 
 static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
     vl_vec2_t cursor = {0};
-
+    node->size.x = node->parent->size.x;
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
+        node->size.y = cursor.y;
         vl_css_layout_node_process(child);
         child->position.x = 0;
         child->position.y = cursor.y;
         cursor.y += child->size.y;
     }
     node->size.y = cursor.y;
-    node->size.x = node->parent->size.x;
     return VL_SUCCESS;
 }
 

@@ -1,4 +1,5 @@
 #include "velvet/css/style.h"
+#include "support/color.h"
 #include "support/da.h"
 #include "support/result.h"
 
@@ -251,6 +252,11 @@ vl_result_t vl_css_class_id_print(vl_css_class_id_t *id) {
     print_class_id(id);
     printf("\n");
     return VL_SUCCESS;
+}
+
+vl_color_t vl_css_value_to_rgba(vl_css_value_t value) {
+    if (!VL_CSS_VALUE_COLOR_COMPATIBLE(value)) return VL_COLOR(0, 0, 0, 0);
+    return VL_COLOR(value.as.rgba.r / 255.0f, value.as.rgba.g / 255.0f, value.as.rgba.b / 255.0f, value.as.rgba.a);
 }
 
 vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector) {

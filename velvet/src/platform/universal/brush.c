@@ -1,7 +1,7 @@
 #include "platform/universal/brush.h"
 #include "graphics/bitmap.h"
 #include "graphics/brush.h"
-#include "graphics/color.h"
+#include "support/color.h"
 #include "graphics/render.h"
 #include "platform/universal/render.h"
 #include "support/da.h"

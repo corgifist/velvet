@@ -2,7 +2,7 @@
 #include "css/layout.h"
 #include "css/style.h"
 #include "font/shaper.h"
-#include "graphics/color.h"
+#include "support/color.h"
 #include "graphics/geometry.h"
 #include "support/da.h"
 #include "support/memory.h"

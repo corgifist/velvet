@@ -6,7 +6,7 @@
 #include "velvet/support/api.h"
 #include "velvet/support/memory.h"
 #include "velvet/graphics/geometry.h"
-#include "velvet/graphics/color.h"
+#include "velvet/support/color.h"
 #include "velvet/graphics/bitmap.h"
 
 enum vl_platform_context_type {

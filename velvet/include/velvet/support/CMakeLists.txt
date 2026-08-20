@@ -14,5 +14,6 @@ set(Velvet_Headers
     include/velvet/support/str.h
     include/velvet/support/allocator.h
     include/velvet/support/variadic.h
+    include/velvet/support/color.h
     PARENT_SCOPE
 )

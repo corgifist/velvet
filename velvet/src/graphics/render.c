@@ -1,6 +1,6 @@
 #include "velvet/graphics/render.h"
 #include "graphics/brush.h"
-#include "graphics/color.h"
+#include "support/color.h"
 #include "graphics/geometry.h"
 #include "platform/context.h"
 #include "support/da.h"

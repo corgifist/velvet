@@ -5,7 +5,7 @@
 #include "velvet/graphics/brush.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
-#include "velvet/graphics/color.h"
+#include "velvet/support/color.h"
 #include "velvet/graphics/geometry.h"
 #include "velvet/os/window.h"
 #include <cglm/types.h>

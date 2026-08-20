@@ -87,14 +87,19 @@ static const struct {
     vl_css_value_t value;
 } s_css_constants[] = {
     {"red", VL_CSS_VALUE_RGBA(255, 0, 0, 1)},
-    {"green", VL_CSS_VALUE_RGBA(0, 255, 0, 1)},
+    {"green", VL_CSS_VALUE_RGBA(0, 128, 0, 1)},
     {"blue", VL_CSS_VALUE_RGBA(0, 0, 255, 1)},
     {"yellow", VL_CSS_VALUE_RGBA(255, 255, 0, 1)},
     {"aqua", VL_CSS_VALUE_RGBA(0, 255, 255, 1)},
     {"aquamarine", VL_CSS_VALUE_RGBA(127, 255, 212, 1)},
     {"fuchsia", VL_CSS_VALUE_RGBA(255, 0, 255, 1)},
     {"white", VL_CSS_VALUE_RGBA(255, 255, 255, 1)},
-    {"brown", VL_CSS_VALUE_RGBA(165, 42, 42, 1)}
+    {"brown", VL_CSS_VALUE_RGBA(165, 42, 42, 1)},
+    {"whitesmoke", VL_CSS_VALUE_RGBA(245, 245, 245, 1)},
+    {"turquoise", VL_CSS_VALUE_RGBA(64, 224, 208, 1)},
+    {"wheat", VL_CSS_VALUE_RGBA(245, 222, 179, 1)},
+    {"salmon", VL_CSS_VALUE_RGBA(250, 128, 114, 1)},
+    {"snow", VL_CSS_VALUE_RGBA(255, 250, 250, 1)}
 };
 
 static const char *s_const_literals[] = {
@@ -106,7 +111,7 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
     if (current->type == VL_CSS_TOKEN_TYPE_ID) {
         for (int i = 0; i < VL_ARR_LEN(s_css_constants); i++) {
             if (current->text_length == strlen(s_css_constants[i].name) && 
-                    memcmp(current->text, s_css_constants[i].name, current->text_length) == 0) {
+                    vl_nstrcicmp(current->text, s_css_constants[i].name, current->text_length) == 0) {
                 if (tokenize(parser)) return VL_CSS_VALUE_NONE();
                 return s_css_constants[i].value;
             }

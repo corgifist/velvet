@@ -3,7 +3,7 @@
 
 #include "graphics/bitmap.h"
 #include "velvet/support/da.h"
-#include "velvet/graphics/color.h"
+#include "velvet/support/color.h"
 #include "velvet/support/result.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/graphics/render.h"

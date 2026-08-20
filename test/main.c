@@ -17,7 +17,7 @@
 #include "velvet/font/shaper.h"
 #include "velvet/graphics/bitmap.h"
 #include "velvet/graphics/brush.h"
-#include "velvet/graphics/color.h"
+#include "velvet/support/color.h"
 #include "velvet/graphics/geometry.h"
 #include "velvet/graphics/presentation.h"
 #include "velvet/graphics/render.h"
@@ -873,11 +873,14 @@ void styling_test() {
             }
             p {
                 color: red;
+                background-color: brown;
             }
             .green {
+                background-color: salmon;
                 color: green;
             }
             .blue {
+                background-color: snow;
                 color: blue;
             }
         </style>
