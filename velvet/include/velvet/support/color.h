@@ -18,6 +18,12 @@ typedef struct vl_color vl_color_t;
 #define VL_COLOR(...) \
     VL_VA_DISPATCH(VL_COLOR, __VA_ARGS__)
 
+#define VL_ALPHA(ALPHA) \
+    VL_COLOR(1, 1, 1, ALPHA)
+
+#define VL_COLOR_OP(A, B, OP) \
+    VL_COLOR((A).r OP (B).r, (A).g OP (B).g, (A).b OP (B).b, (A).a OP (B).a)
+
 #define VL_WHITE VL_COLOR(1, 1, 1, 1)
 #define VL_RED VL_COLOR(1, 0, 0, 1)
 #define VL_GREEN VL_COLOR(0, 1, 0, 1)

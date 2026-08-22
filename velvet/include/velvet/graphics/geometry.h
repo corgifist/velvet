@@ -46,6 +46,17 @@ typedef struct vl_rect vl_rect_t;
 #define VL_POINT_IN_RECT(P, R) \
     (((P).x > (R).x1 && (P).x < (R).x2) && ((P).y > (R).y1 && (P).y < (R).y2))
 
+struct vl_line {
+    vl_point_t from;
+    vl_point_t to;
+    float thickness;
+};
+
+typedef struct vl_line vl_line_t;
+
+#define VL_LINE(FROM, TO, THICKNESS) \
+    ((vl_line_t) {.from = (vl_point_t) (FROM), .to = (vl_point_t) (TO), .thickness = (float) (THICKNESS)})
+
 struct vl_quad {
     union {
         struct {

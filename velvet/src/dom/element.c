@@ -86,6 +86,9 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_
             vl_graphics_render_batch_rect_colored(web->render, VL_RECT(VL_VEC2(0, 0), element->layout.size), NULL, VL_QUAD_COLOR(raw_color));
     }
     vl_result_t result = funcs->render(element, opts);
+    vl_graphics_render_batch_rect_colored(web->render, VL_RECT_EX(0, 0, element->layout.size.x, element->layout.size.y), NULL, VL_QUAD_COLOR(
+        VL_COLOR(0, 1, 0, 0.1)
+    ));
     vl_graphics_render_pop_transform(web->render);
     return result;
 }

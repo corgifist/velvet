@@ -108,6 +108,8 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
             node->size.x = node->parent->size.x;
             vl_css_layout_node_process(child);
             node->size = child->size;
+            node->size.x += child->margin.y + child->margin.w;
+            node->size.y += child->margin.x + child->margin.z;
         }
     }
     return VL_SUCCESS;
@@ -124,7 +126,7 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
         child->position.x = cursor.x + child->margin.w;
         child->position.y = cursor.y + child->margin.x;
         cursor.y += child->size.y + child->margin.x + child->margin.z;
-        size.y += child->size.y;
+        size.y = cursor.y;
     }
     node->size.y = size.y;
     return VL_SUCCESS;
