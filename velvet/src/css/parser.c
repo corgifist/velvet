@@ -55,7 +55,8 @@ static vl_css_size_metric_type_t map_str_to_metric_type(const char *str) {
         vl_css_size_metric_type_t type;
     } s_metric_unit_map[] = {
         "px", VL_CSS_SIZE_METRIC_PIXELS,
-        "%", VL_CSS_SIZE_METRIC_PERCENTAGE
+        "%", VL_CSS_SIZE_METRIC_PERCENTAGE,
+        "em", VL_CSS_SIZE_METRIC_EM
     };
 
     for (int i = 0; i < VL_ARR_LEN(s_metric_unit_map); i++) {

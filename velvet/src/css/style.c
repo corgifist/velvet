@@ -148,6 +148,10 @@ static void print_metric_unit(vl_css_size_metric_t *metric) {
         printf("%%");
         break;
     }
+    case VL_CSS_SIZE_METRIC_EM: {
+        printf("em");
+        break;
+    }
     }
 }
 

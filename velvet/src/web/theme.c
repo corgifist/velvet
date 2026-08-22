@@ -38,6 +38,12 @@ static const char *s_default_stylesheet = VL_STRINGIFY(
         display: block;
         margin: 8px;
     }
+
+    p {
+        display: block;
+        margin-block-start: 1em;
+        margin-block-end: 1em;
+    }
 );
 
 const char *vl_web_theme_default_stylesheet() {

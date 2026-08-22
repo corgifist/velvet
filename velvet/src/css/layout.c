@@ -24,7 +24,8 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
 
 static const char *s_inherited_properties[] = {
     "color",
-    "--velvet-element-highlight"
+    "--velvet-element-highlight",
+    "font-size"
 };
 
 vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
@@ -52,15 +53,19 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     return VL_SUCCESS;
 }
 
-static float process_metric(float parent_size, vl_css_size_metric_t metric) {
+static float process_metric(vl_css_layout_node_t *node, float parent_size, vl_css_size_metric_t metric) {
     if (metric.type == VL_CSS_SIZE_METRIC_PERCENTAGE) return parent_size * metric.value;
+    if (metric.type == VL_CSS_SIZE_METRIC_EM) {
+        vl_css_value_t font_size = vl_css_layout_node_get_property(node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+        return font_size.as.metric1.value * metric.value;
+    }
     return metric.value;
 }
 
-static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *parent, vl_css_value_t value) {
+static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *node, vl_css_value_t value) {
     if (value.type == VL_CSS_VALUE_SIZE_METRIC1) {
-        float mx = process_metric(parent->size.x, value.as.metric1);
-        float my = process_metric(parent->size.y, value.as.metric1);
+        float mx = process_metric(node, node->parent->size.x, value.as.metric1);
+        float my = process_metric(node, node->parent->size.y, value.as.metric1);
         return (vl_vec4_t) {my, mx, my, mx};
     }
     return (vl_vec4_t) {0};
@@ -81,22 +86,31 @@ static vl_vec4_t construct_margin(vl_css_layout_node_t *node) {
             continue;
         }
         if (strcmp(rule->property, "margin-top") == 0) {
-            margin.x = process_metric(node->parent->size.y, generic_metric_to_metric1(rule->value));
+            margin.x = process_metric(node, node->parent->size.y, generic_metric_to_metric1(rule->value));
             continue;
         }
         if (strcmp(rule->property, "margin-right") == 0) {
-            margin.y = process_metric(node->parent->size.x, generic_metric_to_metric1(rule->value));
+            margin.y = process_metric(node, node->parent->size.x, generic_metric_to_metric1(rule->value));
             continue;
         }
         if (strcmp(rule->property, "margin-bottom") == 0) {
-            margin.z = process_metric(node->parent->size.y, generic_metric_to_metric1(rule->value));
+            margin.z = process_metric(node, node->parent->size.y, generic_metric_to_metric1(rule->value));
             continue;
         }
         if (strcmp(rule->property, "margin-left") == 0) {
-            margin.w = process_metric(node->parent->size.x, generic_metric_to_metric1(rule->value));
+            margin.w = process_metric(node, node->parent->size.x, generic_metric_to_metric1(rule->value));
             continue;
         }
     }
+    vl_css_value_t margin_block_start = vl_css_layout_node_get_property(node, "margin-block-start", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+    vl_css_value_t margin_block_end = vl_css_layout_node_get_property(node, "margin-block-end", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+    vl_vec2_t margin_block = {
+        margin_block_start.as.metric1.value,
+        margin_block_end.as.metric1.value
+    };
+    margin.x += margin_block.x;
+    margin.z += margin_block.y;
+    printf("margin_block: %f %f\n", margin_block.x, margin_block.y);
     return margin;
 }
 
@@ -189,6 +203,14 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
     }
     if (VL_CSS_CONST_LITERAL_EQUAL(result, "unset") || VL_CSS_CONST_LITERAL_EQUAL(result, "initial")) {
         result = fallback;
+    }
+    if (strcmp(property, "font-size") == 0 && result.type == VL_CSS_VALUE_SIZE_METRIC1 && result.as.metric1.type == VL_CSS_SIZE_METRIC_EM) {
+        vl_css_value_t font_size = vl_css_layout_node_get_property(node->parent, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+        result = VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(font_size.as.metric1.value * result.as.metric1.value));
+    } else if (result.type == VL_CSS_VALUE_SIZE_METRIC1 && result.as.metric1.type == VL_CSS_SIZE_METRIC_EM) {
+        vl_css_value_t font_size = vl_css_layout_node_get_property(node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+        printf("font size: %f\n", font_size.as.metric1.value);
+        result = VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(font_size.as.metric1.value * result.as.metric1.value));
     }
     if (result.type == VL_CSS_VALUE_CONST_LITERAL 
             && vl_web_theme_supports_property(result.as.const_literal)) {
