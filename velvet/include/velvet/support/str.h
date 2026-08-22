@@ -7,6 +7,9 @@
 #include "velvet/common.h"
 #include "velvet/support/api.h"
 
+#define VL_STRINGIFY_EX(...) #__VA_ARGS__
+#define VL_STRINGIFY(...) VL_STRINGIFY_EX(__VA_ARGS__)
+
 // ONLY ASCII STRINGS
 VL_API int vl_strcicmp(const char *a, const char *b);
 VL_API int vl_nstrcicmp(const char *a, const char *b, int length);

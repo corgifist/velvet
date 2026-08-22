@@ -34,6 +34,7 @@
 #include "velvet/support/variadic.h"
 #include "velvet/velvet.h"
 #include "velvet/support/managed_assert.h"
+#include "velvet/support/str.h"
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
@@ -868,45 +869,9 @@ void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     const char *input = VL_STRINGIFY(
         <style>
-            body {
-                background-color: powderblue;
-                color: aqua;
-                font-size: 16px;
-            }
-            p {
-                color: red;
-                background-color: brown;
-                font-size: 32px;
-            }
-            .green {
-                background-color: salmon;
-                color: green;
-            }
-            .blue {
-                background-color: snow;
-                color: blue;
-            }
-            .p-override {
-                background-color: unset;
-            }
-            .small {
-                font-size: 8px;
-            }
-            .medium {
-                font-size: 16px;
-            }
-            .huge {
-                font-size: 32px;
-            }
         </style>
         <body>
-            Aqua
-            <p>Red</p>
-            <p class="green">Green</p>
-            <p class="blue">Blue</p>
-            <p class="p-override small">Small</p>
-            <p class="p-override medium">Medium</p>
-            <p class="p-override huge">Huge</p>
+            Hello, World!
         </body>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
@@ -924,7 +889,7 @@ void styling_test() {
     while (!vl_os_window_should_close(win, &close) && !close) {
         vl_os_window_poll_events(ctx);
         vl_graphics_presentation_begin(present);
-        vl_graphics_render_clear(render, VL_BLACK);
+        vl_graphics_render_clear(render, VL_WHITE);
         vl_graphics_render_batch_begin(render);
             vl_web_render(&web, NULL);
          vl_graphics_render_batch_end(render);

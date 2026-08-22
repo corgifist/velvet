@@ -9,10 +9,13 @@
 #include "velvet/graphics/render.h"
 #include "velvet/dom/dom.h"
 #include "velvet/web/fonts.h"
+#include "velvet/web/theme.h"
 
 struct vl_web {
     const char *title;
     vl_dom_t dom;
+    const vl_web_theme_t *theme;
+    vl_css_stylesheet_t default_stylesheet;
     vl_css_stylesheet_t stylesheet;
     vl_css_layout_node_t root_layout_node;
     bool refresh_styles;

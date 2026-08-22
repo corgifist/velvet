@@ -8,8 +8,10 @@
 typedef void* vl_css_layout_node_owner_t;
 
 struct vl_css_layout_node;
+struct vl_web;
 typedef vl_vec2_t (*vl_css_layout_node_get_content_size)(struct vl_css_layout_node *node);
 struct vl_css_layout_node {
+    struct vl_web *web;
     vl_css_layout_node_owner_t owner;
     struct vl_css_layout_node *parent;
     VL_DA(struct vl_css_layout_node*) children;

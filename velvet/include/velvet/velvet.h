@@ -5,7 +5,6 @@
 #ifndef VELVET_H
 #define VELVET_H
 
-#define VL_STRINGIFY_EX(...) #__VA_ARGS__
-#define VL_STRINGIFY(...) VL_STRINGIFY_EX(__VA_ARGS__)
+#include "velvet/common.h"
 
 #endif // VELVET_H

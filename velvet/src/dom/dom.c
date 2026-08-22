@@ -26,6 +26,7 @@ vl_dom_element_t *collect_elements(vl_dom_t *owner, vl_dom_element_t *parent, vl
     }
     element->owner = owner;
     element->parent = parent;
+    element->layout.web = owner->owner;
     if (parent) {
         element->layout.parent = &parent->layout;
     }
@@ -63,7 +64,6 @@ vl_result_t vl_dom_render(vl_dom_t *dom, vl_dom_render_opts_t *opts) {
 
 vl_result_t vl_dom_init_with_html_node(vl_dom_t *dom, vl_html_node_t *node) {
     if (!dom || !node) return VL_ERROR;
-    dom->owner = NULL;
     dom->root = collect_elements(dom, NULL, node);
     return VL_SUCCESS;
 }

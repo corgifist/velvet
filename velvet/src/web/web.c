@@ -7,6 +7,7 @@
 #include "html/document.h"
 #include "platform/context.h"
 #include "support/memory.h"
+#include "velvet.h"
 #include "web/fonts.h"
 #include "dom/style/style.h"
 
@@ -14,6 +15,9 @@
 #include "Roboto/Regular.h"
 
 #include "NotoSans_Arabic/Regular.h"
+#include "web/theme.h"
+
+
 
 static void propagate_stylesheet(vl_css_layout_node_t *node, vl_css_stylesheet_t *sheet) {
     node->stylesheet = sheet;
@@ -24,10 +28,12 @@ static void propagate_stylesheet(vl_css_layout_node_t *node, vl_css_stylesheet_t
 
 vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_document_t *document) {
     if (!web) return VL_ERROR;
-    memset(web, 0, sizeof(*web));
-    vl_dom_init_with_html_node(&web->dom, &document->root);
+    VL_ZERO_OUT(web);
     web->dom.owner = web;
+    vl_dom_init_with_html_node(&web->dom, &document->root);
     web->dom.root->layout.parent = &web->root_layout_node;
+    vl_css_stylesheet_init(&web->default_stylesheet, vl_web_theme_default_stylesheet());
+    web->theme = vl_web_theme_default();
     vl_css_layout_node_init(&web->root_layout_node, "root");
     propagate_stylesheet(&web->dom.root->layout, &web->stylesheet);
 
@@ -64,6 +70,7 @@ vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
 
         VL_DA(vl_css_stylesheet_t*) stylesheets = VL_DA_INIT(vl_css_stylesheet_t*);
         collect_stylesheets(web->dom.root, &stylesheets);
+        vl_css_stylesheet_merge(&web->stylesheet, &web->default_stylesheet);
         for (int i = 0; i < VL_DA_LENGTH(stylesheets); i++) {
             vl_css_stylesheet_merge(&web->stylesheet, stylesheets[i]);
         }
@@ -81,6 +88,7 @@ vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
 
 vl_result_t vl_web_deinit(vl_web_t *web) {
     if (!web) return VL_ERROR;
+    vl_css_stylesheet_deinit(&web->default_stylesheet);
     vl_css_stylesheet_deinit(&web->stylesheet);
     vl_css_layout_node_deinit(&web->root_layout_node);
     vl_dom_deinit(&web->dom);

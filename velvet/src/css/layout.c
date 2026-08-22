@@ -2,6 +2,7 @@
 #include "css/style.h"
 #include "support/da.h"
 #include "support/result.h"
+#include "web/web.h"
 
 vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag) {
     if (!node || !tag) return VL_ERROR;
@@ -128,6 +129,11 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
     }
     if (VL_CSS_CONST_LITERAL_EQUAL(result, "unset") || VL_CSS_CONST_LITERAL_EQUAL(result, "initial")) {
         result = fallback;
+    }
+    if (result.type == VL_CSS_VALUE_CONST_LITERAL 
+            && vl_web_theme_supports_property(result.as.const_literal)) {
+        vl_color_t theme_color = vl_web_theme_get_property(node->web->theme, result.as.const_literal, VL_COLOR(0));
+        result = VL_CSS_VALUE_RGBA(theme_color.r, theme_color.g, theme_color.b, theme_color.a);
     }
     return result;
 }

@@ -130,7 +130,8 @@ static const char *s_const_literals[] = {
     "inherit",
     "initial",
     "unset",
-    "revert"
+    "revert",
+    "canvastext"
 };
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
