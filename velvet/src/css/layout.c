@@ -3,6 +3,7 @@
 #include "support/da.h"
 #include "support/result.h"
 #include "web/web.h"
+#include "support/math.h"
 
 vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag) {
     if (!node || !tag) return VL_ERROR;
@@ -55,6 +56,49 @@ static float process_metric(float parent_size, vl_css_size_metric_t metric) {
     return metric.value;
 }
 
+static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *parent, vl_css_value_t value) {
+    if (value.type == VL_CSS_VALUE_SIZE_METRIC1) {
+        float mx = process_metric(parent->size.x, value.as.metric1);
+        float my = process_metric(parent->size.y, value.as.metric1);
+        return (vl_vec4_t) {my, mx, my, mx};
+    }
+    return (vl_vec4_t) {0};
+}
+
+static vl_css_size_metric_t generic_metric_to_metric1(vl_css_value_t value) {
+    if (value.type == VL_CSS_VALUE_SIZE_METRIC1) return value.as.metric1;
+    return VL_CSS_SIZE_PIXELS(0);
+}
+
+static vl_vec4_t construct_margin(vl_css_layout_node_t *node) {
+    vl_vec4_t margin = {0};
+    for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
+        vl_css_rule_t *rule = node->style.applied_rules[i];
+        if (!rule->property) continue;
+        if (strcmp(rule->property, "margin") == 0) {
+            margin = generic_metric_to_metric4(node->parent, rule->value);
+            continue;
+        }
+        if (strcmp(rule->property, "margin-top") == 0) {
+            margin.x = process_metric(node->parent->size.y, generic_metric_to_metric1(rule->value));
+            continue;
+        }
+        if (strcmp(rule->property, "margin-right") == 0) {
+            margin.y = process_metric(node->parent->size.x, generic_metric_to_metric1(rule->value));
+            continue;
+        }
+        if (strcmp(rule->property, "margin-bottom") == 0) {
+            margin.z = process_metric(node->parent->size.y, generic_metric_to_metric1(rule->value));
+            continue;
+        }
+        if (strcmp(rule->property, "margin-left") == 0) {
+            margin.w = process_metric(node->parent->size.x, generic_metric_to_metric1(rule->value));
+            continue;
+        }
+    }
+    return margin;
+}
+
 typedef vl_result_t (*layout_func)(vl_css_layout_node_t *node);
 
 static vl_result_t layout_html(vl_css_layout_node_t *node) {
@@ -70,17 +114,19 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 }
 
 static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
-    vl_vec2_t cursor = {0};
-    node->size.x = node->parent->size.x;
+    vl_vec2_t cursor = {0, 0};
+    node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
+    vl_vec2_t size = {node->size.x, 0};
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
         node->size.y = cursor.y;
         vl_css_layout_node_process(child);
-        child->position.x = 0;
-        child->position.y = cursor.y;
-        cursor.y += child->size.y;
+        child->position.x = cursor.x + child->margin.w;
+        child->position.y = cursor.y + child->margin.x;
+        cursor.y += child->size.y + child->margin.x + child->margin.z;
+        size.y += child->size.y;
     }
-    node->size.y = cursor.y;
+    node->size.y = size.y;
     return VL_SUCCESS;
 }
 
@@ -101,14 +147,19 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     }
     vl_css_layout_node_refresh_style(node);
     node->calculating_layout = true;
+    node->margin = construct_margin(node);
+    printf("margin: %f %f %f %f\n", node->margin.x, node->margin.y, node->margin.z, node->margin.w);
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             vl_result_t result = s_layout_overrides[i].layout(node);
-            node->calculating_layout = false;
-            return result;
+            goto final;
         }
     }
     node->size = vl_css_layout_node_get_raw_content_size(node);
+
+    final:
+    node->position.x += node->margin.w;
+    node->position.y += node->margin.x;
     node->calculating_layout = false;
     return VL_SUCCESS;
 }

@@ -15,6 +15,20 @@ struct vl_vec2 {
 typedef struct vl_vec2 vl_vec2_t;
 typedef vl_vec2_t vl_point_t;
 
+struct vl_vec4 {
+    union {
+        struct {
+            float x, y, z, w;
+        };
+        struct {
+            float r, g, b, a;
+        };
+        float m[4];
+    };
+};
+
+typedef struct vl_vec4 vl_vec4_t;
+
 struct vl_rect {
     union {
         struct {

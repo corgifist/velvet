@@ -869,9 +869,20 @@ void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     const char *input = VL_STRINGIFY(
         <style>
+            p {
+                background-color: red;
+            }
+
+            .margin {
+                margin: 20px;
+                margin-left: 50px;
+                margin-bottom: 40px;
+            }
         </style>
         <body>
-            Hello, World!
+            Before Margin
+            <p class="margin">Hello, World!</p>
+            After Margin
         </body>
     );
     vl_html_document_t *doc = vl_html_document_new(input);

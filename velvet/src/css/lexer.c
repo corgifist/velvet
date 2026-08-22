@@ -78,6 +78,23 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         return vl_css_lexer_get(lexer, token);
     }
 
+    if (lexer->raw_pos + 2 >= lexer->raw_length && *cursor == '/' && *(cursor + 1) == '*') {
+        // skip comments
+        ADVANCE(); // skip /
+        ADVANCE(); // skip *
+        while (true) {
+            if (lexer->c == '*') {
+                ADVANCE();
+                if (lexer->c == '/') {
+                    ADVANCE();
+                    return vl_css_lexer_get(lexer, token);
+                }
+            }
+            ADVANCE();
+        }
+        return VL_ERROR;
+    }
+
     if (u_isUAlphabetic(lexer->c)) {
         const char *word_begin = cursor - U8_LENGTH(lexer->c);
         const char *word_end = cursor;

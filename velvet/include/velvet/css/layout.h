@@ -26,6 +26,8 @@ struct vl_css_layout_node {
 
     vl_vec2_t size;
     vl_vec2_t position;
+    vl_vec4_t margin;
+    vl_vec4_t padding;
     bool calculating_layout;
 };
 

@@ -131,7 +131,8 @@ static const char *s_const_literals[] = {
     "initial",
     "unset",
     "revert",
-    "canvastext"
+    "canvastext",
+    "block"
 };
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
@@ -318,19 +319,15 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
         if (VL_TOKEN_COMPARE(current, ";")) {
             if (tokenize(parser)) goto fail;
         }
-        bool rule_found = false;
         rule.priority = class_priority;
         for (int i = 0; i < VL_DA_LENGTH(class->rules); i++) {
             if (strcmp(class->rules[i].property, rule.property) == 0) {
                 vl_css_rule_deinit(class->rules + i);
-                class->rules[i] = rule;
-                rule_found = true;
+                VL_DA_DELETE(class->rules, i);
                 break;
             }
         }
-        if (!rule_found) {
-            VL_DA_APPEND(class->rules, rule);
-        }
+        VL_DA_APPEND(class->rules, rule);
     }
     VL_TOKEN_CONSUME(parser, "}", goto fail);
 
