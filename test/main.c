@@ -867,10 +867,14 @@ void css_test() {
 
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    const char *input = VL_STRINGIFY(
+    /* const char *input = VL_STRINGIFY(
         <style>
             p {
                 background-color: red;
+            }
+
+            html {
+                --velvet-element-highlight: rgba(0, 255, 0, 0.1);
             }
 
             .margin {
@@ -883,6 +887,17 @@ void styling_test() {
             Before Margin
             <p class="margin">Hello, World!</p>
             After Margin
+        </body>
+    ); */
+    const char *input = VL_STRINGIFY(
+        <style>
+            html {
+                color: green;
+                --velvet-element-highlight: rgba(255, 0, 0, 0.1);
+            }
+        </style>
+        <body>
+            Hello, World
         </body>
     );
     vl_html_document_t *doc = vl_html_document_new(input);

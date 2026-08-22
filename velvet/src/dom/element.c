@@ -70,7 +70,9 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
     if (!funcs->render) return VL_SUCCESS;
     vl_web_t *web = element->owner->owner;
-    vl_css_value_t background_color = vl_css_layout_node_get_property(&element->layout, "background-color", VL_CSS_VALUE_RGBA(0, 0, 0, 0));
+    vl_css_value_t background_color = vl_css_layout_node_get_property(&element->layout, 
+        "background-color", VL_CSS_VALUE_RGBA(0, 0, 0, 0)
+    );
     bool suitable_as_bg_color = VL_CSS_VALUE_COLOR_COMPATIBLE(background_color);
     bool is_body = (element->tag && strcmp(element->tag, "body") == 0);
     if (suitable_as_bg_color && is_body) {
@@ -86,9 +88,17 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_
             vl_graphics_render_batch_rect_colored(web->render, VL_RECT(VL_VEC2(0, 0), element->layout.size), NULL, VL_QUAD_COLOR(raw_color));
     }
     vl_result_t result = funcs->render(element, opts);
-    vl_graphics_render_batch_rect_colored(web->render, VL_RECT_EX(0, 0, element->layout.size.x, element->layout.size.y), NULL, VL_QUAD_COLOR(
-        VL_COLOR(0, 1, 0, 0.1)
-    ));
+    vl_css_value_t velvet_element_highlight = vl_css_layout_node_get_property(&element->layout, 
+        "--velvet-element-highlight", VL_CSS_VALUE_RGBA(0, 0, 0, 0)
+    );
+    if (VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_element_highlight)) {
+        vl_color_t highlight_color = vl_css_value_to_rgba(velvet_element_highlight);
+        if (highlight_color.a != 0) 
+            vl_graphics_render_batch_rect_colored(web->render, 
+                VL_RECT_EX(0, 0, element->layout.size.x, element->layout.size.y), NULL, 
+                VL_QUAD_COLOR(highlight_color)
+            );
+    }
     vl_graphics_render_pop_transform(web->render);
     return result;
 }

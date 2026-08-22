@@ -23,7 +23,8 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
 }
 
 static const char *s_inherited_properties[] = {
-    "color"
+    "color",
+    "--velvet-element-highlight"
 };
 
 vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
@@ -177,7 +178,13 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
     if (node->style.applied_rules) {
         result = vl_css_style_get_property(&node->style, property, VL_CSS_VALUE_NONE());
     }
-    if (result.type == VL_CSS_VALUE_NONE || VL_CSS_CONST_LITERAL_EQUAL(result, "inherit")) {
+    bool property_automatically_inherited = false;
+    for (int i = 0; i < VL_ARR_LEN(s_inherited_properties); i++) {
+        if (strcmp(property, s_inherited_properties[i]) == 0) {
+            property_automatically_inherited = true;
+        }
+    }
+    if ((result.type == VL_CSS_VALUE_NONE && property_automatically_inherited) || VL_CSS_CONST_LITERAL_EQUAL(result, "inherit")) {
         result = vl_css_layout_node_get_property(node->parent, property, fallback);
     }
     if (VL_CSS_CONST_LITERAL_EQUAL(result, "unset") || VL_CSS_CONST_LITERAL_EQUAL(result, "initial")) {

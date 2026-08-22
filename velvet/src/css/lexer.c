@@ -95,7 +95,7 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         return VL_ERROR;
     }
 
-    if (u_isUAlphabetic(lexer->c)) {
+    if (u_isUAlphabetic(lexer->c) || (lexer->c == '-' && *cursor == '-')) {
         const char *word_begin = cursor - U8_LENGTH(lexer->c);
         const char *word_end = cursor;
         ADVANCE();
