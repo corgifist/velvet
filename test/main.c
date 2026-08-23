@@ -892,12 +892,19 @@ void styling_test() {
     const char *input = VL_STRINGIFY(
         <style>
             html {
-                --velvet-element-highlight: rgba(255, 0, 0, 0.1);
+
+            }
+            p {
+
+            }
+            body {
             }
         </style>
         <body>
             <p>Hello, World!</p>
-            <p>Second paragraph!</p>
+            <p>Collapsing margins!</p>
+            Simple text
+            <p>Another paragraph</p>
         </body>
     );
     vl_html_document_t *doc = vl_html_document_new(input);

@@ -4,6 +4,7 @@
 #include "support/result.h"
 #include "web/web.h"
 #include "support/math.h"
+#include <stdlib.h>
 
 vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag) {
     if (!node || !tag) return VL_ERROR;
@@ -49,7 +50,7 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
         }
     }
     VL_DA_FREE(matched_classes);
-    vl_css_style_print(&node->style);
+    // vl_css_style_print(&node->style);
     return VL_SUCCESS;
 }
 
@@ -110,7 +111,6 @@ static vl_vec4_t construct_margin(vl_css_layout_node_t *node) {
     };
     margin.x += margin_block.x;
     margin.z += margin_block.y;
-    printf("margin_block: %f %f\n", margin_block.x, margin_block.y);
     return margin;
 }
 
@@ -120,6 +120,7 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
         if (strcmp(child->tag, "body") == 0) {
+            node->position = VL_VEC2(0, 0);
             node->size.x = node->parent->size.x;
             vl_css_layout_node_process(child);
             node->size = child->size;
@@ -132,19 +133,47 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 
 static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
     vl_vec2_t cursor = {0, 0};
-    node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
-    vl_vec2_t size = {node->size.x, 0};
+    vl_vec2_t size = {node->size.x, node->size.y};
+    VL_DA(vl_css_layout_node_t*) layout_targets = VL_DA_INIT(vl_css_layout_node_t*);
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
-        node->size.y = cursor.y;
+        child->size.x = node->size.x;
         vl_css_layout_node_process(child);
-        child->position.x = cursor.x + child->margin.w;
-        child->position.y = cursor.y + child->margin.x;
-        cursor.y += child->size.y + child->margin.x + child->margin.z;
+        vl_css_value_t display_value = vl_css_layout_node_get_property(child, "display", VL_CSS_VALUE_CONST_LITERAL("block"));
+        if (VL_CSS_CONST_LITERAL_EQUAL(display_value, "none")) continue;
+        VL_DA_APPEND(layout_targets, child);
+    }
+    int len = VL_DA_LENGTH(layout_targets);
+    for (int i = 0; i < len; i++) {
+        vl_css_layout_node_t *prev = i > 0 ? layout_targets[i - 1] : NULL;
+        vl_css_layout_node_t *child = layout_targets[i];
+        vl_css_layout_node_t *next = i < len - 1 ? layout_targets[i + 1] : NULL;
+        node->size.y = cursor.y;
+        child->position.x = cursor.x;
+        child->position.y = cursor.y;
+        cursor.y += child->size.y;
+        if (!prev) {
+            if (next) cursor.y += VL_MAX(child->margin.z, next->margin.x);
+            else cursor.y += child->margin.z;
+        }
+        if (prev && next) {
+            cursor.y += VL_MAX(child->margin.z, next->margin.x);
+        }
         size.y = cursor.y;
     }
+    VL_DA_FREE(layout_targets);
     node->size.y = size.y;
     return VL_SUCCESS;
+}
+
+static vl_result_t layout_body(vl_css_layout_node_t *node) {
+    layout_generic_div(node);
+    if (node->children && VL_DA_LENGTH(node->children) >= 1) {
+        vl_vec4_t first_margin = node->children[0]->margin;
+        if (node->position.y - first_margin.x < 0) {
+            node->position.y += first_margin.x - node->position.y;
+        }
+    }
 }
 
 static const struct {
@@ -152,7 +181,7 @@ static const struct {
     layout_func layout;
 } s_layout_overrides[] = {
     {"html", layout_html}, 
-    {"body", layout_generic_div},
+    {"body", layout_body},
     {"p", layout_generic_div}
 };
 
@@ -165,7 +194,9 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     vl_css_layout_node_refresh_style(node);
     node->calculating_layout = true;
     node->margin = construct_margin(node);
-    printf("margin: %f %f %f %f\n", node->margin.x, node->margin.y, node->margin.z, node->margin.w);
+    node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
+    node->position.x += node->margin.w;
+    node->position.y += node->margin.x;
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             vl_result_t result = s_layout_overrides[i].layout(node);
@@ -175,8 +206,6 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->size = vl_css_layout_node_get_raw_content_size(node);
 
     final:
-    node->position.x += node->margin.w;
-    node->position.y += node->margin.x;
     node->calculating_layout = false;
     return VL_SUCCESS;
 }
@@ -209,7 +238,6 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
         result = VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(font_size.as.metric1.value * result.as.metric1.value));
     } else if (result.type == VL_CSS_VALUE_SIZE_METRIC1 && result.as.metric1.type == VL_CSS_SIZE_METRIC_EM) {
         vl_css_value_t font_size = vl_css_layout_node_get_property(node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
-        printf("font size: %f\n", font_size.as.metric1.value);
         result = VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(font_size.as.metric1.value * result.as.metric1.value));
     }
     if (result.type == VL_CSS_VALUE_CONST_LITERAL 

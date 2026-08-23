@@ -133,7 +133,8 @@ static const char *s_const_literals[] = {
     "unset",
     "revert",
     "canvastext",
-    "block"
+    "block",
+    "none"
 };
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
