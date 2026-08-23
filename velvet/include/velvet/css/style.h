@@ -11,6 +11,8 @@
 enum vl_css_value_type {
     VL_CSS_VALUE_NONE = 0,
     VL_CSS_VALUE_SIZE_METRIC1,
+    VL_CSS_VALUE_SIZE_METRIC2,
+    VL_CSS_VALUE_SIZE_METRIC3,
     VL_CSS_VALUE_SIZE_METRIC4,
     VL_CSS_VALUE_COLOR_RGBA,
     VL_CSS_VALUE_CONST_LITERAL
@@ -22,7 +24,8 @@ enum vl_css_size_metric_type {
     VL_CSS_SIZE_METRIC_NONE = 0,
     VL_CSS_SIZE_METRIC_PIXELS,
     VL_CSS_SIZE_METRIC_PERCENTAGE,
-    VL_CSS_SIZE_METRIC_EM
+    VL_CSS_SIZE_METRIC_EM,
+    VL_CSS_SIZE_METRIC_REM,
 };
 
 typedef enum vl_css_size_metric_type vl_css_size_metric_type_t;
@@ -39,6 +42,7 @@ typedef struct vl_css_size_metric vl_css_size_metric_t;
 #define VL_CSS_SIZE_PIXELS(PIXELS) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_PIXELS, PIXELS)
 #define VL_CSS_SIZE_PERCENTAGE(PERCENTAGE) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_PERCENTAGE, ((float) (PERCENTAGE)) / 100.0f)
 #define VL_CSS_SIZE_EM(EM) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_EM, EM)
+#define VL_CSS_SIZE_REM(REM) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_REM, REM)
 
 struct vl_css_color_rgba {
     union {
@@ -58,6 +62,8 @@ struct vl_css_value {
     vl_css_value_type_t type;
     union {
         vl_css_size_metric_t metric1;
+        vl_css_size_metric_t metric2[2];
+        vl_css_size_metric_t metric3[3];
         vl_css_size_metric_t metric4[4];
         vl_css_color_rgba_t rgba;
         const char *const_literal;
@@ -72,6 +78,12 @@ typedef struct vl_css_value vl_css_value_t;
 
 #define VL_CSS_VALUE_METRIC1(METRIC1) \
     VL_CSS_VALUE(VL_CSS_VALUE_SIZE_METRIC1, {.metric1 = (METRIC1)})
+
+#define VL_CSS_VALUE_METRIC2(M1, M2) \
+    VL_CSS_VALUE(VL_CSS_VALUE_SIZE_METRIC2, {.metric2 = {(M1), (M2)}})
+
+#define VL_CSS_VALUE_METRIC3(M1, M2, M3) \
+    VL_CSS_VALUE(VL_CSS_VALUE_SIZE_METRIC3, {.metric3 = {(M1), (M2), (M3)}})
 
 #define VL_CSS_VALUE_METRIC4(M1, M2, M3, M4) \
     VL_CSS_VALUE(VL_CSS_VALUE_SIZE_METRIC4, {.metric4 = {(M1), (M2), (M3), (M4)}})

@@ -8,5 +8,6 @@ set(Velvet_Headers
     include/velvet/dom/html/html.h
     include/velvet/dom/style/style.h
     include/velvet/dom/p/p.h
+    include/velvet/dom/div/div.h
     PARENT_SCOPE
 )

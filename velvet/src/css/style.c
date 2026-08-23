@@ -129,6 +129,10 @@ static void print_metric_unit(vl_css_size_metric_t *metric) {
         printf("em");
         break;
     }
+    case VL_CSS_SIZE_METRIC_REM: {
+        printf("rem");
+        break;
+    }
     }
 }
 
@@ -145,6 +149,20 @@ static void print_value(vl_css_value_t value) {
     }
     case VL_CSS_VALUE_SIZE_METRIC1: {
         print_size_metric(&value.as.metric1);
+        break;
+    }
+    case VL_CSS_VALUE_SIZE_METRIC2: {
+        for (int i = 0; i < 2; i++) {
+            print_size_metric(value.as.metric2 + i);
+            if (i != 1) printf(" ");
+        }
+        break;
+    }
+    case VL_CSS_VALUE_SIZE_METRIC3: {
+        for (int i = 0; i < 3; i++) {
+            print_size_metric(value.as.metric3 + i);
+            if (i != 2) printf(" ");
+        }
         break;
     }
     case VL_CSS_VALUE_SIZE_METRIC4: {

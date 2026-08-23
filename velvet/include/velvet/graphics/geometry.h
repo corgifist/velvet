@@ -1,6 +1,7 @@
 #ifndef VELVET_GRAPHICS_GEOMETRY_H
 #define VELVET_GRAPHICS_GEOMETRY_H
 
+#include "velvet/support/variadic.h"
 #include <cglm/types.h>
 
 struct vl_vec2 {
@@ -28,6 +29,9 @@ struct vl_vec4 {
 };
 
 typedef struct vl_vec4 vl_vec4_t;
+
+#define VL_VEC4(X, Y, Z, W) \
+    ((vl_vec4_t) {.x = (float) (X), .y = (float) (Y), .z = (float) (Z), .w = (float) (W)})
 
 struct vl_rect {
     union {
@@ -85,8 +89,10 @@ struct vl_quad_uv {
 
 typedef struct vl_quad_uv vl_quad_uv_t;
 
-#define VL_POINT(X, Y) ((vl_point_t) {.x = ((float) (X)), .y = ((float) (Y))})
-#define VL_POINT1(A) VL_POINT(A, A)
+
+#define VL_POINT2(X, Y) ((vl_point_t) {.x = ((float) (X)), .y = ((float) (Y))})
+#define VL_POINT1(A) VL_POINT2(A, A)
+#define VL_POINT(...) VL_VA_DISPATCH(VL_POINT, __VA_ARGS__)
 #define VL_VEC2 VL_POINT
 
 #define VL_POINT_OP(P1, P2, OP) \

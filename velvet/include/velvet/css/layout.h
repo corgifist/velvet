@@ -2,6 +2,7 @@
 #define VELVET_CSS_LAYOUT_H
 
 #include "velvet/common.h"
+#include "velvet/css/style.h"
 #include "velvet/css/stylesheet.h"
 #include "velvet/graphics/geometry.h"
 
@@ -38,6 +39,7 @@ VL_API vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node);
 VL_API vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node);
 VL_API vl_vec2_t vl_css_layout_node_get_raw_content_size(vl_css_layout_node_t *node);
 VL_API vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const char *property, vl_css_value_t fallback);
+VL_API vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *node, const char *property, vl_css_size_metric_t metric, float optional_parent_size);
 VL_API vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node);
 
 #endif // VELVET_CSS_LAYOUT_H

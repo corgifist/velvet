@@ -865,48 +865,46 @@ void css_test() {
     vl_error_pool_dump(&ep);
 }
 
+#undef I
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    /* const char *input = VL_STRINGIFY(
-        <style>
-            p {
-                background-color: red;
-            }
-
-            html {
-                --velvet-element-highlight: rgba(0, 255, 0, 0.1);
-            }
-
-            .margin {
-                margin: 20px;
-                margin-left: 50px;
-                margin-bottom: 40px;
-            }
-        </style>
-        <body>
-            Before Margin
-            <p class="margin">Hello, World!</p>
-            After Margin
-        </body>
-    ); */
     const char *input = VL_STRINGIFY(
         <style>
-            html {
-
+        body {
+            // --velvet-element-highlight: rgba(0, 128, 0, 0.05);
+        }
+            div {
+                margin: 2rem 0;
+                background-color: lavender;
             }
+
             p {
-
-            }
-            body {
+                margin: 0.4rem 0 1.2rem 0;
+                background-color: yellow;
             }
         </style>
-        <body>
-            <p>Hello, World!</p>
-            <p>Collapsing margins!</p>
-            Simple text
-            <p>Another paragraph</p>
-        </body>
+        <p>The bottom margin of this paragraph is collapsed</p>
+        <p>
+            with the top margin of this paragraph, yielding a margin of
+            1.2rem in between.
+        </p>
+        <div>
+            This parent element contains two paragraphs!
+            <p>
+                This paragraph has a .4rem margin between it and the text above.
+            </p>
+            <p>
+                My bottom margin collapses with my parent, yielding a bottom margin of 2rem.
+            </p>
+        </div>
+        <p>I am 2rem below the element above.</p>
     );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //     </style>
+    //     <p>Hello</p>
+    //     <p>World</p>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

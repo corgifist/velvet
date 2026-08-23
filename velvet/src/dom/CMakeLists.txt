@@ -12,6 +12,7 @@ endif()
 
 add_subdirectory(style)
 add_subdirectory(p)
+add_subdirectory(div)
 
 set(Velvet_Sources
     ${Velvet_Sources}

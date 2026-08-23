@@ -56,7 +56,8 @@ static vl_css_size_metric_type_t map_str_to_metric_type(const char *str) {
     } s_metric_unit_map[] = {
         "px", VL_CSS_SIZE_METRIC_PIXELS,
         "%", VL_CSS_SIZE_METRIC_PERCENTAGE,
-        "em", VL_CSS_SIZE_METRIC_EM
+        "em", VL_CSS_SIZE_METRIC_EM,
+        "rem", VL_CSS_SIZE_METRIC_REM
     };
 
     for (int i = 0; i < VL_ARR_LEN(s_metric_unit_map); i++) {
@@ -72,6 +73,11 @@ static vl_css_value_t parse_single_metric(vl_css_parser_t *parser, vl_css_rule_t
     vl_css_token_t *current = parser->lookahead;
     float value = strtod(current->text, NULL);
     if (tokenize(parser)) return VL_CSS_VALUE_NONE();
+    if (current->type != VL_CSS_TOKEN_TYPE_ID) {
+        return VL_CSS_VALUE_METRIC1(
+            VL_CSS_SIZE_PIXELS(value)
+        );
+    }
     vl_css_size_metric_type_t metric_type = map_str_to_metric_type(current->text);
     if (tokenize(parser) || metric_type == VL_CSS_SIZE_METRIC_NONE) return VL_CSS_VALUE_NONE();
     if (metric_type == VL_CSS_SIZE_METRIC_PERCENTAGE) metric_type /= 100.0f;
@@ -101,7 +107,8 @@ static const struct {
     {"wheat", VL_CSS_VALUE_RGBA(245, 222, 179, 1)},
     {"salmon", VL_CSS_VALUE_RGBA(250, 128, 114, 1)},
     {"snow", VL_CSS_VALUE_RGBA(255, 250, 250, 1)},
-    {"powderblue", VL_CSS_VALUE_RGBA(176, 224, 230, 1)}
+    {"powderblue", VL_CSS_VALUE_RGBA(176, 224, 230, 1)},
+    {"lavender", VL_CSS_VALUE_RGBA(230, 230, 250, 1)}
 };
 
 static vl_css_value_t parse_generic_color(vl_css_parser_t *parser, vl_css_rule_t *rule, int max_components) {
@@ -177,11 +184,11 @@ static vl_css_value_t parse_shorthand_metric4(vl_css_parser_t *parser, vl_css_ru
 
     vl_css_token_t *current = parser->lookahead;
     for (int i = 0; i < VL_ARR_LEN(max_metric); i++) {
-        if (current->type != VL_CSS_TOKEN_TYPE_NUMBER || (current + 1)->type != VL_CSS_TOKEN_TYPE_ID)
+        if (current->type != VL_CSS_TOKEN_TYPE_NUMBER)
             break;
         vl_css_value_t single_metric = parse_single_metric(parser, rule);
         if (single_metric.type != VL_CSS_VALUE_SIZE_METRIC1) {
-            return VL_CSS_VALUE_NONE();
+            break;
         }
         vl_css_size_metric_t metric_value = single_metric.as.metric1;
         max_metric[metric_count++] = metric_value;
@@ -189,6 +196,8 @@ static vl_css_value_t parse_shorthand_metric4(vl_css_parser_t *parser, vl_css_ru
 
     switch (metric_count) {
     case 1: return VL_CSS_VALUE_METRIC1(max_metric[0]);
+    case 2: return VL_CSS_VALUE_METRIC2(max_metric[0], max_metric[1]);
+    case 3: return VL_CSS_VALUE_METRIC3(max_metric[0], max_metric[1], max_metric[2]);
     case 4: return VL_CSS_VALUE_METRIC4(max_metric[0], max_metric[1], max_metric[2], max_metric[3]);
     }
 
@@ -200,7 +209,8 @@ static const struct {
     const char *property;
     vl_parse_value_with_context parse_with_context;
 } s_context_table[] = {
-    {"padding", parse_shorthand_metric4}
+    {"padding", parse_shorthand_metric4},
+    {"margin", parse_shorthand_metric4}
 };
 
 static vl_css_value_t dispatch_parse_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
