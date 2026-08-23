@@ -7,7 +7,7 @@
 #include "velvet/web/fonts.h"
 
 struct vl_dom_behavior_text_glyph {
-    uint32_t id;
+    uint32_t id, codepoint;
     float x, y;
     float advance_x, advance_y;
     bool newline;

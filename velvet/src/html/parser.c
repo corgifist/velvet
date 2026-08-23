@@ -39,6 +39,7 @@ static const vl_html_parser_escape_t s_escapes[] = {
     ESCAPE("gt", ">"),
     ESCAPE("quot", "\""),
     ESCAPE("apos", "'"),
+    ESCAPE("nbsp", " ")
 };
 
 static const char *s_short_tags[] = {

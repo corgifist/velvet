@@ -151,37 +151,72 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
     return VL_SUCCESS;
 }
 
+static const char *s_inline_elements[] = {
+    "span",
+    "code"
+};
+
+static vl_css_value_t get_display_mode(vl_css_layout_node_t *node) {
+    bool is_inline = false;
+    for (int i = 0; i < VL_ARR_LEN(s_inline_elements); i++) {
+        if (strcmp(node->tag, s_inline_elements[i]) == 0) {
+            is_inline = true;
+            break;
+        }
+    }
+    return vl_css_layout_node_get_property(node, "display", VL_CSS_VALUE_CONST_LITERAL(is_inline ? "inline" : "block"));
+}
+
 static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
+    vl_css_value_t node_display = get_display_mode(node);
+    if (VL_CSS_CONST_LITERAL_EQUAL(node_display, "block")) 
+        node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
     vl_vec2_t cursor = {0, 0};
     vl_vec2_t size = {node->size.x, node->size.y};
     VL_DA(vl_css_layout_node_t*) layout_targets = VL_DA_INIT(vl_css_layout_node_t*);
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
         vl_css_layout_node_process(child);
-        vl_css_value_t display_value = vl_css_layout_node_get_property(child, "display", VL_CSS_VALUE_CONST_LITERAL("block"));
+        vl_css_value_t display_value = get_display_mode(child);
         if (VL_CSS_CONST_LITERAL_EQUAL(display_value, "none")) continue;
         VL_DA_APPEND(layout_targets, child);
     }
     int len = VL_DA_LENGTH(layout_targets);
+    float line_height = 0;
     for (int i = 0; i < len; i++) {
         vl_css_layout_node_t *prev = i > 0 ? layout_targets[i - 1] : NULL;
         vl_css_layout_node_t *child = layout_targets[i];
         vl_css_layout_node_t *next = i < len - 1 ? layout_targets[i + 1] : NULL;
         node->size.y = cursor.y;
+        vl_css_value_t display = get_display_mode(child);
         child->position.x = cursor.x + child->margin.w;
         child->position.y = cursor.y;
-        cursor.y += child->size.y;
-        if (!prev) {
-            if (next) cursor.y += VL_MAX(child->margin.z, next->margin.x);
-            else cursor.y += child->margin.z;
+        if (VL_CSS_CONST_LITERAL_EQUAL(display, "block")) {
+            cursor.y += child->size.y;
+            line_height = VL_MAX(line_height, child->size.y);
+            if (!prev) {
+                if (next) cursor.y += VL_MAX(child->margin.z, next->margin.x);
+            }
+            if (prev && next) {
+                cursor.y += VL_MAX(child->margin.z, next->margin.x);
+            }
+            size.y = cursor.y;
+        } else {
+            cursor.x += child->size.x;
+            line_height = VL_MAX(line_height, child->size.y);
+            size.x = VL_MAX(cursor.x, size.x);
+            size.y = VL_MAX(size.y, cursor.y + line_height);
+            // printf("%s %s inline offset: %f\n", node->tag, child->tag, child->size.x);
+            if (cursor.x > node->size.x && next) {
+                cursor.x = 0;
+                cursor.y += line_height;
+                line_height = 0;
+            }
         }
-        if (prev && next) {
-            cursor.y += VL_MAX(child->margin.z, next->margin.x);
-        }
-        size.y = cursor.y;
+
     }
     VL_DA_FREE(layout_targets);
-    node->size.y = size.y;
+    node->size = size;
     return VL_SUCCESS;
 }
 
@@ -203,7 +238,8 @@ static const struct {
     {"html", layout_html}, 
     {"body", layout_body},
     {"p", layout_generic_div},
-    {"div", layout_generic_div}
+    {"div", layout_generic_div},
+    {"span", layout_generic_div}
 };
 
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
@@ -215,7 +251,6 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     vl_css_layout_node_refresh_style(node);
     node->calculating_layout = true;
     node->margin = construct_margin(node);
-    node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             vl_result_t result = s_layout_overrides[i].layout(node);

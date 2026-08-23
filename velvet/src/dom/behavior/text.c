@@ -50,6 +50,7 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
             text_glyph.x = shaper_glyph.x * scale;
             text_glyph.y = shaper_glyph.y * scale;
             text_glyph.font = sized_font->font;
+            text_glyph.codepoint = shaper_glyph.codepoint;
             VL_DA_APPEND(layout->glyphs, text_glyph);
         }
     }
@@ -103,9 +104,14 @@ vl_vec2_t vl_dom_behavior_text_layout_get_size(vl_dom_element_t *element, vl_dom
             vl_web_font_atlas_codepoint_t codepoint = {0};
             vl_web_fonts_find_glyph_id_with_font(&web->fonts, &codepoint, glyph->font, glyph->id);
             float x = base_x + glyph->x + codepoint.codepoint->x1;
+            // printf("get_size: '%c' %f %f %f\n", (char) glyph->codepoint, glyph->advance_x, glyph->x, codepoint.codepoint->x1);
             float y = base_y - glyph->y + codepoint.codepoint->y1;
             float x2 = x + codepoint.codepoint->w;
             float y2 = y + codepoint.codepoint->h;
+            if (glyph->codepoint == ' ') {
+                x2 += glyph->advance_x;
+                y2 += glyph->advance_y;
+            }
             max_x = VL_MAX(max_x, x2);
             max_y = VL_MAX(max_y, y2);
             base_x += glyph->advance_x;
@@ -113,7 +119,6 @@ vl_vec2_t vl_dom_behavior_text_layout_get_size(vl_dom_element_t *element, vl_dom
         }
         size = (vl_vec2_t) {max_x, max_y};
     }
-    // printf("text size: %f %f\n", size.x, size.y);
     return size;
 }
 

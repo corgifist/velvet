@@ -26,6 +26,7 @@
 #include "velvet/dom/style/style.h"
 #include "velvet/dom/p/p.h"
 #include "velvet/dom/div/div.h"
+#include "velvet/dom/span/span.h"
 
 typedef struct {
     const char *tag;
@@ -39,7 +40,8 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"html", vl_dom_element_html_new},
     {"style", vl_dom_element_style_new},
     {"p", vl_dom_element_p_new},
-    {"div", vl_dom_element_div_new}
+    {"div", vl_dom_element_div_new},
+    {"span", vl_dom_element_span_new}
 #endif // VL_FEATURE(DOM_TEXT_NODE)
 };
 

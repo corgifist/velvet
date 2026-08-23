@@ -870,34 +870,12 @@ void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
     const char *input = VL_STRINGIFY(
         <style>
-        body {
-            // --velvet-element-highlight: rgba(0, 128, 0, 0.05);
-        }
-            div {
-                margin: 2rem 0;
-                background-color: lavender;
-            }
-
-            p {
-                margin: 0.4rem 0 1.2rem 0;
-                background-color: yellow;
+            span {
+                color: red;
             }
         </style>
-        <p>The bottom margin of this paragraph is collapsed</p>
-        <p>
-            with the top margin of this paragraph, yielding a margin of
-            1.2rem in between.
-        </p>
-        <div>
-            This parent element contains two paragraphs!
-            <p>
-                This paragraph has a .4rem margin between it and the text above.
-            </p>
-            <p>
-                My bottom margin collapses with my parent, yielding a bottom margin of 2rem.
-            </p>
-        </div>
-        <p>I am 2rem below the element above.</p>
+        <p>Hello, <span>World!</span>&nbsp;Goodbye</p>
+        <p>Hello, World! Goodbye</p>
     );
     // const char *input = VL_STRINGIFY(
     //     <style>

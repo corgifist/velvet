@@ -13,6 +13,7 @@ endif()
 add_subdirectory(style)
 add_subdirectory(p)
 add_subdirectory(div)
+add_subdirectory(span)
 
 set(Velvet_Sources
     ${Velvet_Sources}
