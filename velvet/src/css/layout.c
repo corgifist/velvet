@@ -23,12 +23,6 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     return VL_SUCCESS;
 }
 
-static const char *s_inherited_properties[] = {
-    "color",
-    "--velvet-element-highlight",
-    "font-size"
-};
-
 vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     vl_css_style_deinit(&node->style);
@@ -144,8 +138,9 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
             node->size.x = node->parent->size.x;
             vl_css_layout_node_process(child);
             node->size = child->size;
+            node->size.y += child->position.y;
             node->size.x += child->margin.y + child->margin.w;
-            node->size.y += child->margin.x + child->margin.z;
+            // node->size.y += child->margin.z;
         }
     }
     return VL_SUCCESS;
@@ -153,10 +148,12 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 
 static const char *s_inline_elements[] = {
     "span",
-    "code"
+    "code",
+    "text"
 };
 
 static vl_css_value_t get_display_mode(vl_css_layout_node_t *node) {
+    if (!node) return VL_CSS_VALUE_CONST_LITERAL(NULL);
     bool is_inline = false;
     for (int i = 0; i < VL_ARR_LEN(s_inline_elements); i++) {
         if (strcmp(node->tag, s_inline_elements[i]) == 0) {
@@ -188,32 +185,35 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
         vl_css_layout_node_t *child = layout_targets[i];
         vl_css_layout_node_t *next = i < len - 1 ? layout_targets[i + 1] : NULL;
         node->size.y = cursor.y;
-        vl_css_value_t display = get_display_mode(child);
-        child->position.x = cursor.x + child->margin.w;
-        child->position.y = cursor.y;
-        if (VL_CSS_CONST_LITERAL_EQUAL(display, "block")) {
+        if (VL_CSS_CONST_LITERAL_EQUAL(child->display, "block") || !child->display.as.const_literal) {
+            if (prev) {
+                if (VL_CSS_CONST_LITERAL_EQUAL(prev->display, "inline")) {
+                    cursor.y += prev->size.y;
+                }
+                cursor.y += prev->margin.z;
+                if (child->margin.x > prev->margin.z) {
+                    cursor.y += child->margin.x - prev->margin.z;
+                }
+            }
+            cursor.x = 0;
+            child->position.x = cursor.x + child->margin.w;
+            child->position.y = cursor.y;
             cursor.y += child->size.y;
             line_height = VL_MAX(line_height, child->size.y);
-            if (!prev) {
-                if (next) cursor.y += VL_MAX(child->margin.z, next->margin.x);
-            }
-            if (prev && next) {
-                cursor.y += VL_MAX(child->margin.z, next->margin.x);
-            }
             size.y = cursor.y;
         } else {
+            child->position.x = cursor.x + child->margin.w;
+            child->position.y = cursor.y;
             cursor.x += child->size.x;
             line_height = VL_MAX(line_height, child->size.y);
             size.x = VL_MAX(cursor.x, size.x);
             size.y = VL_MAX(size.y, cursor.y + line_height);
-            // printf("%s %s inline offset: %f\n", node->tag, child->tag, child->size.x);
             if (cursor.x > node->size.x && next) {
                 cursor.x = 0;
                 cursor.y += line_height;
                 line_height = 0;
             }
         }
-
     }
     VL_DA_FREE(layout_targets);
     node->size = size;
@@ -222,10 +222,16 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
 
 static vl_result_t layout_body(vl_css_layout_node_t *node) {
     layout_generic_div(node);
-    if (node->children && VL_DA_LENGTH(node->children) >= 1) {
-        vl_vec4_t first_margin = node->children[0]->margin;
-        if (node->position.y - first_margin.x < 0) {
-            node->position.y += first_margin.x - node->position.y;
+    if (node->children) {
+        for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
+            vl_css_layout_node_t *child = node->children[i];
+            vl_css_value_t display = get_display_mode(child);
+            if (VL_CSS_CONST_LITERAL_EQUAL(display, "none")) continue;
+            vl_vec4_t first_margin = child->margin;
+            if (first_margin.x > node->position.y) {
+                node->position.y += first_margin.x - node->position.y - node->margin.x;
+            }
+            break;
         }
     }
     return VL_SUCCESS;
@@ -250,7 +256,9 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     }
     vl_css_layout_node_refresh_style(node);
     node->calculating_layout = true;
+    node->display = get_display_mode(node);
     node->margin = construct_margin(node);
+    node->block_last_margin = 0;
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             vl_result_t result = s_layout_overrides[i].layout(node);
@@ -270,6 +278,11 @@ vl_vec2_t vl_css_layout_node_get_raw_content_size(vl_css_layout_node_t *node) {
     if (!node || !node->get_content_size) return VL_VEC2(0, 0);
     return node->get_content_size(node);
 }
+
+static const char *s_inherited_properties[] = {
+    "color",
+    "--velvet-element-highlight"
+};
 
 vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const char *property, vl_css_value_t fallback) {
     if (!node || !property) return fallback;
@@ -294,6 +307,9 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
         vl_color_t theme_color = vl_web_theme_get_property(node->web->theme, result.as.const_literal, VL_COLOR(0));
         result = VL_CSS_VALUE_RGBA(theme_color.r, theme_color.g, theme_color.b, theme_color.a);
     }
+    if (result.type == VL_CSS_VALUE_NONE) {
+        result = fallback;
+    }
     return result;
 }
 
@@ -303,18 +319,22 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
     if (metric.type == VL_CSS_SIZE_METRIC_PIXELS) return metric;
     if (metric.type == VL_CSS_SIZE_METRIC_PERCENTAGE) return VL_CSS_SIZE_PIXELS(parent_size * metric.value);
     if (metric.type == VL_CSS_SIZE_METRIC_EM) {
-        vl_css_layout_node_t *font_search = node;
-        if (property && strcmp(property, "font-size") == 0) {
-            font_search = node->parent;
-        }
-        vl_css_value_t font_size = vl_css_layout_node_get_property(font_search, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
-        vl_css_size_metric_t processed_metric = vl_css_layout_node_process_metric(font_search, "font-size", font_size.as.metric1, 0);
-        return VL_CSS_SIZE_PIXELS(processed_metric.value * metric.value);
+        bool is_font_size = (property && strcmp(property, "font-size") == 0);
+        vl_css_value_t font_size = vl_css_layout_node_get_property(is_font_size ? node->parent : node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+        vl_css_size_metric_t em_metric = vl_css_layout_node_process_metric(is_font_size ? node->parent : node, "font-size", font_size.as.metric1, 0);
+        return VL_CSS_SIZE_PIXELS(em_metric.value * metric.value);
     }
     if (metric.type == VL_CSS_SIZE_METRIC_REM) {
         vl_css_value_t font_size = vl_css_layout_node_get_property(&node->web->dom.root->layout, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
-        vl_css_size_metric_t processed_metric = vl_css_layout_node_process_metric(&node->web->dom.root->layout, "font-size", font_size.as.metric1, 0);
-        return VL_CSS_SIZE_PIXELS(font_size.as.metric1.value * metric.value);
+        vl_css_size_metric_t processed_metric = font_size.as.metric1;
+        if (property && strcmp(node->tag, "html") != 0 && strcmp(property, "font-size") != 0) {
+            processed_metric = vl_css_layout_node_process_metric(&node->web->dom.root->layout, "font-size", processed_metric, 0);
+        } else {
+            processed_metric = VL_CSS_SIZE_PIXELS(processed_metric.type == VL_CSS_SIZE_METRIC_PIXELS
+                                                    ? processed_metric.value
+                                                    : 16 * processed_metric.value);
+        }
+        return VL_CSS_SIZE_PIXELS(processed_metric.value * metric.value);
     }
     return metric;
 }

@@ -102,6 +102,13 @@ typedef struct vl_css_value vl_css_value_t;
         && (CSS_VALUE).as.const_literal \
         && strcmp((CSS_VALUE).as.const_literal, (LITERAL)) == 0)
 
+#define VL_CSS_VALUE_IS_METRIC(CSS_VALUE) ( \
+        (CSS_VALUE).type == VL_CSS_VALUE_SIZE_METRIC1 || \
+        (CSS_VALUE).type == VL_CSS_VALUE_SIZE_METRIC2 || \
+        (CSS_VALUE).type == VL_CSS_VALUE_SIZE_METRIC3 || \
+        (CSS_VALUE).type == VL_CSS_VALUE_SIZE_METRIC4 \
+    )
+
 struct vl_css_rule {
     VL_DA(char) property;
     vl_css_value_t value;

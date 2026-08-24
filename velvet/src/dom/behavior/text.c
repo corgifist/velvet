@@ -22,11 +22,10 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     }
     layout->glyphs = VL_DA_INIT(vl_dom_behavior_text_glyph_t);
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(fonts->shaper);
-    vl_css_value_t font_size = vl_css_layout_node_get_property(&element->layout, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
-    int height = 16;
-    if (font_size.type == VL_CSS_VALUE_SIZE_METRIC1) {
-        height = font_size.as.metric1.value;
-    }
+    vl_css_value_t font_size = vl_css_layout_node_get_property(element->layout.parent, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+    vl_css_size_metric_t font_metric = vl_css_layout_node_process_metric(element->layout.parent, "font-size", font_size.as.metric1, 0);
+    int height = font_metric.value;
+    // printf("height: %i\n", height);
     vl_web_sized_font_t *priority_font = vl_web_fonts_get_font(&web->fonts, layout->priority_font_family, 
         VL_WEB_FONT_REGULAR, height);
     vl_web_sized_font_t *default_arabic_font = vl_web_fonts_get_font(&web->fonts, "Noto Sans Arabic", 

@@ -25,10 +25,12 @@ struct vl_css_layout_node {
     VL_DA(vl_css_class_selector_t) affecting_selectors;
     vl_css_style_t style;
 
+    vl_css_value_t display;
     vl_vec2_t size;
     vl_vec2_t position;
     vl_vec4_t margin;
     vl_vec4_t padding;
+    float block_last_margin;
     bool calculating_layout;
 };
 
