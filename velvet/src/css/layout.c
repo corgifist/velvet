@@ -258,7 +258,6 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->calculating_layout = true;
     node->display = get_display_mode(node);
     node->margin = construct_margin(node);
-    node->block_last_margin = 0;
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             vl_result_t result = s_layout_overrides[i].layout(node);
