@@ -1,5 +1,6 @@
 #include "velvet/css/layout.h"
 #include "css/style.h"
+#include "html/tags.h"
 #include "support/da.h"
 #include "support/result.h"
 #include "web/web.h"
@@ -146,21 +147,9 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
     return VL_SUCCESS;
 }
 
-static const char *s_inline_elements[] = {
-    "span",
-    "code",
-    "text"
-};
-
 static vl_css_value_t get_display_mode(vl_css_layout_node_t *node) {
     if (!node) return VL_CSS_VALUE_CONST_LITERAL(NULL);
-    bool is_inline = false;
-    for (int i = 0; i < VL_ARR_LEN(s_inline_elements); i++) {
-        if (strcmp(node->tag, s_inline_elements[i]) == 0) {
-            is_inline = true;
-            break;
-        }
-    }
+    bool is_inline = vl_html_is_tag_inline(node->tag);
     return vl_css_layout_node_get_property(node, "display", VL_CSS_VALUE_CONST_LITERAL(is_inline ? "inline" : "block"));
 }
 

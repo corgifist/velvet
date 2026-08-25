@@ -16,6 +16,7 @@ struct vl_html_parser {
     vl_html_lexer_t lexer;
 
     vl_html_token_t lookahead[VL_HTML_PARSER_LOOKAHEAD];
+
     vl_error_pool_t *ep;
 };
 

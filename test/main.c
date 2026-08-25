@@ -136,6 +136,8 @@ void parser_test() {
             <p>
                 Testing entities: &amp; | &amps; | &quot; | &apos;
             </p>
+            <p>There <span>should be</span> a space.</p>
+            <p>There <span>should be</span>no spaces</p>
         </div>
     );
     if (vl_html_parser_init(&parser, input)) {

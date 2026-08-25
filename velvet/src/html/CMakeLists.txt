@@ -4,5 +4,6 @@ set(Velvet_Sources
     src/html/parser.c
     src/html/document.c
     src/html/tidy.c
+    src/html/tags.c
     PARENT_SCOPE
 )
