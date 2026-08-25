@@ -10,6 +10,7 @@
 #include "velvet/web/web.h"
 #include "web/fonts.h"
 #include "support/math.h"
+#include <stdlib.h>
 
 vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element, 
     vl_dom_behavior_text_layout_t *layout, const char *text) {
@@ -22,7 +23,7 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     }
     layout->glyphs = VL_DA_INIT(vl_dom_behavior_text_glyph_t);
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(fonts->shaper);
-    vl_css_value_t font_size = vl_css_layout_node_get_property(element->layout.parent, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
+    vl_css_value_t font_size = vl_css_layout_node_get_property(element->layout.parent, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_EM(1)));
     vl_css_size_metric_t font_metric = vl_css_layout_node_process_metric(element->layout.parent, "font-size", font_size.as.metric1, 0);
     int height = font_metric.value;
     // printf("height: %i\n", height);
@@ -98,12 +99,13 @@ vl_vec2_t vl_dom_behavior_text_layout_get_size(vl_dom_element_t *element, vl_dom
         float base_y = 0;
         float max_x = 0;
         float max_y = 0;
+        float lowest_char = 0;
         for (int i = 0; i < VL_DA_LENGTH(layout->glyphs); i++) {
             vl_dom_behavior_text_glyph_t *glyph = layout->glyphs + i;
+            vl_font_t *font = glyph->font;
             vl_web_font_atlas_codepoint_t codepoint = {0};
-            vl_web_fonts_find_glyph_id_with_font(&web->fonts, &codepoint, glyph->font, glyph->id);
+            vl_web_fonts_find_glyph_id_with_font(&web->fonts, &codepoint, font, glyph->id);
             float x = base_x + glyph->x + codepoint.codepoint->x1;
-            // printf("get_size: '%c' %f %f %f\n", (char) glyph->codepoint, glyph->advance_x, glyph->x, codepoint.codepoint->x1);
             float y = base_y - glyph->y + codepoint.codepoint->y1;
             float x2 = x + codepoint.codepoint->w;
             float y2 = y + codepoint.codepoint->h;
@@ -111,11 +113,16 @@ vl_vec2_t vl_dom_behavior_text_layout_get_size(vl_dom_element_t *element, vl_dom
                 x2 += glyph->advance_x;
                 y2 += glyph->advance_y;
             }
+            if (glyph->codepoint == ',' || glyph->codepoint == 'H') {
+                printf("%c %f\n", (char) glyph->codepoint, codepoint.codepoint->y2 - font->ascent);
+            }
+            lowest_char = VL_MAX(lowest_char, codepoint.codepoint->y2 - font->ascent);
             max_x = VL_MAX(max_x, x2);
             max_y = VL_MAX(max_y, y2);
             base_x += glyph->advance_x;
             base_y += glyph->advance_y;
         }
+        element->layout.span_y_offset = lowest_char;
         size = (vl_vec2_t) {max_x, max_y};
     }
     return size;

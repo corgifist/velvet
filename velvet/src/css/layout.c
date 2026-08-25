@@ -5,6 +5,7 @@
 #include "support/result.h"
 #include "web/web.h"
 #include "support/math.h"
+#include <arm_neon.h>
 #include <stdlib.h>
 
 vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag) {
@@ -153,6 +154,13 @@ static vl_css_value_t get_display_mode(vl_css_layout_node_t *node) {
     return vl_css_layout_node_get_property(node, "display", VL_CSS_VALUE_CONST_LITERAL(is_inline ? "inline" : "block"));
 }
 
+typedef struct {
+    VL_DA(vl_css_layout_node_t*) elements;
+    float line_height;
+} vl_css_block_line;
+
+#define BLOCK_LINE() ((vl_css_block_line) {.elements = VL_DA_INIT(vl_css_layout_node_t*), .line_height = 0})
+
 static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
     vl_css_value_t node_display = get_display_mode(node);
     if (VL_CSS_CONST_LITERAL_EQUAL(node_display, "block")) 
@@ -168,43 +176,80 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
         VL_DA_APPEND(layout_targets, child);
     }
     int len = VL_DA_LENGTH(layout_targets);
-    float line_height = 0;
+    VL_DA(vl_css_block_line) lines = VL_DA_INIT(vl_css_block_line);
     for (int i = 0; i < len; i++) {
         vl_css_layout_node_t *prev = i > 0 ? layout_targets[i - 1] : NULL;
         vl_css_layout_node_t *child = layout_targets[i];
         vl_css_layout_node_t *next = i < len - 1 ? layout_targets[i + 1] : NULL;
+        vl_css_block_line *line = (VL_DA_LENGTH(lines) > 0 ? lines + VL_DA_LENGTH(lines) - 1 : NULL);
+        if (!line) {
+            line = VL_DA_PUSH(lines, vl_css_block_line);
+            *line = BLOCK_LINE();
+        }
         node->size.y = cursor.y;
         if (VL_CSS_CONST_LITERAL_EQUAL(child->display, "block") || !child->display.as.const_literal) {
             if (prev) {
                 if (VL_CSS_CONST_LITERAL_EQUAL(prev->display, "inline")) {
                     cursor.y += prev->size.y;
+                    line = VL_DA_PUSH(lines, vl_css_block_line);
+                    *line = BLOCK_LINE();
                 }
-                cursor.y += prev->margin.z;
-                if (child->margin.x > prev->margin.z) {
-                    cursor.y += child->margin.x - prev->margin.z;
+                cursor.y += node->block_last_margin;
+                if (child->margin.x > node->block_last_margin) {
+                    cursor.y += child->margin.x - node->block_last_margin;
                 }
             }
             cursor.x = 0;
             child->position.x = cursor.x + child->margin.w;
             child->position.y = cursor.y;
             cursor.y += child->size.y;
-            line_height = VL_MAX(line_height, child->size.y);
+            node->block_last_margin = child->margin.z;
+            line->line_height = VL_MAX(line->line_height, child->size.y);
+            if (next && !VL_CSS_CONST_LITERAL_EQUAL(next->display, "inline")) {
+                line = VL_DA_PUSH(lines, vl_css_block_line);
+                *line = BLOCK_LINE();
+            }
             size.y = cursor.y;
         } else {
+            if (prev && VL_CSS_CONST_LITERAL_EQUAL(prev->display, "block")) {
+                cursor.y += VL_MAX(child->margin.x, prev->block_last_margin);
+            }
             child->position.x = cursor.x + child->margin.w;
             child->position.y = cursor.y;
             cursor.x += child->size.x;
-            line_height = VL_MAX(line_height, child->size.y);
+            line->line_height = VL_MAX(line->line_height, child->size.y);
             size.x = VL_MAX(cursor.x, size.x);
-            size.y = VL_MAX(size.y, cursor.y + line_height);
+            size.y = VL_MAX(size.y, cursor.y + line->line_height);
+            node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
+            VL_DA_APPEND(line->elements, child);
             if (cursor.x > node->size.x && next) {
                 cursor.x = 0;
-                cursor.y += line_height;
-                line_height = 0;
+                cursor.y += line->line_height;
+                line = VL_DA_PUSH(lines, vl_css_block_line);
+                *line = BLOCK_LINE();
             }
         }
     }
+    // printf("%s lines: %zu\n", node->tag, VL_DA_LENGTH(lines));
+    for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
+        vl_css_block_line *line = lines + i;
+        float max_span_offset = 0;
+        for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
+            max_span_offset = VL_MAX(max_span_offset, lines->elements[j]->span_y_offset);
+        }
+        for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
+            vl_css_layout_node_t *prev = j > 0 ? line->elements[j - 1] : NULL;
+            vl_css_layout_node_t *child = line->elements[j];
+            child->position.y += line->line_height - child->size.y;
+            child->position.y -= max_span_offset - child->span_y_offset;
+            child->size.y = line->line_height;
+        }
+    }
     VL_DA_FREE(layout_targets);
+    for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
+        VL_DA_FREE(lines[i].elements);
+    }
+    VL_DA_FREE(lines);
     node->size = size;
     return VL_SUCCESS;
 }
@@ -246,6 +291,8 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     vl_css_layout_node_refresh_style(node);
     node->calculating_layout = true;
     node->display = get_display_mode(node);
+    node->block_last_margin = 0;
+    node->span_y_offset = 0;
     node->margin = construct_margin(node);
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {

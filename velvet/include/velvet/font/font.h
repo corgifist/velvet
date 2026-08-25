@@ -14,6 +14,7 @@ struct vl_font {
     int height;
     float newline_advance;
     float density;
+    int ascent, descent, line_gap;
 };
 
 typedef struct vl_font vl_font_t;

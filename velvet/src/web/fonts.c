@@ -154,7 +154,7 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
     size_t w = rasterized->w * font->density;
     size_t h = rasterized->h * font->density;
     if (!s_tmp_copy_buffer || s_tmp_copy_size < w * h) {
-        s_tmp_copy_buffer = vl_realloc(s_tmp_copy_buffer, w * h);
+        s_tmp_copy_buffer = realloc(s_tmp_copy_buffer, w * h);
         s_tmp_copy_size = w * h;
     }
     for (size_t y = 0; y < h; y++) {

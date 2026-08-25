@@ -12,7 +12,6 @@ struct vl_font_universal {
     size_t data_length;
     stbtt_fontinfo font;
     float scale, slim_scale;
-    int ascent, descent, line_gap;
 };
 
 typedef struct vl_font_universal vl_font_universal_t;

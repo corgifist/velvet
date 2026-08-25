@@ -26,12 +26,13 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     if (!stbtt_InitFont(&font->font, font->data, 0)) {
         goto err;
     }
-    // font->base.height = height = height * density;
-    // font->base.density = density = 1;
     font->slim_scale = stbtt_ScaleForPixelHeight(&font->font, height);
     font->scale = font->slim_scale * density;
-    stbtt_GetFontVMetrics(&font->font, &font->ascent, &font->descent, &font->line_gap);
-    font->base.newline_advance = (font->ascent - font->descent + font->line_gap) * font->scale / density;
+    stbtt_GetFontVMetrics(&font->font, &font->base.ascent, &font->base.descent, &font->base.line_gap);
+    font->base.ascent *= font->slim_scale;
+    font->base.descent *= font->slim_scale;
+    font->base.line_gap *= font->slim_scale;
+    font->base.newline_advance = font->base.ascent - font->base.descent + font->base.line_gap;
 
     return (vl_font_t*) font;
     err:
@@ -74,14 +75,13 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     result.h = h / font->density;
     result.glyph_id = glyph_id;
     
-    float as = f->ascent * f->slim_scale;
     float lb = left_bearing * f->slim_scale;
     float ax = advance_x * f->slim_scale;
     result.advance_x = ax;
     result.x1 = lb;
-    result.y1 = as + y1 / font->density;
+    result.y1 = font->ascent + y1 / font->density;
     result.x2 = lb + w / font->density;
-    result.y2 = as + ((float) (y1 + h)) / font->density;
+    result.y2 = font->ascent + ((float) (y1 + h)) / font->density;
 
     float aw = atlas->width;
     float ah = atlas->height;
@@ -132,7 +132,7 @@ vl_vec2_t vl_font_universal_get_text_size_ex(vl_font_t *font, const char *text, 
         int h = y2 - y1;
         base_x += ax * f->slim_scale;
         float bx = base_x + (lsb + w) * f->slim_scale;
-        float by = base_y + (f->ascent - f->descent + f->line_gap + y1 + h) * f->slim_scale;
+        float by = base_y + f->base.ascent - f->base.descent + f->base.line_gap + (y1 + h) / font->density;
         x = VL_MAX(bx, x);
         y = VL_MAX(by, y);
         if (i != text_length - 1)

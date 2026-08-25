@@ -873,19 +873,31 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <style>
     //     body {
-    //         --velvet-element-highlight: highlight-green;
+    //          // --velvet-element-highlight: highlight-green;
     //     }
-    //     .margin {
-    //         margin-top: 8px;
+    //     p {
+    //         background-color: yellow;
+    //         font-size: 1.5em;
+    //     }
+    //     span {
+    //         background-color: green;
+    //         color: red;
+    //         font-size: 1.5em;
+    //     }
+    //     .reset {
+    //         font-size: unset;
+    //     }
+    //     .initial {
+    //         color: unset;
+    //         font-size: 16px;
     //     }
     //     </style>
-    //     <div>
-    //         <p>Hello, World!</p>
-    //         <p>Hello, World!</p>
-    //     </div>
-    //     Nameless text
-    //     <p class="margin">Margin</p>
-    //     <p>Hello, <span>World</span></p>
+    //     <p>Hello, <span>World!</span></p>
+    //     <p>Hello, <span>World,!</span></p>
+    //     <p>Hello, <span class="reset">World!</span></p>
+    //     <p class="initial">
+    //     yes, yielding a margin of <span class="initial">1.2rem</span> in between.
+    //     </p>
     // );
     const char *input = VL_STRINGIFY(
         <style>
