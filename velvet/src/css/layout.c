@@ -5,7 +5,6 @@
 #include "support/result.h"
 #include "web/web.h"
 #include "support/math.h"
-#include <arm_neon.h>
 #include <stdlib.h>
 
 vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag) {
