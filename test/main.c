@@ -676,7 +676,8 @@ void shaper_test() {
 
     vl_font_shaper_t *shaper = vl_font_shaper_new(ctx);
     VL_ASSERT(shaper);
-    VL_ASSERT(!vl_font_shaper_add_font(shaper, proggy));
+    vl_font_shaper_font_ref_t *font_ref = vl_font_shaper_add_font(shaper, proggy);
+    vl_font_shaper_push_font(shaper, font_ref);
 
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(shaper);
     VL_ASSERT(run);
@@ -730,7 +731,7 @@ void arabic_test() {
     vl_graphics_render_t *r = vl_graphics_render_new(win);
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, r);
 
-    vl_font_t *arabic = vl_font_new(ctx, "arabic", 72, 2, NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular));
+    vl_font_t *arabic = vl_font_new(ctx, "arabic", 32, 2, NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular));
     vl_font_atlas_t *atlas = vl_font_atlas_new(VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
     const char *text = u8"لمّا كان الاعتراف بالكرامة المتأصلة في جميع";
     // const char *text = u8"Hello";
@@ -740,9 +741,11 @@ void arabic_test() {
     // const char *text = u8"لد";
     // const char *text = u8"بسم الله الرحمن الرحيم";
     vl_font_shaper_t *shaper = vl_font_shaper_new(ctx);
-    vl_font_shaper_add_font(shaper, arabic);
+    vl_font_shaper_font_ref_t *arabic_ref = vl_font_shaper_add_font(shaper, arabic);
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(shaper);
+    vl_font_shaper_push_font(shaper, arabic_ref);
     vl_font_shaper_process(shaper, text, strlen(text));
+    vl_font_shaper_pop_font(shaper);
     while (vl_font_shaper_shape(shaper, run)) {
         vl_font_shaper_glyph_t glyph = {0};
         while (vl_font_shaper_iterate(run, &glyph)) {
@@ -767,14 +770,15 @@ void arabic_test() {
         ), brush);
         float base_x = 0;
         float base_y = 300;
+        vl_font_shaper_push_font(shaper, arabic_ref);
         vl_font_shaper_process(shaper, text, strlen(text));
+        vl_font_shaper_pop_font(shaper);
         int index = 0;
         VL_DA(vl_font_shaper_glyph_t) glyphs = VL_DA_INIT(vl_font_shaper_glyph_t);
         while (vl_font_shaper_shape(shaper, run)) {
             vl_font_shaper_glyph_t glyph = {0};
             while (vl_font_shaper_iterate(run, &glyph)) {
                 VL_DA_APPEND(glyphs, glyph);
-                // base_y += glyph.advance_y;
             }
         }
         int len = VL_DA_LENGTH(glyphs);
@@ -822,7 +826,7 @@ void simple_dom_test() {
     while (!vl_os_window_should_close(win, &close) && !close) {
         vl_os_window_poll_events(ctx);
         vl_graphics_presentation_begin(present);
-        vl_graphics_render_clear(render, VL_BLACK);
+        vl_graphics_render_clear(render, VL_WHITE);
         vl_graphics_render_batch_begin(render);
             // vl_graphics_render_push_translate(render, VL_VEC2(50, 50));
             static float angle = 0;
@@ -934,6 +938,19 @@ void styling_test() {
 
         <p>I am <span>2rem</span> below the element above.</p>
     );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         html {
+    //             font-size: 16px;
+    //         }
+    //         p {
+    //             background-color: red;
+    //         }
+    //     </style>
+    //    <p>Hello, World!</p>
+    //    <p>VA AV</p>
+    //    <p><span>V</span>A A<span>V</span></p>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);
@@ -988,7 +1005,6 @@ int main(int argc, const char *argv[]) {
     // font_test();
     // shaper_test();
     // arabic_test();
-    // printf("feature: %i\n", VL_FEATURE(DOM_TEXT_NODE));
     // simple_dom_test();
     // segmentation_test();
     // css_test();

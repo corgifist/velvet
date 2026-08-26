@@ -26,7 +26,7 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     if (!stbtt_InitFont(&font->font, font->data, 0)) {
         goto err;
     }
-    font->slim_scale = stbtt_ScaleForPixelHeight(&font->font, height);
+    font->slim_scale = stbtt_ScaleForMappingEmToPixels(&font->font, height);
     font->scale = font->slim_scale * density;
     stbtt_GetFontVMetrics(&font->font, &font->base.ascent, &font->base.descent, &font->base.line_gap);
     font->base.ascent *= font->slim_scale;

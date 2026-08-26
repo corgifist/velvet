@@ -1,23 +1,21 @@
 #include "web/web.h"
 #include "css/layout.h"
-#include "css/style.h"
 #include "css/stylesheet.h"
 #include "dom/dom.h"
 #include "dom/element.h"
 #include "html/document.h"
 #include "platform/context.h"
 #include "support/memory.h"
-#include "velvet.h"
 #include "web/fonts.h"
 #include "dom/style/style.h"
+#include "web/theme.h"
 
 // default fonts
 #include "Roboto/Regular.h"
 
-#include "NotoSans_Arabic/Regular.h"
-#include "web/theme.h"
+#include "EB Garamond/Regular.h"
 
-
+#include "Noto Sans Arabic/Regular.h"
 
 static void propagate_stylesheet(vl_css_layout_node_t *node, vl_css_stylesheet_t *sheet) {
     node->stylesheet = sheet;
@@ -44,6 +42,7 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
 
     web->fonts.owner = web;
     vl_web_fonts_add_font(&web->fonts, "Roboto", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR);
+    vl_web_fonts_add_font(&web->fonts, "EB Garamond", EBGaramond_Regular, VL_ARR_LEN(EBGaramond_Regular), VL_WEB_FONT_REGULAR);
     vl_web_fonts_add_font(&web->fonts, "Noto Sans Arabic", NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular), VL_WEB_FONT_REGULAR);
     return VL_SUCCESS;
 }

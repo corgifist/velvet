@@ -22,25 +22,23 @@ vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts, vl_web_t *web) {
 }
 
 static vl_web_font_family_t *find_family(vl_web_fonts_t *fonts, const char *family_name) {
-    vl_web_font_family_t *family = NULL;
     for (int i = 0; i < VL_DA_LENGTH(fonts->families); i++) {
-        if (strcmp(family_name, fonts->families[i].name) == 0) {
-            family = fonts->families + i;
-            break;
+        vl_web_font_family_t *family = fonts->families + i;
+        if (strcmp(family_name, family->name) == 0) {
+            return family;
         }
     }
-    return family;
+    return NULL;
 }
 
 static vl_web_font_t *find_variation(vl_web_font_family_t *family, vl_web_font_weight_t weight) {
-    vl_web_font_t *variation = NULL;
     for (int i = 0; i < VL_DA_LENGTH(family->variations); i++) {
-        if (family->variations->weight == weight) {
-            variation = family->variations;
-            break;
+        vl_web_font_t *variation = family->variations + i;
+        if (variation->weight == weight) {
+            return variation;
         }
     }
-    return variation;
+    return NULL;
 }
 
 vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name, const vl_byte_t *font_data, size_t font_len, vl_web_font_weight_t weight) {
@@ -58,7 +56,6 @@ vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name
             vl_font_free(variation->sizes[i].font);
         }
         VL_DA_FREE(variation->sizes);
-        variation = NULL;
     }
     variation = VL_DA_PUSH(family->variations, vl_web_font_t);
     variation->font_data = font_data;
@@ -107,7 +104,7 @@ vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, v
     for (int i = 0; i < VL_DA_LENGTH(fonts->families); i++) {
         vl_web_font_family_t *family = fonts->families + i;
         for (int j = 0; j < VL_DA_LENGTH(family->variations); j++) {
-            vl_web_font_t *variation = family->variations + i;
+            vl_web_font_t *variation = family->variations + j;
             if (unit_font == variation->unit_font) {
                 return vl_web_fonts_get_font(fonts, family->name, weight, height);
             }

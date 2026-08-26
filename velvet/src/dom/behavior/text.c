@@ -23,13 +23,13 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     }
     layout->glyphs = VL_DA_INIT(vl_dom_behavior_text_glyph_t);
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(fonts->shaper);
-    vl_css_value_t font_size = vl_css_layout_node_get_property(element->layout.parent, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_EM(1)));
-    vl_css_size_metric_t font_metric = vl_css_layout_node_process_metric(element->layout.parent, "font-size", font_size.as.metric1, 0);
+    vl_css_layout_node_t *css_node = element->layout.parent ? element->layout.parent : &element->layout;
+    vl_css_value_t font_size = vl_css_layout_node_get_property(css_node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_EM(1)));
+    vl_css_size_metric_t font_metric = vl_css_layout_node_process_metric(css_node, "font-size", font_size.as.metric1, 0);
     int height = font_metric.value;
-    // printf("height: %i\n", height);
-    vl_web_sized_font_t *priority_font = vl_web_fonts_get_font(&web->fonts, layout->priority_font_family, 
+    vl_web_sized_font_t *priority_font = vl_web_fonts_get_font(fonts, layout->priority_font_family, 
         VL_WEB_FONT_REGULAR, height);
-    vl_web_sized_font_t *default_arabic_font = vl_web_fonts_get_font(&web->fonts, "Noto Sans Arabic", 
+    vl_web_sized_font_t *default_arabic_font = vl_web_fonts_get_font(fonts, "Noto Sans Arabic", 
         VL_WEB_FONT_REGULAR, height);
     vl_font_shaper_push_font(fonts->shaper, priority_font->shaper_ref);
     vl_font_shaper_process(fonts->shaper, text, strlen(text));

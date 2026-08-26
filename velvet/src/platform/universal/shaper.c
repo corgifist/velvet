@@ -108,7 +108,9 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
 
 vl_result_t vl_font_shaper_run_universal_reset(vl_font_shaper_run_t *run) {
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
-    VL_ZERO_OUT(r);
+    r->iterator = 0;
+    r->run = (kbts_run) {0};
+    r->base.newline = false;
     return VL_SUCCESS;
 }
 
