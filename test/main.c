@@ -874,70 +874,70 @@ void css_test() {
 #undef I
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    // const char *input = VL_STRINGIFY(
-    //     <style>
-    //     body {
-    //          // --velvet-element-highlight: highlight-green;
-    //     }
-    //     p {
-    //         background-color: yellow;
-    //         font-size: 1.5em;
-    //     }
-    //     span {
-    //         background-color: green;
-    //         color: red;
-    //         font-size: 1.5em;
-    //     }
-    //     .reset {
-    //         font-size: unset;
-    //     }
-    //     .initial {
-    //         color: unset;
-    //         font-size: 16px;
-    //     }
-    //     </style>
-    //     <p>Hello, <span>World!</span></p>
-    //     <p>Hello, <span>World,!</span></p>
-    //     <p>Hello, <span class="reset">World!</span></p>
-    //     <p class="initial">
-    //     yes, yielding a margin of <span class="initial">1.2rem</span> in between.
-    //     </p>
-    // );
     const char *input = VL_STRINGIFY(
         <style>
-        html {
-            // --velvet-element-highlight: highlight-green;
+        body {
+             // --velvet-element-highlight: highlight-green;
         }
-            div {
-                margin: 2rem 0;
-                background-color: lavender;
-            }
-
-            p {
-                margin: 0.4rem 0 1.2rem 0;
-                background-color: yellow;
-            }
+        p {
+            background-color: yellow;
+            font-size: 1.5em;
+        }
+        span {
+            background-color: green;
+            color: red;
+            font-size: 1.5em;
+        }
+        .reset {
+            font-size: unset;
+        }
+        .initial {
+            color: unset;
+            font-size: 16px;
+        }
         </style>
-        <p>The bottom margin of this paragraph is collapsed</p>
-        <p>
-        with the top margin of this paragraph, yielding a margin of
-        <span>1.2rem</span> in between.
+        <p>Hello, <span>World!</span></p>
+        <p>Hello, <span>World,!</span></p>
+        <p>Hello, <span class="reset">World!</span></p>
+        <p class="initial">
+        yes, yielding a margin of <span class="initial">1.2rem</span> in between.
         </p>
-
-        <div>
-        This parent element contains two paragraphs!
-        <p>
-            This paragraph has a <span>.4rem</span> margin between it and the text
-            above.
-        </p>
-        <p>
-            My bottom margin collapses with my parent, yielding a bottom margin of
-            <span>2rem</span>.
-        </p>
-        </div>
-
-        <p>I am <span>2rem</span> below the element above.</p>
     );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //     html {
+    //         // --velvet-element-highlight: highlight-green;
+    //     }
+    //         div {
+    //             margin: 2rem 0;
+    //             background-color: lavender;
+    //         }
+
+    //         p {
+    //             margin: 0.4rem 0 1.2rem 0;
+    //             background-color: yellow;
+    //         }
+    //     </style>
+    //     <p>The bottom margin of this paragraph is collapsed</p>
+    //     <p>
+    //     with the top margin of this paragraph, yielding a margin of
+    //     <span>1.2rem</span> in between.
+    //     </p>
+
+    //     <div>
+    //     This parent element contains two paragraphs!
+    //     <p>
+    //         This paragraph has a <span>.4rem</span> margin between it and the text
+    //         above.
+    //     </p>
+    //     <p>
+    //         My bottom margin collapses with my parent, yielding a bottom margin of
+    //         <span>2rem</span>.
+    //     </p>
+    //     </div>
+
+    //     <p>I am <span>2rem</span> below the element above.</p>
+    // );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         html {

@@ -30,6 +30,7 @@ struct vl_css_layout_node {
     vl_vec2_t position;
     vl_vec4_t margin;
     vl_vec4_t padding;
+    vl_vec2_t render_offset;
     float block_last_margin;
     float span_y_offset;
     bool calculating_layout;
