@@ -70,7 +70,7 @@ vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style)
 vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
     if (!dst || !rule) return VL_ERROR;
     dst->property = VL_DA_COPY(rule->property);
-    dst->value = rule->value;
+    vl_css_value_copy(&dst->value, &rule->value);
     dst->priority = rule->priority;
     dst->important = rule->important;
     return VL_SUCCESS;
@@ -108,6 +108,27 @@ vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t
     if (!dst || !id) return VL_ERROR;
     dst->type = id->type;
     dst->name = VL_DA_COPY(id->name);
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) {
+    if (!dst || !value) return VL_ERROR;
+    dst->type = value->type;
+    switch (value->type) {
+    case VL_CSS_VALUE_FONT_LIST: {
+        if (value->as.font_list.fonts) {
+            dst->as.font_list.fonts = VL_DA_COPY(value->as.font_list.fonts);
+            for (int i = 0; i < VL_DA_LENGTH(dst->as.font_list.fonts); i++) {
+                dst->as.font_list.fonts[i] = VL_DA_COPY(value->as.font_list.fonts[i]);
+            }
+        }
+        break;
+    }
+    default: {
+        *dst = *value;
+        return VL_SUCCESS;
+    }
+    }
     return VL_SUCCESS;
 }
 
@@ -180,6 +201,17 @@ static void print_value(vl_css_value_t value) {
         printf("%s", value.as.const_literal);
         break;
     }
+    case VL_CSS_VALUE_FONT_LIST: {
+        if (value.as.font_list.fonts) {
+            int len = VL_DA_LENGTH(value.as.font_list.fonts);
+            for (int i = 0; i < len; i++) {
+                printf("%s", value.as.font_list.fonts[i]);
+                if (i != len - 1) printf(", ");
+            }
+            break;
+        }
+    }
+    default: break;
     }
 }
 
@@ -286,6 +318,24 @@ vl_color_t vl_css_value_to_rgba(vl_css_value_t value) {
     return VL_COLOR(value.as.rgba.r / 255.0f, value.as.rgba.g / 255.0f, value.as.rgba.b / 255.0f, value.as.rgba.a);
 }
 
+vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
+    if (!value) return VL_ERROR;
+    switch (value->type) {
+    case VL_CSS_VALUE_FONT_LIST: {
+        vl_css_font_list_t *font_list = &value->as.font_list;
+        if (font_list->fonts) {
+            for (int i = 0; i < VL_DA_LENGTH(font_list->fonts); i++) {
+                VL_DA_FREE(font_list->fonts[i]);
+            }
+            VL_DA_FREE(font_list->fonts);
+        }
+        break;
+    }
+    default: return VL_SUCCESS;
+    }
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector) {
     if (!selector) return VL_ERROR;
     if (selector->id_chain) {
@@ -312,6 +362,7 @@ vl_result_t vl_css_style_deinit(vl_css_style_t *style) {
 vl_result_t vl_css_rule_deinit(vl_css_rule_t *rule) {
     if (!rule) return VL_SUCCESS;
     VL_DA_FREE(rule->property);
+    vl_css_value_deinit(&rule->value);
     return VL_SUCCESS;
 }
 

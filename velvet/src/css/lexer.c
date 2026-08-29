@@ -1,6 +1,7 @@
 #include "velvet/css/lexer.h"
 #include "support/error_pool.h"
 #include "support/memory.h"
+#include "support/result.h"
 #include "support/str.h"
 
 #include <unicode/urename.h>
@@ -122,6 +123,21 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
             return VL_ERROR;
         }
         SET_TOKEN(VL_CSS_TOKEN_TYPE_NUMBER, num_begin, num_end);
+        return VL_SUCCESS;
+    }
+
+    if (lexer->c == '"' || lexer->c == '\'') {
+        bool double_quote = (lexer->c == '"');
+        ADVANCE(); // skip the quote
+        const char *str_begin = cursor - U8_LENGTH(lexer->c);
+        const char *str_end = cursor;
+        while ((double_quote && lexer->c != '"') || (!double_quote && lexer->c != '\'')) {
+            str_end += U8_LENGTH(lexer->c);
+            ADVANCE();
+        }
+        str_end += U8_LENGTH(lexer->c);
+        ADVANCE(); // skip the quote
+        SET_TOKEN(VL_CSS_TOKEN_TYPE_STRING, str_begin, str_end);
         return VL_SUCCESS;
     }
 

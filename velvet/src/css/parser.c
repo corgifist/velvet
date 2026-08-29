@@ -5,6 +5,7 @@
 #include "support/memory.h"
 #include "support/result.h"
 #include "support/str.h"
+#include <iso646.h>
 #include <stdlib.h>
 
 #define VL_TOKEN_COMPARE_EX(A, A_LENGTH, B) \
@@ -84,6 +85,22 @@ static vl_css_value_t parse_single_metric(vl_css_parser_t *parser, vl_css_rule_t
     return VL_CSS_VALUE_METRIC1(
         VL_CSS_SIZE_METRIC(metric_type, value)
     );
+}
+
+static VL_DA_STRING parse_id_or_string(vl_css_parser_t *parser) {
+    vl_css_token_t *current = parser->lookahead;
+    if (current->type == VL_CSS_TOKEN_TYPE_ID || current->type == VL_CSS_TOKEN_TYPE_STRING) {
+        const char *begin = current->text;
+        int len = current->text_length;
+        if (current->type == VL_CSS_TOKEN_TYPE_STRING) {
+            begin++;
+            len -= 2;
+        }
+        VL_DA_STRING result = VL_DA_INIT_FROM_STRING_WITH_SIZE(begin, len);
+        tokenize(parser);
+        return result;
+    }
+    return NULL;
 }
 
 #define VL_CSS_RGBA_CONST(CONST, R, G, B, A) \
@@ -207,13 +224,32 @@ static vl_css_value_t parse_shorthand_metric4(vl_css_parser_t *parser, vl_css_ru
     return VL_CSS_VALUE_NONE();
 }
 
+static vl_css_value_t parse_font_list(vl_css_parser_t *parser, vl_css_rule_t *rule) {
+    vl_css_value_t result = {.type = VL_CSS_VALUE_FONT_LIST, .as = {0}};
+    vl_css_font_list_t *font_list = &result.as.font_list;
+    font_list->fonts = VL_DA_INIT(VL_DA_STRING);
+    vl_css_token_t *current = parser->lookahead;
+    while (!VL_TOKEN_COMPARE(current, ";")) {
+        VL_DA_STRING id = parse_id_or_string(parser);
+        if (id) *VL_DA_PUSH(font_list->fonts, VL_DA_STRING) = id;
+        else if (tokenize(parser)) break;
+        goto next;
+        next:
+        if (VL_TOKEN_COMPARE(current, ",")) {
+            if (tokenize(parser)) break;
+        }
+    }
+    return result;
+}
+
 typedef vl_css_value_t (*vl_parse_value_with_context)(vl_css_parser_t *parser, vl_css_rule_t *rule);
 static const struct {
     const char *property;
     vl_parse_value_with_context parse_with_context;
 } s_context_table[] = {
     {"padding", parse_shorthand_metric4},
-    {"margin", parse_shorthand_metric4}
+    {"margin", parse_shorthand_metric4},
+    {"font-family", parse_font_list}
 };
 
 static vl_css_value_t dispatch_parse_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {

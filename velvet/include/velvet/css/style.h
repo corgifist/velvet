@@ -15,7 +15,8 @@ enum vl_css_value_type {
     VL_CSS_VALUE_SIZE_METRIC3,
     VL_CSS_VALUE_SIZE_METRIC4,
     VL_CSS_VALUE_COLOR_RGBA,
-    VL_CSS_VALUE_CONST_LITERAL
+    VL_CSS_VALUE_CONST_LITERAL,
+    VL_CSS_VALUE_FONT_LIST
 };
 
 typedef enum vl_css_value_type vl_css_value_type_t;
@@ -58,6 +59,12 @@ typedef struct vl_css_color_rgba vl_css_color_rgba_t;
 #define VL_CSS_COLOR_RGBA(R, G, B, A) \
     ((vl_css_color_rgba_t) {.r = (float) (R), .g = (float) (G), .b = (float) (B), .a = (float) (A)})
 
+struct vl_css_font_list {
+    VL_DA(VL_DA_STRING) fonts;
+};
+
+typedef struct vl_css_font_list vl_css_font_list_t;
+
 struct vl_css_value {
     vl_css_value_type_t type;
     union {
@@ -67,6 +74,7 @@ struct vl_css_value {
         vl_css_size_metric_t metric4[4];
         vl_css_color_rgba_t rgba;
         const char *const_literal;
+        vl_css_font_list_t font_list;
     } as;
 };
 
@@ -161,6 +169,7 @@ VL_API vl_css_value_t vl_css_style_get_property(vl_css_style_t *style, const cha
 VL_API vl_result_t vl_css_style_from_class(vl_css_style_t *style, const vl_css_class_t *class);
 VL_API vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style);
 
+VL_API vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *src);
 VL_API vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src);
 VL_API vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule);
 VL_API vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_css_class_selector_t *selector);
@@ -175,6 +184,7 @@ VL_API vl_result_t vl_css_value_print(vl_css_value_t value);
 
 VL_API vl_color_t vl_css_value_to_rgba(vl_css_value_t value);
 
+VL_API vl_result_t vl_css_value_deinit(vl_css_value_t *value);
 VL_API vl_result_t vl_css_style_deinit(vl_css_style_t *style);
 VL_API vl_result_t vl_css_class_deinit(vl_css_class_t *class);
 VL_API vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector);
