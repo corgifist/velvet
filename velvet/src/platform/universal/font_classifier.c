@@ -1,6 +1,10 @@
 #include "velvet/platform/universal/stb_truetype.h"
 #include "velvet/font/font.h"
 
+// font_classifier.c is fully written by chatgpt, i admit
+// i just have other things to do besides guessing if the font serif or sans-serif
+// :D
+
 static uint16_t read_u16be(const unsigned char *p) {
     return (uint16_t)((p[0] << 8) | p[1]);
 }
