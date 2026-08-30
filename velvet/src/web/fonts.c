@@ -212,6 +212,7 @@ vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
                     vl_web_sized_font_t *sized_font = part->sized_fonts + l;
                     vl_font_free(sized_font->font);
                 }
+                VL_DA_FREE(part->sized_fonts);
                 vl_font_shaper_free_font(fonts->shaper, part->unit_shaper_ref);
                 vl_font_free(part->unit_font);
             }
