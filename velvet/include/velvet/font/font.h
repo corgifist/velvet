@@ -8,6 +8,15 @@
 #include "velvet/platform/context.h"
 #include "velvet/font/atlas.h"
 
+enum vl_font_kind {
+    VL_FONT_KIND_UNKNOWN = 0,
+    VL_FONT_KIND_SERIF,
+    VL_FONT_KIND_SANS_SERIF,
+    VL_FONT_KIND_MONOSPACED
+};
+
+typedef enum vl_font_kind vl_font_kind_t;
+
 struct vl_font {
     vl_platform_context_t *context;
     const char *name;
@@ -15,6 +24,7 @@ struct vl_font {
     float newline_advance;
     float density;
     int ascent, descent, line_gap;
+    vl_font_kind_t kind;
 };
 
 typedef struct vl_font vl_font_t;

@@ -81,9 +81,9 @@ typedef void* VL_DA;
     (vl_da_init_from_string_with_size(STRING, SIZE, VL_HERE, ALLOCATOR))
 
 #define VL_DA_COPY1(DA) \
-    (vl_da_copy(DA, VL_HERE, VL_ALLOCATOR_DEFAULT()))
+    (vl_da_copy((void*) DA, VL_HERE, VL_ALLOCATOR_DEFAULT()))
 #define VL_DA_COPY2(DA, LOC) \
-    (vl_da_copy(DA, VL_HERE, ALLOCATOR))
+    (vl_da_copy((void*) DA, VL_HERE, ALLOCATOR))
 #define VL_DA_COPY(DA, ...) \
     VL_VA_DISPATCH(VL_DA_COPY, DA __VA_ARGS__)
 

@@ -84,6 +84,7 @@ vl_result_t vl_font_shaper_univesal_process(vl_font_shaper_t *shaper, const char
 bool vl_font_shaper_universal_shape(vl_font_shaper_t *shaper, vl_font_shaper_run_t *run) {
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
+    if (!shaper->font_stack || VL_DA_LENGTH(shaper->font_stack) <= 0) return false;
     bool status = kbts_ShapeRun(s->context, &r->run);
     if (!status) return false;
     run->newline = r->run.Flags & KBTS_BREAK_FLAG_LINE_HARD;

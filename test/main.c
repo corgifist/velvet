@@ -904,7 +904,10 @@ void styling_test() {
             color: unset;
             font-size: 16px;
         }
-        .font {
+        .serif {
+            font-family: serif;
+        }
+        .sans-serif {
             font-family: sans-serif;
         }
         </style>
@@ -914,6 +917,8 @@ void styling_test() {
         <p class="initial">
         yes, yielding a margin of <span class="initial">1.2rem</span> in between.
         </p>
+        <p class="serif">Serif font</p>
+        <p class="sans-serif">Sans-serif font</p>
     );
     // const char *input = VL_STRINGIFY(
     //     <style>

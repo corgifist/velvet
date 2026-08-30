@@ -41,9 +41,8 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     vl_web_fonts_init(&web->fonts, web);
 
     web->fonts.owner = web;
-    vl_web_fonts_add_font(&web->fonts, "Roboto", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR);
-    vl_web_fonts_add_font(&web->fonts, "EB Garamond", EBGaramond_Regular, VL_ARR_LEN(EBGaramond_Regular), VL_WEB_FONT_REGULAR);
-    vl_web_fonts_add_font(&web->fonts, "Noto Sans Arabic", NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular), VL_WEB_FONT_REGULAR);
+    vl_web_fonts_add_font(&web->fonts, "sans-serif", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR);
+    vl_web_fonts_add_font(&web->fonts, "serif", EBGaramond_Regular, VL_ARR_LEN(EBGaramond_Regular), VL_WEB_FONT_REGULAR);
     return VL_SUCCESS;
 }
 

@@ -155,7 +155,7 @@ static vl_css_value_t get_display_mode(vl_css_layout_node_t *node) {
 
 typedef struct {
     VL_DA(vl_css_layout_node_t*) elements;
-    float line_height;
+    float height;
 } vl_css_block_line;
 
 static vl_css_block_line *push_new_block_line(VL_DA(vl_css_block_line) *lines) {
@@ -184,14 +184,12 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
     }
     int len = VL_DA_LENGTH(layout_targets);
     VL_DA(vl_css_block_line) lines = VL_DA_INIT(vl_css_block_line);
+    PUSH_NEW_BLOCK_LINE(lines);
     for (int i = 0; i < len; i++) {
         vl_css_layout_node_t *prev = i > 0 ? layout_targets[i - 1] : NULL;
         vl_css_layout_node_t *child = layout_targets[i];
         vl_css_layout_node_t *next = i < len - 1 ? layout_targets[i + 1] : NULL;
-        vl_css_block_line *line = (VL_DA_LENGTH(lines) > 0 ? lines + VL_DA_LENGTH(lines) - 1 : NULL);
-        if (!line) {
-            line = PUSH_NEW_BLOCK_LINE(lines);
-        }
+        vl_css_block_line *line = lines + VL_DA_LENGTH(lines) - 1;
         node->size.y = cursor.y;
         if (VL_CSS_CONST_LITERAL_EQUAL(child->display, "block") || !child->display.as.const_literal) {
             if (prev) {
@@ -209,7 +207,8 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
             child->position.y = cursor.y;
             cursor.y += child->size.y;
             node->block_last_margin = child->margin.z;
-            line->line_height = VL_MAX(line->line_height, child->size.y);
+            line->height = VL_MAX(line->height, child->size.y);
+            VL_DA_APPEND(line->elements, child);
             if (next && !VL_CSS_CONST_LITERAL_EQUAL(next->display, "inline")) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
@@ -221,14 +220,14 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
             child->position.x = cursor.x + child->margin.w;
             child->position.y = cursor.y;
             cursor.x += child->size.x;
-            line->line_height = VL_MAX(line->line_height, child->size.y);
+            line->height = VL_MAX(line->height, child->size.y);
             size.x = VL_MAX(cursor.x, size.x);
-            size.y = VL_MAX(size.y, cursor.y + line->line_height);
+            size.y = VL_MAX(size.y, cursor.y + line->height);
             node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
             VL_DA_APPEND(line->elements, child);
             if (cursor.x > node->size.x && next) {
                 cursor.x = 0;
-                cursor.y += line->line_height;
+                cursor.y += line->height;
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
         }
@@ -238,13 +237,13 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
         vl_css_block_line *line = lines + i;
         float max_span_offset = 0;
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
-            max_span_offset = VL_MAX(max_span_offset, lines->elements[j]->span_y_offset);
+            max_span_offset = VL_MAX(max_span_offset, line->elements[j]->span_y_offset);
         }
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *prev = j > 0 ? line->elements[j - 1] : NULL;
             vl_css_layout_node_t *child = line->elements[j];
             float y_offset = max_span_offset - child->span_y_offset;
-            child->position.y += line->line_height - child->size.y - y_offset;
+            child->position.y += line->height - child->size.y - y_offset;
             child->render_offset.y = y_offset;
             //child->size.y = line->line_height;
         }
@@ -321,7 +320,8 @@ vl_vec2_t vl_css_layout_node_get_raw_content_size(vl_css_layout_node_t *node) {
 
 static const char *s_inherited_properties[] = {
     "color",
-    "--velvet-element-highlight"
+    "--velvet-element-highlight",
+    "font-family"
 };
 
 vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const char *property, vl_css_value_t fallback) {

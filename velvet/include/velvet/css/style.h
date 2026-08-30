@@ -16,7 +16,8 @@ enum vl_css_value_type {
     VL_CSS_VALUE_SIZE_METRIC4,
     VL_CSS_VALUE_COLOR_RGBA,
     VL_CSS_VALUE_CONST_LITERAL,
-    VL_CSS_VALUE_FONT_LIST
+    VL_CSS_VALUE_FONT_LIST,
+    VL_CSS_VALUE_DYNAMIC_LITERAL
 };
 
 typedef enum vl_css_value_type vl_css_value_type_t;
@@ -105,8 +106,11 @@ typedef struct vl_css_value vl_css_value_t;
 #define VL_CSS_VALUE_COLOR_COMPATIBLE(VALUE) \
     (VALUE.type == VL_CSS_VALUE_COLOR_RGBA)
 
+#define VL_CSS_VALUE_IS_LITERAL(CSS_VALUE) \
+    ((CSS_VALUE).type == VL_CSS_VALUE_CONST_LITERAL || (CSS_VALUE).type == VL_CSS_VALUE_DYNAMIC_LITERAL)
+
 #define VL_CSS_CONST_LITERAL_EQUAL(CSS_VALUE, LITERAL) \
-    ((CSS_VALUE).type == VL_CSS_VALUE_CONST_LITERAL \
+    (VL_CSS_VALUE_IS_LITERAL(CSS_VALUE) \
         && (CSS_VALUE).as.const_literal \
         && strcmp((CSS_VALUE).as.const_literal, (LITERAL)) == 0)
 

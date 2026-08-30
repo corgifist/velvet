@@ -26,12 +26,33 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     vl_css_layout_node_t *css_node = element->layout.parent ? element->layout.parent : &element->layout;
     vl_css_value_t font_size = vl_css_layout_node_get_property(css_node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_EM(1)));
     vl_css_size_metric_t font_metric = vl_css_layout_node_process_metric(css_node, "font-size", font_size.as.metric1, 0);
+    vl_css_value_t font_family = vl_css_layout_node_get_property(&element->layout, "font-family", VL_CSS_VALUE_CONST_LITERAL("serif"));
+    VL_DA(VL_DA(vl_web_sized_font_t*)) gathered_fonts = NULL;
+    if (VL_CSS_VALUE_IS_LITERAL(font_family)) {
+        gathered_fonts = VL_DA_INIT(VL_DA(vl_web_sized_font_t*));
+        *VL_DA_PUSH(gathered_fonts, VL_DA(vl_web_sized_font_t*)) = vl_web_fonts_get_font(
+            &web->fonts, font_family.as.const_literal, VL_WEB_FONT_REGULAR, 
+            font_metric.value
+        );
+    } else if (font_family.type == VL_CSS_VALUE_FONT_LIST) {
+        gathered_fonts = VL_DA_INIT(VL_DA(vl_web_sized_font_t*));
+        if (font_family.as.font_list.fonts) {
+            for (int i = 0; i < VL_DA_LENGTH(font_family.as.font_list.fonts); i++) {
+                *VL_DA_PUSH(gathered_fonts, VL_DA(vl_web_sized_font_t*)) = vl_web_fonts_get_font(
+                &web->fonts, font_family.as.font_list.fonts[i], VL_WEB_FONT_REGULAR, 
+                font_metric.value
+                );
+            }
+        }
+    }
     int height = font_metric.value;
-    vl_web_sized_font_t *priority_font = vl_web_fonts_get_font(fonts, layout->priority_font_family, 
-        VL_WEB_FONT_REGULAR, height);
-    vl_web_sized_font_t *default_arabic_font = vl_web_fonts_get_font(fonts, "Noto Sans Arabic", 
-        VL_WEB_FONT_REGULAR, height);
-    vl_font_shaper_push_font(fonts->shaper, priority_font->shaper_ref);
+    for (int i = 0; i < VL_DA_LENGTH(gathered_fonts); i++) {
+        VL_DA(vl_web_sized_font_t*) parts = gathered_fonts[i];
+        if (!parts) continue;
+        for (int i = 0; i < VL_DA_LENGTH(fonts); i++) {
+            vl_font_shaper_push_font(fonts->shaper, parts[i]->shaper_ref);
+        }
+    }
     vl_font_shaper_process(fonts->shaper, text, strlen(text));
     while (vl_font_shaper_shape(fonts->shaper, run)) {
         if (run->newline) {
@@ -41,6 +62,7 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
         }
         vl_font_shaper_glyph_t shaper_glyph = {0};
         vl_web_sized_font_t *sized_font = vl_web_fonts_get_font_by_unit_font(fonts, run->font, VL_WEB_FONT_REGULAR, height);
+        if (!sized_font) continue;
         while (vl_font_shaper_iterate(run, &shaper_glyph)) {
             vl_dom_behavior_text_glyph_t text_glyph = {0};
             float scale = sized_font->font->height;
@@ -56,6 +78,12 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     }
     vl_font_shaper_run_free(run);
     vl_font_shaper_pop_all_fonts(fonts->shaper);
+    if (gathered_fonts) {
+        for (int i = 0; i < VL_DA_LENGTH(gathered_fonts); i++) {
+            VL_DA_FREE(gathered_fonts[i]);
+        }
+    }
+    VL_DA_FREE(gathered_fonts);
     return VL_SUCCESS;
 }
 
@@ -112,9 +140,6 @@ vl_vec2_t vl_dom_behavior_text_layout_get_size(vl_dom_element_t *element, vl_dom
             if (glyph->codepoint == ' ') {
                 x2 += glyph->advance_x;
                 y2 += glyph->advance_y;
-            }
-            if (glyph->codepoint == ',' || glyph->codepoint == 'H') {
-                printf("%c %f\n", (char) glyph->codepoint, codepoint.codepoint->y2 - font->ascent);
             }
             lowest_char = VL_MAX(lowest_char, codepoint.codepoint->y2 - font->ascent);
             max_x = VL_MAX(max_x, x2);

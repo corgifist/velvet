@@ -164,6 +164,24 @@ static const char *s_const_literals[] = {
     "none"
 };
 
+static const char *try_parse_const_literal(vl_css_parser_t *parser, int limit) {
+    vl_css_token_t *current = parser->lookahead;
+    if (current->type == VL_CSS_TOKEN_TYPE_ID) {
+        int count = limit;
+        if (count <= 0) {
+            count = VL_ARR_LEN(s_const_literals);
+        }
+        for (int i = 0; i < count; i++) {
+            int const_len = strlen(s_const_literals[i]);
+            if (const_len == current->text_length && vl_nstrcicmp(s_const_literals[i], current->text, const_len) == 0) {
+                tokenize(parser);
+                return s_const_literals[i];
+            }
+        }
+    }
+    return NULL;
+}
+
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     vl_css_token_t *current = parser->lookahead;
     if (current->type == VL_CSS_TOKEN_TYPE_ID) {
@@ -184,15 +202,8 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
         return parse_generic_color(parser, rule, 4);
     }
 
-    if (current->type == VL_CSS_TOKEN_TYPE_ID) {
-        for (int i = 0; i < VL_ARR_LEN(s_const_literals); i++) {
-            int const_len = strlen(s_const_literals[i]);
-            if (const_len == current->text_length && memcmp(s_const_literals[i], current->text, const_len) == 0) {
-                tokenize(parser);
-                return VL_CSS_VALUE_CONST_LITERAL(s_const_literals[i]);
-            }
-        }
-    }
+    const char *try_const_literal = try_parse_const_literal(parser, -1);
+    if (try_const_literal) return VL_CSS_VALUE_CONST_LITERAL(try_const_literal);
 
     fail:
     return VL_CSS_VALUE_NONE();
@@ -225,10 +236,20 @@ static vl_css_value_t parse_shorthand_metric4(vl_css_parser_t *parser, vl_css_ru
 }
 
 static vl_css_value_t parse_font_list(vl_css_parser_t *parser, vl_css_rule_t *rule) {
+    const char *global_const_literal = try_parse_const_literal(parser, 4);
+    if (global_const_literal) return VL_CSS_VALUE_CONST_LITERAL(global_const_literal);
+    vl_css_token_t *current = parser->lookahead;
+    if (current->type == VL_CSS_TOKEN_TYPE_ID && VL_TOKEN_COMPARE(current + 1, ";")) {
+        const char *literal = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+        tokenize(parser);
+        return (vl_css_value_t) {
+            .type = VL_CSS_VALUE_DYNAMIC_LITERAL,
+            .as = {.const_literal = literal}
+        };
+    }
     vl_css_value_t result = {.type = VL_CSS_VALUE_FONT_LIST, .as = {0}};
     vl_css_font_list_t *font_list = &result.as.font_list;
     font_list->fonts = VL_DA_INIT(VL_DA_STRING);
-    vl_css_token_t *current = parser->lookahead;
     while (!VL_TOKEN_COMPARE(current, ";")) {
         VL_DA_STRING id = parse_id_or_string(parser);
         if (id) *VL_DA_PUSH(font_list->fonts, VL_DA_STRING) = id;

@@ -11,5 +11,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <ctype.h>
+#include <math.h>
 
 #endif // VELVET_COMMON_H

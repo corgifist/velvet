@@ -124,6 +124,10 @@ vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) 
         }
         break;
     }
+    case VL_CSS_VALUE_DYNAMIC_LITERAL: {
+        dst->as.const_literal = VL_DA_COPY(value->as.const_literal);
+        break;
+    }
     default: {
         *dst = *value;
         return VL_SUCCESS;
@@ -197,6 +201,7 @@ static void print_value(vl_css_value_t value) {
         printf("rgba(%.00f, %.00f, %.00f, %.02f)", value.as.rgba.r, value.as.rgba.g, value.as.rgba.b, value.as.rgba.a);
         break;
     }
+    case VL_CSS_VALUE_DYNAMIC_LITERAL:
     case VL_CSS_VALUE_CONST_LITERAL: {
         printf("%s", value.as.const_literal);
         break;
@@ -329,6 +334,10 @@ vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
             }
             VL_DA_FREE(font_list->fonts);
         }
+        break;
+    }
+    case VL_CSS_VALUE_DYNAMIC_LITERAL: {
+        VL_DA_FREE(value->as.const_literal);
         break;
     }
     default: return VL_SUCCESS;

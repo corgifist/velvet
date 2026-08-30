@@ -3,13 +3,11 @@
 #include "support/da.h"
 #include "support/math.h"
 #include <stddef.h>
+#include "font_classifier.c"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "velvet/platform/universal/font.h"
 #include "font/font.h"
 #include "support/result.h"
-#include <math.h>
-
-#define ifloor(X) ((int) floor(X))
 
 vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc) {
     if (!context) return NULL;
@@ -33,7 +31,7 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     font->base.descent *= font->slim_scale;
     font->base.line_gap *= font->slim_scale;
     font->base.newline_advance = font->base.ascent - font->base.descent + font->base.line_gap;
-
+    font->base.kind = classify_font(data, stbtt_GetFontOffsetForIndex(data, 0), &font->font);
     return (vl_font_t*) font;
     err:
     vl_free(font);
