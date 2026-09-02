@@ -14,6 +14,7 @@ add_subdirectory(style)
 add_subdirectory(p)
 add_subdirectory(div)
 add_subdirectory(span)
+add_subdirectory(head)
 
 set(Velvet_Sources
     ${Velvet_Sources}

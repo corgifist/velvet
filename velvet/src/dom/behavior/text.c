@@ -44,7 +44,7 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
         }
     }
     int height = font_metric.value;
-    printf("text height: %i\n", height);
+    // printf("text height: %i\n", height);
     for (int i = 0; i < VL_DA_LENGTH(gathered_fonts); i++) {
         VL_DA(vl_web_sized_font_t*) parts = gathered_fonts[i];
         if (!parts) continue;
