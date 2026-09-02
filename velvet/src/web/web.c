@@ -17,6 +17,8 @@
 
 #include "Noto Sans Arabic/Regular.h"
 
+#include "Noto Naskh Arabic/Regular.h"
+
 static void propagate_stylesheet(vl_css_layout_node_t *node, vl_css_stylesheet_t *sheet) {
     node->stylesheet = sheet;
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
@@ -41,8 +43,10 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     vl_web_fonts_init(&web->fonts, web);
 
     web->fonts.owner = web;
-    vl_web_fonts_add_font(&web->fonts, "sans-serif", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR);
-    vl_web_fonts_add_font(&web->fonts, "serif", EBGaramond_Regular, VL_ARR_LEN(EBGaramond_Regular), VL_WEB_FONT_REGULAR);
+    vl_web_fonts_add_font_with_part_name(&web->fonts, "sans-serif", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR, "Roboto");
+    vl_web_fonts_add_font_with_part_name(&web->fonts, "sans-serif", NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular), VL_WEB_FONT_REGULAR, "Noto Sans Arabic");
+    vl_web_fonts_add_font_with_part_name(&web->fonts, "serif", EBGaramond_Regular, VL_ARR_LEN(EBGaramond_Regular), VL_WEB_FONT_REGULAR, "EB Garamond");
+    vl_web_fonts_add_font_with_part_name(&web->fonts, "serif", NotoNaskhArabic_Regular, VL_ARR_LEN(NotoNaskhArabic_Regular), VL_WEB_FONT_REGULAR, "Noto Naskh Arabic");
     return VL_SUCCESS;
 }
 

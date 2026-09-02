@@ -97,7 +97,7 @@ VL_DA(vl_web_sized_font_t*) vl_web_fonts_get_font(vl_web_fonts_t *fonts, const c
         
         if (!sized_font) {
             sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
-            sized_font->font = vl_font_new(fonts->owner->platform_context, family_name, height, 2.0f, part->data, part->len);
+            sized_font->font = vl_font_new(fonts->owner->platform_context, part->unit_font->name, height, 2.0f, part->data, part->len);
             sized_font->shaper_ref = part->unit_shaper_ref;
         }
         VL_DA_APPEND(result, sized_font);
@@ -122,7 +122,7 @@ vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, v
                         }
                     }
                     vl_web_sized_font_t *sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
-                    sized_font->font = vl_font_new(fonts->owner->platform_context, family->name, height, 2.0f, part->data, part->len);
+                    sized_font->font = vl_font_new(fonts->owner->platform_context, part->unit_font->name, height, 2.0f, part->data, part->len);
                     sized_font->shaper_ref = part->unit_shaper_ref;
                     VL_DA_APPEND(part->sized_fonts, sized_font);
                     return sized_font;

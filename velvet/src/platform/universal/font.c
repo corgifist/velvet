@@ -52,12 +52,15 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     if (atlas->cursor_y >= atlas->height) {
         return NULL;
     }
-    if (atlas->cursor_x + w >= atlas->width) {
-        atlas->cursor_x = 0;
-        atlas->cursor_y += atlas->largest_glyph_on_line;
+    if (atlas->cursor_x + w + 2 >= atlas->width) {
+        atlas->cursor_x = 2;
+        atlas->cursor_y += atlas->largest_glyph_on_line + 2;
         atlas->largest_glyph_on_line = 0;
     }
-    if (atlas->cursor_y + h >= atlas->height) {
+    if (atlas->cursor_x < 2) {
+        atlas->cursor_x = 2; // we don't want to rasterize fonts near the atlas edge
+    }
+    if (atlas->cursor_y + h + 2 >= atlas->height) {
         atlas->full = true;
         return NULL;
     }

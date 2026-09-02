@@ -360,9 +360,16 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
     if (metric.type == VL_CSS_SIZE_METRIC_PERCENTAGE) return VL_CSS_SIZE_PIXELS(parent_size * metric.value);
     if (metric.type == VL_CSS_SIZE_METRIC_EM) {
         bool is_font_size = (property && strcmp(property, "font-size") == 0);
-        vl_css_value_t font_size = vl_css_layout_node_get_property(is_font_size ? node->parent : node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));
-        vl_css_size_metric_t em_metric = vl_css_layout_node_process_metric(is_font_size ? node->parent : node, "font-size", font_size.as.metric1, 0);
-        return VL_CSS_SIZE_PIXELS(em_metric.value * metric.value);
+        vl_css_value_t font_size = vl_css_layout_node_get_property(is_font_size ? node->parent : node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_EM(1)));
+        vl_css_size_metric_t processed_metric = font_size.as.metric1;
+        if (property && strcmp(node->tag, "html") != 0) {
+            processed_metric = vl_css_layout_node_process_metric(is_font_size ? node->parent : node, "font-size", processed_metric, 0);
+        } else {
+            processed_metric = VL_CSS_SIZE_PIXELS(processed_metric.type == VL_CSS_SIZE_METRIC_PIXELS
+                                                    ? processed_metric.value
+                                                    : 16 * processed_metric.value);
+        }
+        return VL_CSS_SIZE_PIXELS(processed_metric.value * metric.value);
     }
     if (metric.type == VL_CSS_SIZE_METRIC_REM) {
         vl_css_value_t font_size = vl_css_layout_node_get_property(&node->web->dom.root->layout, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_PIXELS(16)));

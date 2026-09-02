@@ -924,8 +924,8 @@ void styling_test() {
         <p class="initial">
         yes, yielding a margin of <span class="initial">1.2rem</span> in between.
         </p>
-        <p class="serif">Serif font</p>
-        <p class="sans-serif">Sans-serif font</p>
+        <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+        <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
     );
     // const char *input = VL_STRINGIFY(
     //     <style>
@@ -965,13 +965,13 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         html {
-    //             font-size: 16px;
+    //             font-size: 1.5em;
     //         }
     //         p {
     //             background-color: red;
     //         }
     //     </style>
-    //    <p>Hello, World!</p>
+    //    <p>Hello, World! لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
     //    <p>VA AV</p>
     //    <p><span>V</span>A A<span>V</span></p>
     // );
