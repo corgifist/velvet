@@ -7,14 +7,10 @@
 #include "support/feature.h"
 #include "support/memory.h"
 #include "support/result.h"
-#include <cglm/mat3x2.h>
-
-#define MAT3X2_IDENTITY ((mat3x2) {{1,0}, {0, 1}, {0, 0}})
 
 static void setup_brush(vl_graphics_brush_t *brush, vl_graphics_render_t *render) {
     if (brush) {
         brush->owner = render;
-        glm_mat3x2_copy(MAT3X2_IDENTITY, brush->transform);
     }
 }
 

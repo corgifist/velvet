@@ -2,7 +2,8 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <unicode/utf8.h>
+
+#include "velvet/vendor/utf8.h"
 
 // Source - https://stackoverflow.com/a/5820991
 // Posted by Fred Foo, modified by community. See post 'Timeline' for change history
@@ -35,15 +36,5 @@ const char *vl_sprintf_tmp(const char *format, ...) {
 }
 
 size_t vl_u8strlen(const char *string) {
-    if (!string) return 0;
-    size_t len = 0;
-    size_t raw_length = strlen(string);
-    size_t i = 0;
-    UChar32 dummy_c = 0;
-    while (true) {
-        U8_NEXT(string, i, raw_length, dummy_c);
-        if (dummy_c <= 0) break;
-        len++;
-    }
-    return len;
+    return utf8len(string);
 }

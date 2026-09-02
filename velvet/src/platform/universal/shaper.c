@@ -1,8 +1,6 @@
 #include "platform/universal/kb_text_shape.h"
 #include "support/da.h"
 #include "support/global_error_pool.h"
-#include <unicode/umachine.h>
-#include <unicode/utf8.h>
 #define KB_TEXT_SHAPE_IMPLEMENTATION
 #include "velvet/font/shaper.h"
 #include "platform/context.h"

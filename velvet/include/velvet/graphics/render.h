@@ -6,15 +6,8 @@
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
 #include "velvet/support/color.h"
-#include "velvet/graphics/geometry.h"
+#include "velvet/support/math.h"
 #include "velvet/os/window.h"
-#include <cglm/types.h>
-
-struct vl_graphics_render_mat4 {
-    float mat[16];
-};
-
-typedef struct vl_graphics_render_mat4 vl_graphics_render_mat4_t;
 
 struct vl_graphics_render {
     vl_os_window_t *owner;
@@ -22,13 +15,13 @@ struct vl_graphics_render {
 
     vl_platform_context_t *context;
 
-    VL_DA(vl_graphics_render_mat4_t) transform;
+    VL_DA(vl_mat4_t) transform;
 };
 typedef struct vl_graphics_render vl_graphics_render_t;
 
 VL_API vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window);
 VL_API vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t color);
-VL_API vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, mat4 transform);
+VL_API vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, vl_mat4_t transform);
 VL_API vl_result_t vl_graphics_render_push_translate(vl_graphics_render_t *render, vl_vec2_t translation);
 VL_API vl_result_t vl_graphics_render_push_rotate(vl_graphics_render_t *render, float degrees);
 VL_API vl_result_t vl_graphics_render_push_scale(vl_graphics_render_t *render, vl_vec2_t scale);

@@ -7,6 +7,7 @@ add_subdirectory(font)
 add_subdirectory(dom)
 add_subdirectory(web)
 add_subdirectory(css)
+add_subdirectory(vendor)
 
 set(Velvet_Sources
     ${Velvet_Sources}

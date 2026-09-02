@@ -1,13 +1,10 @@
 #include "velvet/css/lexer.h"
+#include "support/alphanum.h"
 #include "support/error_pool.h"
 #include "support/memory.h"
 #include "support/result.h"
 #include "support/str.h"
-
-#include <unicode/urename.h>
-#include <unicode/ustring.h>
-#include <unicode/uchar.h>
-#include <unicode/utf8.h>
+#include "vendor/utf8.h"
 
 vl_result_t vl_css_lexer_init_(vl_css_lexer_t *lexer, const char *text, vl_source_location_t loc, vl_error_pool_t *ep) {
     if (!lexer) return VL_ERROR;
@@ -27,20 +24,15 @@ vl_result_t vl_css_lexer_init_(vl_css_lexer_t *lexer, const char *text, vl_sourc
 
 static vl_result_t lexer_advance(vl_css_lexer_t *lexer) {
     do { 
-        if (lexer->raw_pos > lexer->raw_length) {
-            vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, "css lexer EOF");
-            return VL_ERROR;
-        }
         U8_NEXT(lexer->text, lexer->raw_pos, lexer->raw_length, lexer->c);
-        if (lexer->c >= 0) { 
+        if (lexer->c != 0) { 
             lexer->pos++;
             lexer->inline_pos++;
-            break;
+            return VL_SUCCESS;
         }
-    } while (lexer->c < 0 && lexer->raw_pos < lexer->raw_length);
+    } while (lexer->c == 0 && lexer->raw_pos < lexer->raw_length);
     return VL_SUCCESS;
 }
-
 
 vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
     if (!lexer || !token) return VL_ERROR;
@@ -56,14 +48,14 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
     } while (0)
 
 #define ADVANCE() \
-    if (lexer_advance(lexer)) return VL_ERROR;
+    if (lexer_advance(lexer)) { return VL_ERROR; }
 
     // end of input
     if (lexer->c == -2) {
         ADVANCE();
     }
     const char *cursor = lexer->text + lexer->raw_pos;
-    if (lexer->pos > lexer->length) {
+    if (lexer->pos > lexer->length || lexer->c == 0) {
         SET_TOKEN(VL_CSS_TOKEN_TYPE_STOP, NULL, NULL);
         return VL_SUCCESS;
     }
@@ -96,11 +88,11 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         return VL_ERROR;
     }
 
-    if (u_isUAlphabetic(lexer->c) || (lexer->c == '-' && *cursor == '-')) {
+    if (vl_isalphabetical(lexer->c) || (lexer->c == '-' && *cursor == '-')) {
         const char *word_begin = cursor - U8_LENGTH(lexer->c);
         const char *word_end = cursor;
         ADVANCE();
-        while (u_isalnum(lexer->c) || lexer->c == '-') {
+        while (vl_isalphanum(lexer->c) || lexer->c == '-') {
             word_end += U8_LENGTH(lexer->c);
             ADVANCE();
         }
@@ -119,6 +111,7 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
             ADVANCE();
         }
         if (dot_found && lexer->c == '.') {
+            ADVANCE();
             vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, "malformed number");
             return VL_ERROR;
         }

@@ -1,19 +1,18 @@
 #include "velvet/graphics/render.h"
 #include "graphics/brush.h"
+#include "support/base_math.h"
 #include "support/color.h"
-#include "graphics/geometry.h"
 #include "platform/context.h"
 #include "support/da.h"
+#include "support/math.h"
 #include "support/result.h"
-#include <cglm/mat4.h>
-#include <cglm/affine.h>
 
 vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window) {
     if (!window || !vl_platform_context_valid(window->context) || !window->context->graphics_render_new) return NULL;
     vl_graphics_render_t *render = window->context->graphics_render_new(window);
     if (render) {
         render->context = window->context;
-        render->transform = VL_DA_INIT(vl_graphics_render_mat4_t);
+        render->transform = VL_DA_INIT(vl_mat4_t);
     }
     return render;
 }
@@ -23,40 +22,36 @@ vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t co
     return render->context->graphics_render_clear(render, color);
 }
 
-vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, mat4 transform) {
-    if (!render || !transform) return VL_ERROR;
+vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, vl_mat4_t transform) {
+    if (!render) return VL_ERROR;
     if (render->transform) {
-        vl_graphics_render_mat4_t *mat = VL_DA_PUSH(render->transform, vl_graphics_render_mat4_t);
-        glm_mat4_copy(transform, mat->mat);
+        vl_mat4_t *mat = VL_DA_PUSH(render->transform, vl_mat4_t);
+        vl_mat4_dup(mat, transform);
     }
     return VL_SUCCESS;
 }
 
 vl_result_t vl_graphics_render_push_translate(vl_graphics_render_t *render, vl_vec2_t translation) {
     if (!render) return VL_ERROR;
-    mat4 transform = GLM_MAT4_IDENTITY;
-    vec3 translation3 = {translation.x, translation.y, 0};
-    glm_translate(transform, translation3);
-    vl_graphics_render_push_transform(render, transform);
+    vl_mat4_t mat = VL_MAT4();
+    vl_mat4_translate(&mat, mat, translation.x, translation.y, 0);
+    vl_graphics_render_push_transform(render, mat);
     return VL_SUCCESS;
 }
 
 vl_result_t vl_graphics_render_push_rotate(vl_graphics_render_t *render, float degrees) {
-#define DEG2RAD 0.017453292519943295769236907684886
     if (!render) return VL_ERROR;
-    mat4 transform = GLM_MAT4_IDENTITY;
-    static float axis[3] = {0, 0, 1};
-    glm_rotate(transform, degrees * DEG2RAD, axis);
-    vl_graphics_render_push_transform(render, transform);
+    vl_mat4_t mat = VL_MAT4();
+    vl_mat4_rotate(&mat, mat, VL_VEC3(0, 0, 1), VL_DEG2RAD * degrees);
+    vl_graphics_render_push_transform(render, mat);
     return VL_SUCCESS;
 }
 
 vl_result_t vl_graphics_render_push_scale(vl_graphics_render_t *render, vl_vec2_t scale) {
     if (!render) return VL_ERROR;
-    mat4 transform = GLM_MAT4_IDENTITY;
-    vec3 scale3 = {scale.x, scale.y, 1};
-    glm_scale(transform, scale3);
-    vl_graphics_render_push_transform(render, transform);
+    vl_mat4_t mat = VL_MAT4();
+    vl_mat4_scale_aniso(&mat, mat, VL_VEC3(scale.x, scale.y, 1));
+    vl_graphics_render_push_transform(render, mat);
     return VL_SUCCESS;
 }
 
@@ -69,10 +64,10 @@ vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_vertex) return VL_ERROR;
     if (render->transform) {
         for (int i = 0; i < VL_DA_LENGTH(render->transform); i++) {
-            vec4 src = {point.x, point.y, 0, 1};
-            vec4 dst;
-            glm_mat4_mulv(render->transform[i].mat, src, dst);
-            point = VL_POINT(dst[0], dst[1]);
+            vl_vec4_t src = {point.x, point.y, 0, 1};
+            vl_vec4_t dst;
+            vl_mat4_mul_vec4(&dst, render->transform[i], src);
+            point = VL_POINT(dst.x, dst.y);
         }
     }
     return render->context->graphics_render_batch_vertex(render, point, brush, color, uv); 
@@ -133,7 +128,7 @@ vl_result_t vl_graphics_render_pop_transform(vl_graphics_render_t *render) {
 vl_result_t vl_graphics_render_clear_transform(vl_graphics_render_t *render) {
     if (!render) return VL_ERROR;
     VL_DA_FREE(render->transform);
-    render->transform = VL_DA_INIT(vl_graphics_render_mat4_t);
+    render->transform = VL_DA_INIT(vl_mat4_t);
     return VL_SUCCESS;
 }
 

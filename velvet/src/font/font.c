@@ -1,12 +1,9 @@
 #include "velvet/font/font.h"
 #include "font/atlas.h"
-#include "graphics/geometry.h"
+#include "support/math.h"
 #include "platform/universal/font.h"
 #include "support/result.h"
-#include <string.h>
-#include <unicode/umachine.h>
-#include <unicode/utf8.h>
-
+#include "vendor/utf8.h"
 
 vl_font_t *vl_font_new_(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc) {
     if (!context || !context->font_new) return NULL;

@@ -5,7 +5,7 @@
 #include "velvet/support/memory.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
-#include "velvet/graphics/geometry.h"
+#include "velvet/support/math.h"
 #include "velvet/support/da.h"
 #include "velvet/dom/render.h"
 #include "velvet/css/layout.h"

@@ -1,16 +1,10 @@
 #include "html/lexer.h"
+#include "support/alphanum.h"
 #include "support/error_pool.h"
 #include "support/memory.h"
 #include "support/result.h"
 #include "support/str.h"
-
-#include <string.h>
-#include <stdio.h>
-
-#include <unicode/urename.h>
-#include <unicode/ustring.h>
-#include <unicode/uchar.h>
-#include <unicode/utf8.h>
+#include "support/alphanum.h"
 
 vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
     if (!lexer) return VL_ERROR;
@@ -29,20 +23,15 @@ vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {
 
 static vl_result_t lexer_advance(vl_html_lexer_t *lexer) {
     do { 
-        if (lexer->raw_pos > lexer->raw_length) {
-            vl_error_pool_append(lexer->ep, lexer->line, lexer->inline_pos, "lexer EOF");
-            return VL_ERROR;
-        }
         U8_NEXT(lexer->text, lexer->raw_pos, lexer->raw_length, lexer->c);
-        if (lexer->c >= 0) { 
+        if (lexer->c != 0) { 
             lexer->pos++;
             lexer->inline_pos++;
-            break;
+            return VL_SUCCESS;
         }
-    } while (lexer->c < 0 && lexer->raw_pos < lexer->raw_length);
+    } while (lexer->c == 0 && lexer->raw_pos < lexer->raw_length);
     return VL_SUCCESS;
 }
-
 
 vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
     if (!lexer || !token) return VL_ERROR;
@@ -60,25 +49,26 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
 #define ADVANCE() \
     if (lexer_advance(lexer)) return VL_ERROR;
 
-    // end of input
     if (lexer->c == -2) {
         ADVANCE();
     }
     const char *cursor = lexer->text + lexer->raw_pos;
-    if (lexer->pos > lexer->length) {
+    // printf("cursor: %s %s\n", cursor, cursor - U8_LENGTH(lexer->c));
+    if (lexer->pos > lexer->length || lexer->c == 0) {
         SET_TOKEN(VL_HTML_TOKEN_TYPE_STOP, NULL, NULL);
         return VL_SUCCESS;
     }
+    
     if (lexer->c == '\n') {
         lexer->inline_pos = 0;
         lexer->line++;
     }
 
-    if (u_isUAlphabetic(lexer->c)) {
+    if (vl_isalphabetical(lexer->c)) {
         const char *word_begin = cursor - U8_LENGTH(lexer->c);
         const char *word_end = cursor;
         ADVANCE();
-        while (u_isalnum(lexer->c)) {
+        while (vl_isalphanum(lexer->c)) {
             word_end += U8_LENGTH(lexer->c);
             ADVANCE();
         }
@@ -88,6 +78,7 @@ vl_result_t vl_html_lexer_get(vl_html_lexer_t *lexer, vl_html_token_t *token) {
 
     SET_TOKEN(VL_HTML_TOKEN_TYPE_SYMBOL, cursor - U8_LENGTH(lexer->c), cursor);
     ADVANCE();
+    // printf("current char: %i %c %zu %zu\n", lexer->c, lexer->c, lexer->raw_pos, lexer->raw_length);
 
 #undef ADVANCE
 #undef SET_TOKEN

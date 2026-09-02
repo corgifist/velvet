@@ -7,6 +7,7 @@ set(Velvet_Headers
     include/velvet/support/result.h
     include/velvet/support/feature.h
     include/velvet/support/api.h
+    include/velvet/support/base_math.h
     include/velvet/support/math.h
     include/velvet/support/ht.h
     include/velvet/support/hash.h

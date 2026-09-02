@@ -4,7 +4,7 @@
 #include "velvet/common.h"
 #include "velvet/css/style.h"
 #include "velvet/css/stylesheet.h"
-#include "velvet/graphics/geometry.h"
+#include "velvet/support/math.h"
 
 typedef void* vl_css_layout_node_owner_t;
 

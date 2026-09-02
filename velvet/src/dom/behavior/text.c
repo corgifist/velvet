@@ -3,7 +3,7 @@
 #include "css/style.h"
 #include "font/shaper.h"
 #include "support/color.h"
-#include "graphics/geometry.h"
+#include "support/math.h"
 #include "support/da.h"
 #include "support/memory.h"
 #include "support/result.h"

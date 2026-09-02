@@ -5,7 +5,7 @@
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
 #include "velvet/support/memory.h"
-#include "velvet/graphics/geometry.h"
+#include "velvet/support/math.h"
 
 enum vl_font_atlas_format {
     VL_FONT_ATLAS_FORMAT_RRRR8 = 1

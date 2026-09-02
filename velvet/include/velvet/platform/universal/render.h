@@ -7,7 +7,7 @@
 
 #include "graphics/bitmap.h"
 #include "support/color.h"
-#include "graphics/geometry.h"
+#include "support/math.h"
 #include "velvet/support/da.h"
 #include "velvet/graphics/brush.h"
 #include "velvet/os/window.h"
@@ -15,7 +15,7 @@
 #include "velvet/platform/universal/bitmap.h"
 
 #include <glad/gl.h>
-#include <cglm/mat4.h>
+
 
 struct Brush;
 struct GradientStop;
@@ -57,7 +57,7 @@ struct vl_graphics_render_universal {
 
     GLuint dummy_texture;
 
-    mat4 proj_mat;
+    vl_mat4_t proj_mat;
 };
 
 typedef struct vl_graphics_render_universal vl_graphics_render_universal_t;

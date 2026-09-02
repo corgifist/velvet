@@ -7,23 +7,17 @@
 #include "platform/universal/window.h"
 #include "platform/universal/brush.h"
 #include "support/da.h"
+#include "support/math.h"
 #include "support/memory.h"
 #include "os/window.h"
 #include "support/result.h"
 #include "support/str.h"
-#include "velvet.h"
 #include "gl_check.h"
-
 #include <GLFW/glfw3.h>
-#include <cglm/mat3x2.h>
-#include <cglm/mat4.h>
-#include <cglm/types.h>
-#include <cglm/vec4.h>
 #include <glad/gl.h>
-#include <cglm/cam.h>
-#include <string.h>
 
-#define BATCH_MAX 288 // should be divisible by 3
+#define TRIANGLES_MAX 128
+#define BATCH_MAX TRIANGLES_MAX * 3
 
 static void ensure_context(GLFWwindow *window) {
     static GLFWwindow *s_current_context = NULL;
@@ -64,14 +58,14 @@ void main() {
 #define BITMAP_MAX 16
 
 typedef VL_PACK(struct Brush {
-    ivec4 brush_data;
-    vec4 color;
+    vl_ivec4_t brush_data;
+    vl_vec4_t color;
 }) Brush;
 
 typedef VL_PACK(struct GradientStop {
     float percentage;
-    vec3 pad;
-    vec4 color;
+    vl_vec3_t pad;
+    vl_vec4_t color;
 }) GradientStop;
 
 static const char *s_batch_fragment_shader = 
@@ -170,8 +164,8 @@ void main() {
 }
 );
 
-static inline void flat_ortho(float w, float h, mat4 dest) {
-    glm_ortho(0, w, h, 0, -1.0f, 1.0f, dest);
+static inline void flat_ortho(float w, float h, vl_mat4_t *dst) {
+    vl_mat4_ortho(dst, 0, w, h, 0, -1, 1);
 }
 
 GLuint compile_shader(GladGLContext *ctx, GLenum shader_type, const char *source) {
@@ -215,7 +209,7 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     GL_CALL(render->ctx, PixelStorei(GL_UNPACK_ALIGNMENT, 1));
     GL_CALL(render->ctx, Enable(GL_BLEND));
     GL_CALL(render->ctx, BlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
-    flat_ortho(w, h, render->proj_mat);
+    flat_ortho(w, h, &render->proj_mat);
     // printf("%i %i\n", w, h);
 
     GL_CALL(render->ctx, GenBuffers(1, &render->batch_vbo));
@@ -460,11 +454,11 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     if (r->batch_offset == 0) return VL_SUCCESS;
     ensure_render_context(r);
     for (int i = 0; i < r->batch_offset; i++) {
-        vec4 v = {r->batch_vertices[i].x, r->batch_vertices[i].y, 0, 1};
-        vec4 dst;
-        glm_mat4_mulv(r->proj_mat, v, dst);
-        r->batch_vertices[i].x = dst[0];
-        r->batch_vertices[i].y = dst[1];
+        vl_vec4_t v = {r->batch_vertices[i].x, r->batch_vertices[i].y, 0, 1};
+        vl_vec4_t dst;
+        vl_mat4_mul_vec4(&dst, r->proj_mat, v);
+        r->batch_vertices[i].x = dst.x;
+        r->batch_vertices[i].y = dst.y;
     }
     GL_CALL(r->ctx, BindBuffer(GL_ARRAY_BUFFER, r->batch_vbo));
     GL_CALL(r->ctx, BufferSubData(GL_ARRAY_BUFFER, 0, r->batch_offset * sizeof(vl_graphics_vertex_t), r->batch_vertices));
@@ -513,7 +507,7 @@ vl_result_t vl_graphics_render_universal_resize(vl_graphics_render_t *render, in
     if (!render) return VL_ERROR;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
     vl_os_window_universal_t *win = (vl_os_window_universal_t*) render->owner;
-    flat_ortho(w, h, r->proj_mat);
+    flat_ortho(w, h, &r->proj_mat);
 
     int fw, fh;
     glfwGetFramebufferSize(win->handle, &fw, &fh);

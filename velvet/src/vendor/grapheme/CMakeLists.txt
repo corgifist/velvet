@@ -1,0 +1,12 @@
+set(Velvet_Sources
+    ${Velvet_Sources}
+    src/vendor/grapheme/src/bidirectional.c
+    src/vendor/grapheme/src/case.c
+    src/vendor/grapheme/src/character.c
+    src/vendor/grapheme/src/line.c
+    src/vendor/grapheme/src/sentence.c
+    src/vendor/grapheme/src/utf8.c
+    src/vendor/grapheme/src/word.c
+    src/vendor/grapheme/src/util.c
+    PARENT_SCOPE
+)

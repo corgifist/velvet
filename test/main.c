@@ -1,11 +1,8 @@
-
-#include <cglm/mat4.h>
 #include <complex.h>
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unicode/umachine.h>
 
 #include "large_test.h"
 #include "velvet/css/lexer.h"
@@ -17,8 +14,8 @@
 #include "velvet/font/shaper.h"
 #include "velvet/graphics/bitmap.h"
 #include "velvet/graphics/brush.h"
+#include "velvet/support/alphanum.h"
 #include "velvet/support/color.h"
-#include "velvet/graphics/geometry.h"
 #include "velvet/graphics/presentation.h"
 #include "velvet/graphics/render.h"
 #include "velvet/html/document.h"
@@ -29,6 +26,7 @@
 
 #include "velvet/html/parser.h"
 #include "velvet/support/error_pool.h"
+#include "velvet/support/global_error_pool.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/result.h"
 #include "velvet/support/variadic.h"
@@ -86,24 +84,20 @@ void da_stress_test() {
     vl_memory_print_allocations();
 }
 
-#include <unicode/utf8.h>
-
 void icu_test() {
-    const char *msg = u8"Hello, мир!";
+    const char *msg = u8"Привет, мир!";
     int i = 0;
+    int len = strlen(msg);
     UChar32 c;
-    size_t count = 0;
     do {
-        U8_NEXT(msg, i, 0, c);
-        if (c <= 0) break;
-        count++;
-        printf("%zu: %i (%s)\n", count, c, msg);
-    } while (c > 0);
+        U8_NEXT(msg, i, len, c);
+        printf("%i: %i (%s)\n", i, c, msg);
+    } while (c != 0);
 }
 
 void lexer_test() {
     vl_html_lexer_t lexer = {0};
-    const char *text = "<node name=\"Привет, \nмир!\">";
+    const char *text = "<node name=\"Привет, мир!\">";
     if (vl_html_lexer_init(&lexer, text)) {
         printf("vl_html_lexer_init error\n");
         return;
@@ -806,7 +800,7 @@ void arabic_test() {
 }
 
 #include "velvet/web/web.h"
-#include <cglm/affine.h>
+
 
 void simple_dom_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
@@ -852,10 +846,31 @@ void simple_dom_test() {
 void segmentation_test() {
     const char *text = "Hello, world! こんにちは世界";
     vl_font_segmentation_breaks_t breaks = NULL;
-    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_LINE, &breaks);
+    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_WORD, &breaks);
     for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {
         vl_font_segmentation_break_t *br = breaks + i;
         printf("%i %.*s %zu %zu\n", i, (int) br->end - (int) br->begin, text + br->begin, br->begin, br->end);
+    }
+}
+
+
+void css_lexer_text() {
+    vl_css_lexer_t lexer = {0};
+    const char *text = VL_STRINGIFY(
+        html {
+            padding: 16px;
+            margin-left: 8px;
+            color: red;
+            outline-color: rgba(128 128 128 0.6);
+            padding: 8px;
+            font-family: Roboto, 'EB Garamond', serif;
+        }
+    );
+    vl_css_lexer_init(&lexer, text);
+    vl_css_token_t tok = {0};
+    while (!vl_css_lexer_get(&lexer, &tok)) {
+        if (tok.type == VL_CSS_TOKEN_TYPE_STOP) break;
+        printf("%i %zu %i %.*s\n", tok.type, tok.inline_pos, tok.text_length, tok.text_length, tok.text);
     }
 }
 
@@ -873,7 +888,7 @@ void css_test() {
     );
     vl_css_parser_t parser = {0};
     vl_error_pool_t ep = {0};
-    vl_css_parser_init(&parser, text, VL_SOURCE_LOCATION_HERE, &ep);
+    vl_css_parser_init(&parser, text, VL_SOURCE_LOCATION_HERE, vl_global_error_pool());
     vl_css_class_t class = {0};
     VL_ASSERT(!vl_css_parser_get(&parser, &class));
     vl_css_class_print(&class);
@@ -886,7 +901,7 @@ void styling_test() {
     const char *input = VL_STRINGIFY(
         <style>
         body {
-             // --velvet-element-highlight: highlight-green;
+            // --velvet-element-highlight: highlight-green;
         }
         p {
             background-color: yellow;
@@ -1024,6 +1039,7 @@ int main(int argc, const char *argv[]) {
     // arabic_test();
     // simple_dom_test();
     // segmentation_test();
+    // css_lexer_text();
     // css_test();
     styling_test();
 

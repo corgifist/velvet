@@ -1,5 +1,5 @@
 #include "font/atlas.h"
-#include "graphics/geometry.h"
+#include "support/math.h"
 #include "support/da.h"
 #include "support/math.h"
 #include <stddef.h>

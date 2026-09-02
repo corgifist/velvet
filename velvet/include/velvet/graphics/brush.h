@@ -5,12 +5,9 @@
 #include "velvet/support/da.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"
-#include "velvet/graphics/geometry.h"
+#include "velvet/support/math.h"
 #include "velvet/support/color.h"
 #include "velvet/graphics/bitmap.h"
-
-#include <cglm/mat3x2.h>
-#include <cglm/types.h>
 
 enum vl_graphics_brush_type {
     VL_GRAPHICS_RENDER_BRUSH_SOLID = 1,
@@ -33,7 +30,6 @@ struct vl_graphics_brush {
     vl_graphics_brush_type_t type;
     struct vl_graphics_render *owner;
     vl_graphics_brush_extend_mode_t extend_x, extend_y;
-    mat3x2 transform;
 };
 
 typedef struct vl_graphics_brush vl_graphics_brush_t;

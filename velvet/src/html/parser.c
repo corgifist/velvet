@@ -12,10 +12,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <unicode/stringoptions.h>
-#include <unicode/urename.h>
-#include <unicode/ustring.h>
-#include <unicode/utypes.h>
 
 #define VL_TOKEN_COMPARE_EX(A, A_LENGTH, B) \
     ((A_LENGTH == sizeof(B) - 1) && (!vl_nstrcicmp(A, B, A_LENGTH)))

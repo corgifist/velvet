@@ -5,7 +5,7 @@
 #include "velvet/support/result.h"
 #include "velvet/support/api.h"
 
-#include <unicode/unistr.h>
+#include "velvet/vendor/utf8.h"
 
 struct vl_html_lexer {
     char *text;
@@ -13,7 +13,7 @@ struct vl_html_lexer {
     size_t length; // amount of utf-8 codepoints in text
 
     size_t raw_pos, pos, inline_pos, line;
-    UChar32 c;
+    utf8_int32_t c;
 
     vl_error_pool_t *ep;
 };

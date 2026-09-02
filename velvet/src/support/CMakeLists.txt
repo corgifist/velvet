@@ -8,5 +8,7 @@ set(Velvet_Sources
     src/support/str.c
     src/support/allocator.c
     src/support/global_error_pool.c
+    src/support/alphanum.c
+    src/support/math.c
     PARENT_SCOPE
 )

@@ -5,7 +5,7 @@
 #include "velvet/support/result.h"
 #include "velvet/support/api.h"
 #include "velvet/support/memory.h"
-#include "velvet/graphics/geometry.h"
+#include "velvet/support/math.h"
 #include "velvet/support/color.h"
 #include "velvet/graphics/bitmap.h"
 
@@ -83,7 +83,7 @@ typedef struct vl_font* (*vl_ctx_font_new)(struct vl_platform_context *context, 
 typedef struct vl_font_atlas_codepoint* (*vl_ctx_font_rasterize_glyph_id)(struct vl_font *font, struct vl_font_atlas *atlas, uint32_t glyph_id);
 typedef uint32_t (*vl_ctx_font_get_glyph_id_by_codepoint)(struct vl_font *font, uint32_t codepoint);
 typedef float (*vl_ctx_font_get_kern_advance)(struct vl_font *font, uint32_t codepoint_a, uint32_t codepoint_b);
-typedef struct vl_vec2 (*vl_ctx_font_get_text_size_ex)(struct vl_font *font, const char *text, size_t size);
+typedef union vl_vec2 (*vl_ctx_font_get_text_size_ex)(struct vl_font *font, const char *text, size_t size);
 typedef vl_result_t (*vl_ctx_font_free)(struct vl_font *font);
 
 // velvet/font/shaper.h

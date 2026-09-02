@@ -4,7 +4,7 @@
 #include "velvet/common.h"
 #include "velvet/support/da.h"
 #include "velvet/support/result.h"
-#include "velvet/graphics/geometry.h"
+#include "velvet/support/math.h"
 #include "velvet/platform/context.h"
 
 enum vl_os_mouse_button {

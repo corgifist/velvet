@@ -8,10 +8,28 @@
       }
     },
     {
+      "name": "vcpkg_win",
+      "inherits": "vcpkg",
+      "cacheVariables": {
+        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/cmake/triplets",
+        "VELVET_TOOLCHAIN_FILE": "${sourceDir}/cmake/mingw-w64.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-mingw-w64-static"
+      }
+    },
+    {
       "name": "vcpkg_debug",
       "inherits": "vcpkg",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USE_ASAN": "ON"
+      }
+    },
+    {
+      "name": "vcpkg_win_debug",
+      "inherits": "vcpkg_win",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USE_ASAN": "OFF"
       }
     }
   ]
