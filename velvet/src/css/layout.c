@@ -244,8 +244,7 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
             vl_css_layout_node_t *child = line->elements[j];
             float y_offset = max_span_offset - child->span_y_offset;
             child->position.y += line->height - child->size.y - y_offset;
-            child->render_offset.y = y_offset;
-            //child->size.y = line->line_height;
+            child->bounds_offset = VL_VEC4(0, child->position.y < 0 ? -child->position.y : 0, 0, y_offset);
         }
     }
     VL_DA_FREE(layout_targets);
@@ -296,7 +295,7 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->display = get_display_mode(node);
     node->block_last_margin = 0;
     node->span_y_offset = 0;
-    node->render_offset = VL_VEC2(0);
+    node->bounds_offset = VL_VEC4(0);
     node->margin = construct_margin(node);
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {

@@ -87,7 +87,10 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_
     if (suitable_as_bg_color && !is_body) {
         vl_color_t raw_color = vl_css_value_to_rgba(background_color);
         if (raw_color.a != 0)
-            vl_graphics_render_batch_rect_colored(web->render, VL_RECT(VL_VEC2(0), VL_POINT_ADD(element->layout.size, element->layout.render_offset)), NULL, VL_QUAD_COLOR(raw_color));
+            vl_graphics_render_batch_rect_colored(web->render, VL_RECT(
+                VL_VEC2(element->layout.bounds_offset.x, element->layout.bounds_offset.y), 
+                VL_POINT_ADD(element->layout.size, VL_VEC2(element->layout.bounds_offset.z, element->layout.bounds_offset.w))), 
+            NULL, VL_QUAD_COLOR(raw_color));
     }
     vl_result_t result = funcs->render(element, opts);
     vl_css_value_t velvet_element_highlight = vl_css_layout_node_get_property(&element->layout, 
