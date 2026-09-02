@@ -1,7 +1,6 @@
 #ifndef VELVET_GRAPHICS_BRUSH_H
 #define VELVET_GRAPHICS_BRUSH_H
 
-#include "velvet/common.h"
 #include "velvet/support/da.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"

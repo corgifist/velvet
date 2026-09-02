@@ -1,5 +1,4 @@
 #include "velvet/font/segmentation.h"
-#include "support/global_error_pool.h"
 #include "support/result.h"
 #include "vendor/grapheme.h"
 #include <stdint.h>

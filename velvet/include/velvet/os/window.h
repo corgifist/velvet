@@ -1,7 +1,6 @@
 #ifndef VELVET_OS_WINDOW
 #define VELVET_OS_WINDOW
 
-#include "velvet/common.h"
 #include "velvet/support/da.h"
 #include "velvet/support/result.h"
 #include "velvet/support/math.h"

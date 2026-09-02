@@ -1,7 +1,6 @@
 #ifndef VELVET_API_H
 #define VELVET_API_H
 
-#include "platform.h"
 
 #if VL_BUILD_SHARED_LIBS
     #if VL_PLATFORM(WINDOWS)

@@ -5,7 +5,6 @@
 #ifndef VELVET_PLATFORM_UNIVERSAL_RENDER_H
 #define VELVET_PLATFORM_UNIVERSAL_RENDER_H
 
-#include "graphics/bitmap.h"
 #include "support/color.h"
 #include "support/math.h"
 #include "velvet/support/da.h"

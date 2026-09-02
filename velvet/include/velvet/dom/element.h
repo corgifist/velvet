@@ -1,7 +1,6 @@
 #ifndef VL_DOM_ELEMENT_H
 #define VL_DOM_ELEMENT_H
 
-#include "velvet/css/style.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/api.h"
 #include "velvet/support/result.h"

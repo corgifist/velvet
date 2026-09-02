@@ -3,9 +3,7 @@
 #include "graphics/bitmap.h"
 #include "support/color.h"
 #include "graphics/render.h"
-#include "platform/universal/brush.h"
-#include "support/feature.h"
-#include "support/memory.h"
+
 #include "support/result.h"
 
 static void setup_brush(vl_graphics_brush_t *brush, vl_graphics_render_t *render) {

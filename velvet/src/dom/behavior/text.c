@@ -5,12 +5,10 @@
 #include "support/color.h"
 #include "support/math.h"
 #include "support/da.h"
-#include "support/memory.h"
 #include "support/result.h"
 #include "velvet/web/web.h"
 #include "web/fonts.h"
 #include "support/math.h"
-#include <stdlib.h>
 
 vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element, 
     vl_dom_behavior_text_layout_t *layout, const char *text) {

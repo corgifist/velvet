@@ -1,7 +1,6 @@
 #ifndef VELVET_CSS_LAYOUT_H
 #define VELVET_CSS_LAYOUT_H
 
-#include "velvet/common.h"
 #include "velvet/css/style.h"
 #include "velvet/css/stylesheet.h"
 #include "velvet/support/math.h"

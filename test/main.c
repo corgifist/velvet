@@ -8,13 +8,10 @@
 #include "velvet/css/lexer.h"
 #include "velvet/css/parser.h"
 #include "velvet/css/style.h"
-#include "velvet/dom/dom.h"
-#include "velvet/dom/element.h"
 #include "velvet/font/atlas.h"
 #include "velvet/font/shaper.h"
 #include "velvet/graphics/bitmap.h"
 #include "velvet/graphics/brush.h"
-#include "velvet/support/alphanum.h"
 #include "velvet/support/color.h"
 #include "velvet/graphics/presentation.h"
 #include "velvet/graphics/render.h"
@@ -23,14 +20,11 @@
 #include "velvet/platform/context.h"
 #include "velvet/support/allocator.h"
 #include "velvet/support/da.h"
-
 #include "velvet/html/parser.h"
 #include "velvet/support/error_pool.h"
 #include "velvet/support/global_error_pool.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/result.h"
-#include "velvet/support/variadic.h"
-#include "velvet/velvet.h"
 #include "velvet/support/managed_assert.h"
 #include "velvet/support/str.h"
 
@@ -256,7 +250,6 @@ void memory_test() {
 }
 
 #include "velvet/os/window.h"
-#include "velvet/os/sleep.h"
 #include "velvet/support/feature.h"
 
 void window_resize (vl_os_window_t *window, int w, int h) {
@@ -564,7 +557,6 @@ void misalign_test() {
     }
 }
 
-#include "font.h"
 #include "velvet/font/font.h"
 #include "roboto.h"
 
