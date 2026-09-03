@@ -917,6 +917,12 @@ void styling_test() {
         .sans-serif {
             font-family: sans-serif;
         }
+        .copperplate {
+            font-family: Copperplate;
+        }
+        .times-new-roman {
+            font-family: 'Times New Roman';
+        }
         </style>
         <p>Hello, <span>World!</span></p>
         <p>Hello, <span>World,!</span></p>
@@ -926,6 +932,8 @@ void styling_test() {
         </p>
         <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
         <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+        <p class="copperplate">Copperplate! Hello, World!</p>
+        <p class="times-new-roman">Times New Roman! Hello, World!</p>
     );
     // const char *input = VL_STRINGIFY(
     //     <style>
@@ -1005,6 +1013,16 @@ void styling_test() {
     vl_memory_print_allocations();
 }
 
+#include "velvet/font/search.h"
+
+void font_search() {
+    VL_DA(vl_font_search_description_t) results = NULL;
+    vl_font_search_query(&results, "Copperplate");
+    for (int i = 0; i < VL_DA_LENGTH(results); i++) {
+        printf("%s %s\n", results[i].name, results[i].path);
+    }
+}
+
 int main(int argc, const char *argv[]) {
 
     // da_stress_test();
@@ -1034,6 +1052,7 @@ int main(int argc, const char *argv[]) {
     // css_lexer_text();
     // css_test();
     styling_test();
+    // font_search();
 
     return 0;
 }

@@ -4,5 +4,6 @@ set(Velvet_Sources
     src/font/font.c
     src/font/shaper.c
     src/font/segmentation.c
+    src/font/search.c
     PARENT_SCOPE
 )

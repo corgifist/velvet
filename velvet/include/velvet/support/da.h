@@ -84,8 +84,8 @@ typedef void* VL_DA;
     (vl_da_copy((void*) DA, VL_HERE, VL_ALLOCATOR_DEFAULT()))
 #define VL_DA_COPY2(DA, LOC) \
     (vl_da_copy((void*) DA, VL_HERE, ALLOCATOR))
-#define VL_DA_COPY(DA, ...) \
-    VL_VA_DISPATCH(VL_DA_COPY, DA __VA_ARGS__)
+#define VL_DA_COPY(...) \
+    VL_VA_DISPATCH(VL_DA_COPY, __VA_ARGS__)
 
 /*
     appends VALUE to the dynamic array DA

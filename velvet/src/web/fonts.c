@@ -1,13 +1,16 @@
 #include "velvet/web/fonts.h"
 #include "font/atlas.h"
 #include "font/font.h"
+#include "font/search.h"
 #include "font/shaper.h"
 #include "graphics/bitmap.h"
 #include "graphics/brush.h"
 #include "support/da.h"
 #include "support/global_error_pool.h"
+#include "support/io.h"
 #include "support/memory.h"
 #include "support/result.h"
+#include "vendor/utf8.h"
 #include "web/web.h"
 #include <stdint.h>
 
@@ -62,11 +65,72 @@ vl_result_t vl_web_fonts_add_font_with_part_name(vl_web_fonts_t *fonts, const ch
     vl_web_font_part_t part = {0};
     part.data = font_data;
     part.len = font_len;
-    part.unit_font = vl_font_new(fonts->owner->platform_context, part_name ? part_name : family_name, 1, 1.0f, font_data, font_len);
+    part.name = part_name ? part_name : family_name;
+    part.unit_font = vl_font_new(fonts->owner->platform_context, part.name, 1, 1.0f, font_data, font_len);
     part.unit_shaper_ref = vl_font_shaper_add_font(fonts->shaper, part.unit_font);
     part.sized_fonts = VL_DA_INIT(vl_web_sized_font_t);
     VL_DA_APPEND(variation->parts, part);
     return VL_SUCCESS;
+}
+
+vl_result_t vl_web_fonts_add_font_with_part_name_from_disk(vl_web_fonts_t *fonts, const char *family_name, const char *path, vl_web_font_weight_t weight, const char *part_name) {
+    if (!fonts || !family_name || !path) return VL_ERROR;
+    vl_web_font_family_t *family = find_family(fonts, family_name);
+    if (!family) {
+        family = VL_DA_PUSH(fonts->families, vl_web_font_family_t);
+        family->name = family_name;
+        family->variations = VL_DA_INIT(vl_web_font_t);
+    }
+
+    vl_web_font_t *variation = find_variation(family, weight);
+    if (!variation) {
+        variation = VL_DA_PUSH(family->variations, vl_web_font_t);
+        variation->weight = weight;
+        variation->parts = VL_DA_INIT(vl_web_font_part_t);
+    }
+
+    vl_web_font_part_t part = {0};
+    part.path = path;
+    part.name = part_name ? part_name : family_name;
+    part.sized_fonts = VL_DA_INIT(vl_web_sized_font_t);
+    VL_DA_APPEND(variation->parts, part);
+    return VL_SUCCESS;
+}
+
+static vl_web_font_weight_t classify_weight(const char *font_name) {
+    vl_web_font_weight_t result = VL_WEB_FONT_REGULAR;
+    if (utf8casestr(font_name, "ExtraLight") || utf8casestr(font_name, "Extra Light")) 
+        result = VL_WEB_FONT_EXTRA_LIGHT;
+    if (utf8casestr(font_name, "Light")) result = VL_WEB_FONT_LIGHT;
+    if (utf8casestr(font_name, "Bold")) result = VL_WEB_FONT_BOLD;
+    return result;
+}
+
+VL_API vl_result_t vl_web_fonts_add_family_from_system(vl_web_fonts_t *fonts, const char *family_name) {
+    if (!fonts || !family_name) return VL_ERROR;
+    VL_DA(vl_font_search_description_t) search = VL_DA_INIT(vl_font_search_description_t);
+    vl_font_search_query(&search, family_name);
+    for (int i = 0; i < VL_DA_LENGTH(search); i++) {
+        vl_font_search_description_t *font = search + i;
+        if (utf8str(font->name, "Italic")) continue;
+        vl_web_font_weight_t weight = classify_weight(font->name);
+        // printf("found font: %s %s %i\n", font->name, font->path, weight);
+        vl_web_fonts_add_font_with_part_name_from_disk(fonts, family_name, VL_DA_COPY(font->path), weight, VL_DA_COPY(font->name));
+    }
+    VL_DA_FREE(search);
+    return VL_SUCCESS;
+}
+
+static void prepare_part(vl_web_fonts_t *fonts, vl_web_font_part_t *part) {
+    if (!part) return;
+    if (part->path && !part->data) {
+        part->data = vl_io_read_file(part->path);
+        // printf("read data: %s %p\n", part->path, part->data);
+        if (!part->data) return;
+        part->len = VL_DA_LENGTH(part->data) - 1;
+        part->unit_font = vl_font_new(fonts->owner->platform_context, part->name, 1, 1, part->data, part->len);
+        part->unit_shaper_ref = vl_font_shaper_add_font(fonts->shaper, part->unit_font);
+    }
 }
 
 VL_DA(vl_web_sized_font_t*) vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *family_name, vl_web_font_weight_t weight, int height) {
@@ -87,6 +151,7 @@ VL_DA(vl_web_sized_font_t*) vl_web_fonts_get_font(vl_web_fonts_t *fonts, const c
     for (int i = 0; i < VL_DA_LENGTH(variation->parts); i++) {
         if (!result) result = VL_DA_INIT(vl_web_sized_font_t*);
         vl_web_font_part_t *part = variation->parts + i;
+        prepare_part(fonts, part);
         vl_web_sized_font_t *sized_font = NULL;
         for (int j = 0; j < VL_DA_LENGTH(part->sized_fonts); j++) {
             if (part->sized_fonts[j].font->height == height) {
@@ -97,9 +162,10 @@ VL_DA(vl_web_sized_font_t*) vl_web_fonts_get_font(vl_web_fonts_t *fonts, const c
         
         if (!sized_font) {
             sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
-            sized_font->font = vl_font_new(fonts->owner->platform_context, part->unit_font->name, height, 2.0f, part->data, part->len);
+            sized_font->font = vl_font_new(fonts->owner->platform_context, part->name, height, 2.0f, part->data, part->len);
             sized_font->shaper_ref = part->unit_shaper_ref;
         }
+
         VL_DA_APPEND(result, sized_font);
     }
     return result;
@@ -114,6 +180,7 @@ vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, v
             if (variation->weight != weight) continue;
             for (int k = 0; k < VL_DA_LENGTH(variation->parts); k++) {
                 vl_web_font_part_t *part = variation->parts + k;
+                prepare_part(fonts, part);
                 if (part->unit_font == unit_font) {
                     for (int l = 0; l < VL_DA_LENGTH(part->sized_fonts); l++) {
                         vl_web_sized_font_t *sized_font = part->sized_fonts + l;
@@ -122,7 +189,7 @@ vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, v
                         }
                     }
                     vl_web_sized_font_t *sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
-                    sized_font->font = vl_font_new(fonts->owner->platform_context, part->unit_font->name, height, 2.0f, part->data, part->len);
+                    sized_font->font = vl_font_new(fonts->owner->platform_context, part->name, height, 2.0f, part->data, part->len);
                     sized_font->shaper_ref = part->unit_shaper_ref;
                     VL_DA_APPEND(part->sized_fonts, sized_font);
                     return sized_font;

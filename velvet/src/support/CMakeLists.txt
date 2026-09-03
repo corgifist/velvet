@@ -10,5 +10,6 @@ set(Velvet_Sources
     src/support/global_error_pool.c
     src/support/alphanum.c
     src/support/math.c
+    src/support/io.c
     PARENT_SCOPE
 )

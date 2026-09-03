@@ -33,6 +33,8 @@ struct vl_web_sized_font {
 typedef struct vl_web_sized_font vl_web_sized_font_t;
 
 struct vl_web_font_part {
+    const char *path; // path to the font file if loaded from disk
+    const char *name;
     const vl_byte_t *data;
     size_t len;
     VL_DA(vl_web_sized_font_t) sized_fonts; 
@@ -87,6 +89,8 @@ struct vl_web;
 VL_API vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts, struct vl_web *owner);
 VL_API vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name, const vl_byte_t *font_data, size_t font_len, vl_web_font_weight_t weight);
 VL_API vl_result_t vl_web_fonts_add_font_with_part_name(vl_web_fonts_t *fonts, const char *family_name, const vl_byte_t *font_data, size_t font_len, vl_web_font_weight_t weight, const char *part_name);
+VL_API vl_result_t vl_web_fonts_add_font_with_part_name_from_disk(vl_web_fonts_t *fonts, const char *family_name, const char *path, vl_web_font_weight_t weight, const char *part_name);
+VL_API vl_result_t vl_web_fonts_add_family_from_system(vl_web_fonts_t *fonts, const char *family_name);
 VL_API VL_DA(vl_web_sized_font_t*) vl_web_fonts_get_font(vl_web_fonts_t *fonts, const char *family_name, vl_web_font_weight_t weight, int height);
 VL_API vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, vl_font_t *unit_font, vl_web_font_weight_t weight, int height);
 VL_API vl_result_t vl_web_fonts_find_glyph_id_with_font(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, vl_font_t *font, uint32_t glyph_id);

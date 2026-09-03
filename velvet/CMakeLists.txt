@@ -19,6 +19,12 @@ if(BUILD_UNIVERSAL_PLATFORM)
     target_link_libraries(velvet PRIVATE glfw)
 endif()
 
+if (APPLE)
+  find_library(CORE_GRAPHICS_FRAMEWORK CoreGraphics REQUIRED)
+  find_library(CORE_TEXT_FRAMEWORK CoreText REQUIRED)
+  target_link_libraries(velvet PRIVATE ${CORE_GRAPHICS_FRAMEWORK} ${CORE_TEXT_FRAMEWORK})
+endif()
+
 target_compile_definitions(velvet PRIVATE VL_EXPORT_SYMBOLS)
 target_compile_definitions(velvet PRIVATE VL_BUILD_SHARED_LIBS=$<BOOL:${BUILD_SHARED_LIBS}>)
 target_compile_definitions(velvet PUBLIC VL_FEATURE_UNIVERSAL_PLATFORM=$<BOOL:${BUILD_UNIVERSAL_PLATFORM}>)
