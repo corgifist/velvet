@@ -10,15 +10,6 @@
 #include "dom/style/style.h"
 #include "web/theme.h"
 
-// default fonts
-#include "Roboto/Regular.h"
-
-#include "EB Garamond/Regular.h"
-
-#include "Noto Sans Arabic/Regular.h"
-
-#include "Noto Naskh Arabic/Regular.h"
-
 static void propagate_stylesheet(vl_css_layout_node_t *node, vl_css_stylesheet_t *sheet) {
     node->stylesheet = sheet;
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
@@ -41,14 +32,10 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     web->title = "velvet";
     web->refresh_styles = true;
     vl_web_fonts_init(&web->fonts, web);
-
     web->fonts.owner = web;
-    vl_web_fonts_add_font_with_part_name(&web->fonts, "sans-serif", Roboto_Regular, VL_ARR_LEN(Roboto_Regular), VL_WEB_FONT_REGULAR, "Roboto");
-    vl_web_fonts_add_font_with_part_name(&web->fonts, "sans-serif", NotoSansArabic_Regular, VL_ARR_LEN(NotoSansArabic_Regular), VL_WEB_FONT_REGULAR, "Noto Sans Arabic");
-    vl_web_fonts_add_font_with_part_name(&web->fonts, "serif", EBGaramond_Regular, VL_ARR_LEN(EBGaramond_Regular), VL_WEB_FONT_REGULAR, "EB Garamond");
-    vl_web_fonts_add_font_with_part_name(&web->fonts, "serif", NotoNaskhArabic_Regular, VL_ARR_LEN(NotoNaskhArabic_Regular), VL_WEB_FONT_REGULAR, "Noto Naskh Arabic");
-    vl_web_fonts_add_family_from_system(&web->fonts, "Copperplate");
-    vl_web_fonts_add_family_from_system(&web->fonts, "Times New Roman");
+    vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Times New Roman");
+    vl_web_fonts_add_parts_from_system(&web->fonts, "sans-serif", "Arial");
+
     return VL_SUCCESS;
 }
 

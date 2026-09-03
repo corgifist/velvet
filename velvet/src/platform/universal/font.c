@@ -21,7 +21,6 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     font->data = data;
     font->data_length = data_length;
 
-    printf("font data: %p\n", data);
     if (!stbtt_InitFont(&font->font, font->data, stbtt_GetFontOffsetForIndex(data, 0))) {
         goto err;
     }

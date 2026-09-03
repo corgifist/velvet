@@ -32,6 +32,13 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
             &web->fonts, font_family.as.const_literal, VL_WEB_FONT_REGULAR, 
             font_metric.value
         );
+        if (!gathered_fonts[0]) {
+            vl_web_fonts_add_family_from_system(&web->fonts, font_family.as.const_literal);
+            *VL_DA_PUSH(gathered_fonts, VL_DA(vl_web_sized_font_t*)) = vl_web_fonts_get_font(
+                &web->fonts, font_family.as.const_literal, VL_WEB_FONT_REGULAR, 
+                font_metric.value
+            );
+        }
     } else if (font_family.type == VL_CSS_VALUE_FONT_LIST) {
         gathered_fonts = VL_DA_INIT(VL_DA(vl_web_sized_font_t*));
         if (font_family.as.font_list.fonts) {

@@ -106,6 +106,30 @@ static vl_web_font_weight_t classify_weight(const char *font_name) {
     return result;
 }
 
+vl_result_t vl_web_fonts_add_parts_from_system(vl_web_fonts_t *fonts, const char *family_name, const char *part_family) {
+    if (!fonts || !family_name || !part_family) return VL_ERROR;
+    vl_web_font_family_t *family = find_family(fonts, family_name);
+    if (!family) {
+        family = VL_DA_PUSH(fonts->families, vl_web_font_family_t);
+        family->name = family_name;
+        family->variations = VL_DA_INIT(vl_web_font_t);
+    }
+    VL_DA(vl_font_search_description_t) search = VL_DA_INIT(vl_font_search_description_t);
+    vl_font_search_query(&search, part_family);
+    for (int i = 0; i < VL_DA_LENGTH(search); i++) {
+        vl_font_search_description_t *font = search + i;
+        if (utf8str(font->name, "Italic") || utf8str(font->name, "Narrow")) continue;
+        vl_web_font_weight_t weight = classify_weight(font->name);
+        printf("found font: %s %s %i\n", font->name, font->path, weight);
+        vl_web_fonts_add_font_with_part_name_from_disk(fonts, family_name, VL_DA_COPY(font->path), weight, VL_DA_COPY(font->name));
+        VL_DA_FREE(font->name);
+        VL_DA_FREE(font->path);
+    }
+    VL_DA_FREE(search);
+
+    return VL_SUCCESS;
+}
+
 VL_API vl_result_t vl_web_fonts_add_family_from_system(vl_web_fonts_t *fonts, const char *family_name) {
     if (!fonts || !family_name) return VL_ERROR;
     VL_DA(vl_font_search_description_t) search = VL_DA_INIT(vl_font_search_description_t);
@@ -116,6 +140,8 @@ VL_API vl_result_t vl_web_fonts_add_family_from_system(vl_web_fonts_t *fonts, co
         vl_web_font_weight_t weight = classify_weight(font->name);
         // printf("found font: %s %s %i\n", font->name, font->path, weight);
         vl_web_fonts_add_font_with_part_name_from_disk(fonts, family_name, VL_DA_COPY(font->path), weight, VL_DA_COPY(font->name));
+        VL_DA_FREE(font->name);
+        VL_DA_FREE(font->path);
     }
     VL_DA_FREE(search);
     return VL_SUCCESS;

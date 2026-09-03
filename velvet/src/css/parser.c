@@ -239,8 +239,9 @@ static vl_css_value_t parse_font_list(vl_css_parser_t *parser, vl_css_rule_t *ru
     const char *global_const_literal = try_parse_const_literal(parser, 4);
     if (global_const_literal) return VL_CSS_VALUE_CONST_LITERAL(global_const_literal);
     vl_css_token_t *current = parser->lookahead;
-    if (current->type == VL_CSS_TOKEN_TYPE_ID && VL_TOKEN_COMPARE(current + 1, ";")) {
-        const char *literal = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+    if ((current->type == VL_CSS_TOKEN_TYPE_ID || current->type == VL_CSS_TOKEN_TYPE_STRING) && VL_TOKEN_COMPARE(current + 1, ";")) {
+        bool is_string = (current->type == VL_CSS_TOKEN_TYPE_STRING);
+        const char *literal = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text + is_string, current->text_length - is_string - is_string);
         tokenize(parser);
         return (vl_css_value_t) {
             .type = VL_CSS_VALUE_DYNAMIC_LITERAL,
