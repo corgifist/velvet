@@ -890,51 +890,51 @@ void css_test() {
 #undef I
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    const char *input = VL_STRINGIFY(
-        <style>
-        body {
-            // --velvet-element-highlight: highlight-green;
-        }
-        p {
-            background-color: yellow;
-            font-size: 1.5em;
-        }
-        span {
-            background-color: green;
-            color: red;
-            font-size: 1.5em;
-        }
-        .reset {
-            font-size: unset;
-        }
-        .initial {
-            color: unset;
-            font-size: 16px;
-        }
-        .serif {
-            font-family: serif;
-        }
-        .sans-serif {
-            font-family: sans-serif;
-        }
-        .copperplate {
-            font-family: Copperplate;
-        }
-        .times-new-roman {
-            font-family: 'Times New Roman';
-        }
-        </style>
-        <p>Hello, <span>World!</span></p>
-        <p>Hello, <span>World,!</span></p>
-        <p>Hello, <span class="reset">World!</span></p>
-        <p class="initial">
-        yes, yielding a margin of <span class="initial">1.2rem</span> in between.
-        </p>
-        <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-        <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-        <p class="copperplate">Copperplate! Hello, World!</p>
-        <p class="times-new-roman">Times New Roman! Hello, World!</p>
-    );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //     body {
+    //         // --velvet-element-highlight: highlight-green;
+    //     }
+    //     p {
+    //         background-color: yellow;
+    //         font-size: 1.5em;
+    //     }
+    //     span {
+    //         background-color: green;
+    //         color: red;
+    //         font-size: 1.5em;
+    //     }
+    //     .reset {
+    //         font-size: unset;
+    //     }
+    //     .initial {
+    //         color: unset;
+    //         font-size: 16px;
+    //     }
+    //     .serif {
+    //         font-family: serif;
+    //     }
+    //     .sans-serif {
+    //         font-family: sans-serif;
+    //     }
+    //     .copperplate {
+    //         font-family: Copperplate;
+    //     }
+    //     .times-new-roman {
+    //         font-family: 'Times New Roman';
+    //     }
+    //     </style>
+    //     <p>Hello, <span>World!</span></p>
+    //     <p>Hello, <span>World,!</span></p>
+    //     <p>Hello, <span class="reset">World!</span></p>
+    //     <p class="initial">
+    //     yes, yielding a margin of <span class="initial">1.2rem</span> in between.
+    //     </p>
+    //     <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+    //     <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+    //     <p class="copperplate">Copperplate! Hello, World!</p>
+    //     <p class="times-new-roman">Times New Roman! Hello, World!</p>
+    // );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //     html {
@@ -983,6 +983,43 @@ void styling_test() {
     //    <p>VA AV</p>
     //    <p><span>V</span>A A<span>V</span></p>
     // );
+    const char *input = VL_STRINGIFY(
+        <style>
+            body {
+                background-color: lavender;
+                font-size: 2em;
+            }
+            .impact {
+                font-family: Impact;
+            }
+            .serif {
+                font-family: serif;
+            }
+            .sans-serif {
+                font-family: sans-serif;
+            }
+            .copperplate {
+                font-family: Copperplate;
+            }
+            .chalkduster {
+                font-family: Chalkduster;
+            }
+            .sanskrit {
+                font-family: 'Tiro Devanagari Sanskrit';
+            }
+            .chinese {
+                font-family: 'STFangSong';
+            }
+        </style>
+        <p class="serif">Serif font</p>
+        <p class="sans-serif">Sans-serif font</p>
+        <p class="impact">Impact font</p>
+        <p class="copperplate">Copperplate font</p>
+        <p class="chalkduster">Chalkduster font</p>
+        <p class="sanskrit">रामो लङ्कां गच्छति। रामो रावणं हन्ति॥</p>
+        <p class="chinese">王明：这是什么？</p>
+        <p>إِنَّ عِدَّةَ الشُّهُورِ عِندَ اللَّهِ اثْنَا عَشَرَ شَهْرًا</p>
+    );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);
@@ -1017,11 +1054,13 @@ void styling_test() {
 
 void font_search() {
     VL_DA(vl_font_search_description_t) results = NULL;
-    vl_font_search_query(&results, "Copperplate");
+    vl_font_search_query(&results, "Arial");
     for (int i = 0; i < VL_DA_LENGTH(results); i++) {
-        printf("%s %s\n", results[i].name, results[i].path);
+        printf("%i %i %s %s\n", i, (int) VL_DA_LENGTH(results), results[i].name, results[i].path);
     }
 }
+
+#include "velvet/support/main.h"
 
 int main(int argc, const char *argv[]) {
 

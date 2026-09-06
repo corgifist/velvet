@@ -19,10 +19,16 @@ if(BUILD_UNIVERSAL_PLATFORM)
     target_link_libraries(velvet PRIVATE glfw)
 endif()
 
-if (APPLE)
+if(APPLE)
   find_library(CORE_GRAPHICS_FRAMEWORK CoreGraphics REQUIRED)
   find_library(CORE_TEXT_FRAMEWORK CoreText REQUIRED)
   target_link_libraries(velvet PRIVATE ${CORE_GRAPHICS_FRAMEWORK} ${CORE_TEXT_FRAMEWORK})
+endif()
+
+if(WIN32)
+  target_compile_definitions(velvet PRIVATE UNICODE _UNICODE)
+  target_compile_options(velvet PRIVATE -municode)
+  target_link_options(velvet PRIVATE -municode)
 endif()
 
 target_compile_definitions(velvet PRIVATE VL_EXPORT_SYMBOLS)

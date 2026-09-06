@@ -1,7 +1,9 @@
 #include "velvet/support/result.h"
 #include "velvet/support/da.h"
 #include "velvet/font/search.h"
-#include "vendor/utf8.h"
+#include "velvet/support/platform.h"
+
+#if VL_PLATFORM(MAC)
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreText/CoreText.h>
@@ -19,21 +21,8 @@ static VL_DA_STRING cf_string_to_da_string(CFStringRef cf_string) {
     return result;
 }
 
-static bool families_match(VL_DA_STRING family_name, const char *query) {
-    if (!family_name || !query) return false;
-    while (*query != '\0' && *query == ' ') { query++; }
-    int family_len = strlen(family_name);
-    int query_len = strlen(query);
-    // printf("query: %s\n", query);
-    if (query_len > family_len) return false;
-    while (query[query_len - 1] == ' ' && query_len > 0) { query_len--; }
-    if (query_len == 0) return false;
-    // if (memcmp(family_name, query, query_len) == 0) printf("compare: '%s' '%s' %i res: %i\n", family_name, query, query_len, utf8ncasecmp(family_name, query, query_len));
-    return (utf8ncasecmp(family_name, query, query_len) == 0);
-}
-
 vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, const char *name) {
-    if (!results || !name) return VL_ERROR;
+    if (!results) return VL_ERROR;
     CTFontCollectionRef font_collection = CTFontCollectionCreateFromAvailableFonts(NULL);
     if (!font_collection) {
         return VL_ERROR;
@@ -56,7 +45,7 @@ vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, c
         vl_font_search_description_t desc = {0};
         if (font_name) {
             desc.name = cf_string_to_da_string(font_name);
-            if (!families_match(desc.name, name)) {
+            if ((name && !vl_font_search_compare_family_names(desc.name, name))) {
                 VL_DA_FREE(desc.name);
                 goto release;
             }
@@ -75,3 +64,5 @@ vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, c
     CFRelease(font_collection);
     return VL_SUCCESS;
 }
+
+#endif

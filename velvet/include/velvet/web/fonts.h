@@ -7,6 +7,9 @@
 #include "velvet/graphics/bitmap.h"
 #include "velvet/support/memory.h"
 #include "velvet/font/font.h"
+#include "velvet/support/da.h"
+#include "velvet/font/search.h"
+#include "velvet/web/font_storage.h"
 
 enum vl_web_font_weight {
     VL_WEB_FONT_THIN = 100,
@@ -81,6 +84,8 @@ struct vl_web_fonts {
     VL_DA(vl_web_font_atlas_t) atlases;
 
     vl_font_shaper_t *shaper;
+    VL_DA(vl_font_search_description_t) system_fonts;
+    vl_web_font_storage_t storage;
 };
 
 typedef struct vl_web_fonts vl_web_fonts_t;
