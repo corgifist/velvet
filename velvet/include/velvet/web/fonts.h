@@ -62,6 +62,7 @@ struct vl_web_font_family {
 typedef struct vl_web_font_family vl_web_font_family_t;
 
 struct vl_web_font_atlas {
+    int index;
     vl_font_atlas_t atlas;
     vl_graphics_bitmap_t *bitmap;
     vl_graphics_brush_t *brush;
@@ -70,8 +71,8 @@ struct vl_web_font_atlas {
 typedef struct vl_web_font_atlas vl_web_font_atlas_t;
 
 struct vl_web_font_atlas_codepoint {
-    vl_web_font_atlas_t *atlas;
-    vl_font_atlas_codepoint_t *codepoint;
+    int atlas_index;
+    int codepoint_index;
 };
 
 typedef struct vl_web_font_atlas_codepoint vl_web_font_atlas_codepoint_t;

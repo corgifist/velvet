@@ -191,7 +191,7 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
         vl_css_layout_node_t *next = i < len - 1 ? layout_targets[i + 1] : NULL;
         vl_css_block_line *line = lines + VL_DA_LENGTH(lines) - 1;
         node->size.y = cursor.y;
-        if (VL_CSS_CONST_LITERAL_EQUAL(child->display, "block") || !child->display.as.const_literal) {
+        if (VL_CSS_CONST_LITERAL_EQUAL(child->display, "block") || !child->display.as.literal) {
             if (prev) {
                 if (VL_CSS_CONST_LITERAL_EQUAL(prev->display, "inline")) {
                     cursor.y += prev->size.y;
@@ -342,8 +342,8 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
         result = fallback;
     }
     if (result.type == VL_CSS_VALUE_CONST_LITERAL 
-            && vl_web_theme_supports_property(result.as.const_literal)) {
-        vl_color_t theme_color = vl_web_theme_get_property(node->web->theme, result.as.const_literal, VL_COLOR(0));
+            && vl_web_theme_supports_property(result.as.literal)) {
+        vl_color_t theme_color = vl_web_theme_get_property(node->web->theme, result.as.literal, VL_COLOR(0));
         result = VL_CSS_VALUE_RGBA(theme_color.r, theme_color.g, theme_color.b, theme_color.a);
     }
     if (result.type == VL_CSS_VALUE_NONE) {

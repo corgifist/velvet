@@ -1,7 +1,6 @@
 #include "velvet/dom/dom.h"
 #include "css/layout.h"
 #include "dom/element.h"
-#include "dom/render.h"
 #include "html/document.h"
 #include "support/da.h"
 #include "support/global_error_pool.h"
@@ -57,9 +56,9 @@ vl_dom_element_t *collect_elements(vl_dom_t *owner, vl_dom_element_t *parent, vl
     return element;
 }
 
-vl_result_t vl_dom_render(vl_dom_t *dom, vl_dom_render_opts_t *opts) {
+vl_result_t vl_dom_render(vl_dom_t *dom) {
     if (!dom || !dom->root) return VL_ERROR;
-    return vl_dom_element_render(dom->root, opts);
+    return vl_dom_element_render(dom->root);
 }
 
 vl_result_t vl_dom_init_with_html_node(vl_dom_t *dom, vl_html_node_t *node) {

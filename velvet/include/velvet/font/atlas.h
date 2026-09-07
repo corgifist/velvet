@@ -17,6 +17,7 @@ typedef enum vl_font_atlas_format vl_font_atlas_format_t;
 struct vl_font;
 struct vl_font_atlas_codepoint {
     struct vl_font *owner;
+    int index;
     uint32_t glyph_id;
     vl_quad_uv_t uv;
 

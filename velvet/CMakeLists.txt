@@ -1,9 +1,6 @@
 option(USE_ASAN "Use AddressSanitizer (not supported for MinGW)" OFF)
 option(BUILD_SHARED_LIBS "Build Velvet as a dynamic library instead of static" OFF)
 option(BUILD_UNIVERSAL_PLATFORM "Build universal platform" ON)
-option(BUILD_DOM_TEXT_NODE "Include support for raw text HTML node" ON)
-option(BUILD_DOM_BODY_NODE "Include support for <body> HTML node" ON)
-option(BUILD_DOM_HTML_NODE "Include support for <html> HTML node" ON)
 
 add_subdirectory(include)
 add_subdirectory(src)

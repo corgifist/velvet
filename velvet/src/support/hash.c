@@ -21,7 +21,7 @@ vl_hash_t vl_hash_combine(vl_hash_t lhs, vl_hash_t rhs) {
 #define FNV1_32_INIT ((uint32_t)0x811c9dc5)
 #define FNV1_64_INIT ((uint64_t)0xcbf29ce484222325ULL)
 
-static vl_hash_t vl_hash_string64(void *mem, size_t mem_length) {
+static vl_hash_t vl_hash_string64(const char *mem) {
     unsigned char *s = (unsigned char*) mem;
     vl_hash_t hash = FNV1_64_INIT;
 
@@ -33,7 +33,7 @@ static vl_hash_t vl_hash_string64(void *mem, size_t mem_length) {
     return hash;
 }
 
-static vl_hash_t vl_hash_string32(void *mem, size_t mem_length) {
+static vl_hash_t vl_hash_string32(const char *mem) {
     unsigned char *s = (unsigned char*) mem;
     vl_hash_t hash = FNV1_32_INIT;
 
@@ -45,11 +45,11 @@ static vl_hash_t vl_hash_string32(void *mem, size_t mem_length) {
     return hash;
 }
 
-vl_hash_t vl_hash_string(void *mem, size_t mem_length) {
+vl_hash_t vl_hash_string(const char *mem) {
     if (sizeof(vl_hash_t) >= 8) {
-        return vl_hash_string64(mem, mem_length);
+        return vl_hash_string64(mem);
     } else {
-        return vl_hash_string32(mem, mem_length);
+        return vl_hash_string32(mem);
     }
 }
 

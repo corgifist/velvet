@@ -198,6 +198,22 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
         return parse_single_metric(parser, rule);
     }
 
+    if (current->type == VL_CSS_TOKEN_TYPE_NUMBER && VL_TOKEN_COMPARE(current + 1, ";")) {
+        bool dot_found = false;
+        for (int i = 0; i < current->text_length; i++) {
+            if (current->text[i] == '.') {
+                dot_found = true;
+                break;
+            }
+        }
+        if (!dot_found) {
+            char *endptr;
+            int integer = strtol(current->text, &endptr, 10);
+            tokenize(parser);
+            return VL_CSS_VALUE_INTEGER(integer);
+        }
+    }
+
     if (VL_TOKEN_COMPARE(current, "rgba") && VL_TOKEN_COMPARE(current + 1, "(")) {
         return parse_generic_color(parser, rule, 4);
     }
@@ -243,10 +259,7 @@ static vl_css_value_t parse_font_list(vl_css_parser_t *parser, vl_css_rule_t *ru
         bool is_string = (current->type == VL_CSS_TOKEN_TYPE_STRING);
         const char *literal = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text + is_string, current->text_length - is_string - is_string);
         tokenize(parser);
-        return (vl_css_value_t) {
-            .type = VL_CSS_VALUE_DYNAMIC_LITERAL,
-            .as = {.const_literal = literal}
-        };
+        return VL_CSS_VALUE_DYNAMIC_LITERAL(literal);
     }
     vl_css_value_t result = {.type = VL_CSS_VALUE_FONT_LIST, .as = {0}};
     vl_css_font_list_t *font_list = &result.as.font_list;

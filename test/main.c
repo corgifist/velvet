@@ -681,7 +681,7 @@ void shaper_test() {
             vl_font_shaper_run_reset(run);
             vl_font_shaper_process(shaper, ptr, strlen(ptr));
             while (vl_font_shaper_shape(shaper, run)) {
-                if (run->newline) {
+                if (run->hard_line_break) {
                     base_y += proggy->newline_advance;
                     base_x = 0;
                 }
@@ -818,7 +818,7 @@ void simple_dom_test() {
             static float angle = 0;
             angle += 3;
             vl_graphics_render_push_rotate(render, angle);
-            vl_web_render(&web, NULL);
+            vl_web_render(&web);
             vl_graphics_render_clear_transform(render);
             vl_graphics_render_batch_point(render, VL_POINT(50, 50), 5, VL_RED);
          vl_graphics_render_batch_end(render);
@@ -967,58 +967,81 @@ void styling_test() {
     //         <span>2rem</span>.
     //     </p>
     //     </div>
-
     //     <p>I am <span>2rem</span> below the element above.</p>
     // );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         html {
-    //             font-size: 1.5em;
+    //             font-size: 2em;
     //         }
     //         p {
     //             background-color: red;
     //         }
     //     </style>
-    //    <p>Hello, World! لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-    //    <p>VA AV</p>
-    //    <p><span>V</span>A A<span>V</span></p>
+    //     Hello, World
+    //     <p>Hello, World! لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+    //     <p>VA AV</p>
+    //     <p><span>V</span>A A<span>V</span></p>
+    // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         body {
+    //             background-color: lavender;
+    //             font-size: 2em;
+    //         }
+    //         .impact {
+    //             font-family: Impact;
+    //         }
+    //         .serif {
+    //             font-family: serif;
+    //         }
+    //         .sans-serif {
+    //             font-family: sans-serif;
+    //         }
+    //         .copperplate {
+    //             font-family: Copperplate;
+    //         }
+    //         .chalkduster {
+    //             font-family: Chalkduster;
+    //         }
+    //         .sanskrit {
+    //             font-family: 'Tiro Devanagari Sanskrit';
+    //         }
+    //         .chinese {
+    //             font-family: 'STFangSong';
+    //         }
+    //     </style>
+    //     <p class="serif">Serif font</p>
+    //     <p class="sans-serif">Sans-serif font</p>
+    //     <p class="impact">Impact font</p>
+    //     <p class="copperplate">Copperplate font</p>
+    //     <p class="chalkduster">Chalkduster font</p>
+    //     <p class="sanskrit">रामो लङ्कां गच्छति। रामो रावणं हन्ति॥</p>
+    //     <p class="chinese">王明：这是什么？</p>
+    //     <p>إِنَّ عِدَّةَ الشُّهُورِ عِندَ اللَّهِ اثْنَا عَشَرَ شَهْرًا</p>
     // );
     const char *input = VL_STRINGIFY(
         <style>
             body {
-                background-color: lavender;
                 font-size: 2em;
             }
-            .impact {
-                font-family: Impact;
+            .regular {
+                font-weight: 400;
             }
-            .serif {
-                font-family: serif;
+            .bolder {
+                font-weight: 500;
             }
-            .sans-serif {
-                font-family: sans-serif;
+            .in-between {
+                font-weight: 600;
             }
-            .copperplate {
-                font-family: Copperplate;
-            }
-            .chalkduster {
-                font-family: Chalkduster;
-            }
-            .sanskrit {
-                font-family: 'Tiro Devanagari Sanskrit';
-            }
-            .chinese {
-                font-family: 'STFangSong';
+            .bold {
+                font-weight: 700;
             }
         </style>
-        <p class="serif">Serif font</p>
-        <p class="sans-serif">Sans-serif font</p>
-        <p class="impact">Impact font</p>
-        <p class="copperplate">Copperplate font</p>
-        <p class="chalkduster">Chalkduster font</p>
-        <p class="sanskrit">रामो लङ्कां गच्छति। रामो रावणं हन्ति॥</p>
-        <p class="chinese">王明：这是什么？</p>
-        <p>إِنَّ عِدَّةَ الشُّهُورِ عِندَ اللَّهِ اثْنَا عَشَرَ شَهْرًا</p>
+        <p>Regular</p>
+        <p class="bolder">Bolder</p>
+        <p class="in-between">In between</p>
+        <p class="bold">Bold</p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
@@ -1037,7 +1060,7 @@ void styling_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_WHITE);
         vl_graphics_render_batch_begin(render);
-            vl_web_render(&web, NULL);
+            vl_web_render(&web);
          vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }

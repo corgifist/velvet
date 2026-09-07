@@ -5,16 +5,16 @@
 #include "support/result.h"
 #include "web/web.h"
 
-vl_dom_element_t *vl_dom_element_html_new(vl_source_location_t loc) {
+vl_dom_element_t *vl_dom_element_html_new(const char *tag, vl_source_location_t loc) {
     vl_dom_element_funcs_t *funcs = vl_malloc(sizeof(vl_dom_element_funcs_t) + sizeof(vl_dom_element_html_t));
     funcs->render = vl_dom_element_html_render;
     funcs->free = vl_dom_element_html_free;
     vl_dom_element_html_t *body = VL_PTR_FORWARD(funcs, sizeof(vl_dom_element_funcs_t));
-    body->base.tag = "html";
+    body->base.tag = tag;
     return (vl_dom_element_t*) body;
 }
 
-vl_result_t vl_dom_element_html_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts) {
+vl_result_t vl_dom_element_html_render(vl_dom_element_t *element) {
     vl_dom_element_t *body_element = NULL;
     if (element->children) {
         for (int i = 0; i < VL_DA_LENGTH(element->children); i++) {
@@ -25,10 +25,7 @@ vl_result_t vl_dom_element_html_render(vl_dom_element_t *element, vl_dom_render_
         }
     }
     if (body_element) {
-        // vl_vec2_t body_size = element->layout.size;
-        // printf("body size: %f %f\n", body_size.x, body_size.y);
-        // vl_graphics_render_batch_rect(element->owner->owner->render, VL_RECT(VL_VEC2(0, 0), body_size), NULL);
-        vl_dom_element_render(body_element, opts);
+        vl_dom_element_render(body_element);
     }
     return VL_SUCCESS;
 }

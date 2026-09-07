@@ -13,7 +13,8 @@
 #include "vendor/utf8.h"
 #include "web/font_storage.h"
 #include "web/web.h"
-#include <stdint.h>
+#include "support/base_math.h"
+#include <limits.h>
 
 vl_result_t vl_web_fonts_init(vl_web_fonts_t *fonts, vl_web_t *web) {
     if (!fonts) return VL_ERROR;
@@ -193,25 +194,23 @@ vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, v
     if (!fonts || !unit_font) return NULL;
     for (int i = 0; i < VL_DA_LENGTH(fonts->families); i++) {
         vl_web_font_family_t *family = fonts->families + i;
-        for (int j = 0; j < VL_DA_LENGTH(family->variations); j++) {
-            vl_web_font_t *variation = family->variations + j;
-            if (variation->weight != weight) continue;
-            for (int k = 0; k < VL_DA_LENGTH(variation->parts); k++) {
-                vl_web_font_part_t *part = variation->parts + k;
-                prepare_part(fonts, part);
-                if (part->unit_font == unit_font) {
-                    for (int l = 0; l < VL_DA_LENGTH(part->sized_fonts); l++) {
-                        vl_web_sized_font_t *sized_font = part->sized_fonts + l;
-                        if (sized_font->font->height == height) {
-                            return sized_font;
-                        }
+        vl_web_font_t *variation = find_variation(family, weight);
+        if (!variation) continue;
+        for (int k = 0; k < VL_DA_LENGTH(variation->parts); k++) {
+            vl_web_font_part_t *part = variation->parts + k;
+            prepare_part(fonts, part);
+            if (part->unit_font == unit_font) {
+                for (int l = 0; l < VL_DA_LENGTH(part->sized_fonts); l++) {
+                    vl_web_sized_font_t *sized_font = part->sized_fonts + l;
+                    if (sized_font->font->height == height) {
+                        return sized_font;
                     }
-                    vl_web_sized_font_t *sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
-                    sized_font->font = vl_font_new(fonts->owner->platform_context, part->name, height, 2.0f, part->data, part->len);
-                    sized_font->shaper_ref = part->unit_shaper_ref;
-                    VL_DA_APPEND(part->sized_fonts, sized_font);
-                    return sized_font;
                 }
+                if (!part->sized_fonts) part->sized_fonts = VL_DA_INIT(vl_web_sized_font_t);
+                vl_web_sized_font_t *sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
+                sized_font->font = vl_font_new(fonts->owner->platform_context, part->name, height, 2.0f, part->data, part->len);
+                sized_font->shaper_ref = part->unit_shaper_ref;
+                return sized_font;
             }
         }
     }
@@ -228,8 +227,8 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
         vl_font_atlas_codepoint_t *search = vl_font_atlas_find_glyph_id(&atlas->atlas, font, glyph_id);
         if (search) {
             if (codepoint) {
-                codepoint->atlas = atlas;
-                codepoint->codepoint = search;
+                codepoint->atlas_index = i;
+                codepoint->codepoint_index = search->index;
             }
             return VL_SUCCESS;
         }
@@ -247,6 +246,7 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
         vl_font_atlas_init(&free_atlas->atlas, VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
         free_atlas->bitmap = vl_graphics_bitmap_new(fonts->owner->render, free_atlas->atlas.width, free_atlas->atlas.height, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, NULL);
         free_atlas->brush = vl_graphics_brush_new_bitmap(fonts->owner->render, free_atlas->bitmap);
+        free_atlas->index = VL_DA_LENGTH(fonts->atlases) - 1;
     }
     
     vl_font_atlas_codepoint_t *rasterized = vl_font_rasterize_glyph_id(font, &free_atlas->atlas, glyph_id);
@@ -267,8 +267,8 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
     }
     vl_graphics_bitmap_update(free_atlas->bitmap, cursor_x, cursor_y, w, h, s_tmp_copy_buffer);
     if (codepoint) {
-        codepoint->codepoint = rasterized;
-        codepoint->atlas = free_atlas;
+        codepoint->codepoint_index = rasterized->index;
+        codepoint->atlas_index = free_atlas->index;
     }
     return VL_SUCCESS;
 }

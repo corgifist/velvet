@@ -80,9 +80,9 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     float ax = advance_x * f->slim_scale;
     result.advance_x = ax;
     result.x1 = lb;
-    result.y1 = font->ascent + y1 / font->density;
+    result.y1 = font->ascent + ((float) y1) / font->density;
     result.x2 = lb + w / font->density;
-    result.y2 = font->ascent + ((float) (y1 + h)) / font->density;
+    result.y2 = font->ascent + ((float) y2) / font->density;
 
     float aw = atlas->width;
     float ah = atlas->height;
@@ -96,6 +96,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
             && atlas->cursor_y + font->height * font->density >= atlas->height) {
         atlas->full = true;
     }
+    result.index = VL_DA_LENGTH(atlas->codepoints);
     return VL_DA_APPEND(atlas->codepoints, result);
 }
 

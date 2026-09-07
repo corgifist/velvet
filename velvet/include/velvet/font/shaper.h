@@ -28,7 +28,7 @@ typedef struct vl_font_shaper_glyph vl_font_shaper_glyph_t;
 struct vl_font_shaper_run {
     vl_font_shaper_t *owner;
     vl_font_t *font;
-    bool newline;
+    bool hard_line_break;
 };
 
 typedef struct vl_font_shaper_run vl_font_shaper_run_t;

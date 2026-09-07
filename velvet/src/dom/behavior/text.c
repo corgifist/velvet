@@ -62,7 +62,7 @@ vl_result_t vl_dom_behavior_text_layout_new(vl_dom_element_t *element,
     }
     vl_font_shaper_process(fonts->shaper, text, strlen(text));
     while (vl_font_shaper_shape(fonts->shaper, run)) {
-        if (run->newline) {
+        if (run->line_break) {
             vl_dom_behavior_text_glyph_t newline = {0};
             newline.newline = true;
             VL_DA_APPEND(layout->glyphs, newline);

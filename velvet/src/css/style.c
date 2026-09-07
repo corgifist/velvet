@@ -125,7 +125,7 @@ vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) 
         break;
     }
     case VL_CSS_VALUE_DYNAMIC_LITERAL: {
-        dst->as.const_literal = VL_DA_COPY(value->as.const_literal);
+        dst->as.literal = VL_DA_COPY(value->as.literal);
         break;
     }
     default: {
@@ -203,7 +203,7 @@ static void print_value(vl_css_value_t value) {
     }
     case VL_CSS_VALUE_DYNAMIC_LITERAL:
     case VL_CSS_VALUE_CONST_LITERAL: {
-        printf("%s", value.as.const_literal);
+        printf("%s", value.as.literal);
         break;
     }
     case VL_CSS_VALUE_FONT_LIST: {
@@ -215,6 +215,10 @@ static void print_value(vl_css_value_t value) {
             }
             break;
         }
+    }
+    case VL_CSS_VALUE_INTEGER: {
+        printf("%i", value.as.integer);
+        break;
     }
     default: break;
     }
@@ -337,7 +341,7 @@ vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
         break;
     }
     case VL_CSS_VALUE_DYNAMIC_LITERAL: {
-        VL_DA_FREE(value->as.const_literal);
+        VL_DA_FREE(value->as.literal);
         break;
     }
     default: return VL_SUCCESS;

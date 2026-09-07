@@ -45,4 +45,12 @@
 #define VL_SQRF(A) ((float) (A) * (float) (A))
 #endif // VL_SQRF
 
+#ifndef VL_ABS
+#define VL_ABS(A) (fabsf((float) A))
+#endif // VL_ABS
+
+#ifndef VL_IABS
+#define VL_IABS(A) ((int) VL_ABS(A))
+#endif // VL_IABS
+
 #endif // VELVET_SUPPORT_BASE_MATH_H

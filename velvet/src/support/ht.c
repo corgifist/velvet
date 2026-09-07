@@ -5,7 +5,11 @@
 #include "support/hash.h"
 #include <memory.h>
 
- void *vl_ht_new(size_t key_size, size_t value_size, size_t capacity, const char *key_type, 
+static vl_hash_t vl_hash_string_layer(void *mem, size_t mem_len) {
+    return vl_hash_string(mem);
+}
+
+void *vl_ht_new(size_t key_size, size_t value_size, size_t capacity, const char *key_type, 
                     vl_ht_hash_func_t hash_func, vl_allocator_t allocator, vl_source_location_t loc) {
     vl_ht_header_t *header = NULL;
     size_t size = sizeof(vl_ht_header_t) + (sizeof(size_t) + sizeof(vl_hash_t) + key_size + value_size) * capacity;
@@ -20,7 +24,7 @@
     header->value_size = value_size;
     if (!hash_func) {
         if (strcmp(key_type, "char*") == 0 || strcmp(key_type, "const char*") == 0) {
-            header->hash_func = vl_hash_string;
+            header->hash_func = vl_hash_string_layer;
         } else {
             header->hash_func = vl_hash_bytes;
         }

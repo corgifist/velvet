@@ -5,7 +5,6 @@
 #include "velvet/css/stylesheet.h"
 #include "velvet/platform/context.h"
 #include "velvet/html/document.h"
-#include "velvet/dom/render.h"
 #include "velvet/graphics/render.h"
 #include "velvet/dom/dom.h"
 #include "velvet/web/fonts.h"
@@ -28,7 +27,7 @@ struct vl_web {
 typedef struct vl_web vl_web_t;
 
 VL_API vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_document_t *node);
-VL_API vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts);
+VL_API vl_result_t vl_web_render(vl_web_t *web);
 VL_API vl_result_t vl_web_deinit(vl_web_t *web);
 
 #endif // VELVET_WEB_H

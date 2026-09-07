@@ -9,23 +9,11 @@
 #include <string.h>
 #include "web/web.h"
 
-#if VL_FEATURE(DOM_TEXT_NODE)
-    #include "velvet/dom/text/text.h"
-#endif // VL_FEATURE(DOM_TEXT_NODE)
-
-#if VL_FEATURE(DOM_BODY_NODE)
-    #include "velvet/dom/body/body.h"
-#endif // VL_FEATURE(DOM_BODY_NODE)
-
-#if VL_FEATURE(DOM_HTML_NODE)
-    #include "velvet/dom/html/html.h"
-#endif // VL_FEATURE(DOM_HTML_NODE)
-
-#include "velvet/dom/style/style.h"
-#include "velvet/dom/p/p.h"
-#include "velvet/dom/div/div.h"
-#include "velvet/dom/span/span.h"
+#include "velvet/dom/html/html.h"
 #include "velvet/dom/head/head.h"
+#include "velvet/dom/style/style.h"
+#include "velvet/dom/div/div.h"
+#include "velvet/dom/text/text.h"
 
 typedef struct {
     const char *tag;
@@ -35,12 +23,12 @@ typedef struct {
 static const vl_dom_element_pair_t s_elements[] = {
 #if VL_FEATURE(DOM_TEXT_NODE)
     {"text", vl_dom_element_text_new},
-    {"body", vl_dom_element_body_new},
+    {"body", vl_dom_element_div_new},
     {"html", vl_dom_element_html_new},
     {"style", vl_dom_element_style_new},
-    {"p", vl_dom_element_p_new},
+    {"p", vl_dom_element_div_new},
     {"div", vl_dom_element_div_new},
-    {"span", vl_dom_element_span_new},
+    {"span", vl_dom_element_div_new},
     {"head", vl_dom_element_head_new}
 #endif // VL_FEATURE(DOM_TEXT_NODE)
 };
@@ -52,7 +40,7 @@ static vl_vec2_t dom_to_css_size(vl_css_layout_node_t *node) {
 vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc) {
     for (int i = 0; i < VL_ARR_LEN(s_elements); i++) {
         if (strcmp(s_elements[i].tag, tag) == 0) {
-            vl_dom_element_t *element = s_elements[i].new_(loc);
+            vl_dom_element_t *element = s_elements[i].new_(tag, loc);
             if (element) {
                 vl_css_layout_node_init(&element->layout, s_elements[i].tag);
                 element->layout.owner = element;
@@ -69,7 +57,7 @@ vl_result_t vl_dom_element_process(vl_dom_element_t *element) {
     return vl_css_layout_node_process(&element->layout);
 }
 
-vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts) {
+vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     if (!element) return VL_ERROR;
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
     if (!funcs->render) return VL_SUCCESS;
@@ -94,7 +82,7 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_
                 VL_POINT_ADD(element->layout.size, VL_VEC2(element->layout.bounds_offset.z, element->layout.bounds_offset.w))), 
             NULL, VL_QUAD_COLOR(raw_color));
     }
-    vl_result_t result = funcs->render(element, opts);
+    vl_result_t result = funcs->render(element);
     vl_css_value_t velvet_element_highlight = vl_css_layout_node_get_property(&element->layout, 
         "--velvet-element-highlight", VL_CSS_VALUE_RGBA(0, 0, 0, 0)
     );

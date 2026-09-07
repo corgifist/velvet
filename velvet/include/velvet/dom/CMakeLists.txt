@@ -1,14 +1,8 @@
 set(Velvet_Headers
     ${Velvet_Headers}
-    include/velvet/dom/dom.h
-    include/velvet/dom/element.h
-    include/velvet/dom/render.h
-    include/velvet/dom/text/text.h
-    include/velvet/dom/body/body.h
+    include/velvet/dom/head/head.h
     include/velvet/dom/html/html.h
     include/velvet/dom/style/style.h
-    include/velvet/dom/p/p.h
-    include/velvet/dom/div/div.h
-    include/velvet/dom/span/span.h
+    include/velvet/dom/text/text.h
     PARENT_SCOPE
 )

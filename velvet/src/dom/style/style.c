@@ -6,12 +6,12 @@
 #include "support/result.h"
 #include "support/managed_assert.h"
 
-vl_dom_element_t *vl_dom_element_style_new(vl_source_location_t loc) {
+vl_dom_element_t *vl_dom_element_style_new(const char *tag, vl_source_location_t loc) {
     vl_dom_element_funcs_t *funcs = vl_malloc(sizeof(vl_dom_element_funcs_t) + sizeof(vl_dom_element_style_t));
     funcs->set_property = vl_dom_element_style_set_property;
     funcs->free = vl_dom_element_style_free;
     vl_dom_element_style_t *body = VL_PTR_FORWARD(funcs, sizeof(vl_dom_element_funcs_t));
-    body->base.tag = "style";
+    body->base.tag = tag;
     return (vl_dom_element_t*) body;
 }
 

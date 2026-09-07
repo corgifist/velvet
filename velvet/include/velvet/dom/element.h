@@ -6,7 +6,6 @@
 #include "velvet/support/result.h"
 #include "velvet/support/math.h"
 #include "velvet/support/da.h"
-#include "velvet/dom/render.h"
 #include "velvet/css/layout.h"
 
 enum vl_dom_element_property_type {
@@ -16,7 +15,7 @@ enum vl_dom_element_property_type {
 typedef enum vl_dom_element_property_type vl_dom_element_property_type_t;
 
 struct vl_dom_element;
-typedef vl_result_t (*vl_dom_element_render_func)(struct vl_dom_element *element, vl_dom_render_opts_t *opts);
+typedef vl_result_t (*vl_dom_element_render_func)(struct vl_dom_element *element);
 typedef vl_result_t (*vl_dom_element_set_property_func)(struct vl_dom_element *element, const char *property, vl_dom_element_property_type_t type, const void *value);
 typedef vl_vec2_t (*vl_dom_element_get_content_size_func)(struct vl_dom_element *element);
 typedef vl_result_t (*vl_dom_element_free_func)(struct vl_dom_element *element);
@@ -43,7 +42,7 @@ struct vl_dom_element {
 
 typedef struct vl_dom_element vl_dom_element_t;
 
-typedef vl_dom_element_t* (*vl_dom_element_new_func)(vl_source_location_t loc);
+typedef vl_dom_element_t* (*vl_dom_element_new_func)(const char *tag, vl_source_location_t loc);
 
 #define VL_DOM_ELEMENT_FUNCS(ELEMENT) \
     ((vl_dom_element_funcs_t*) VL_PTR_BACKWARD((ELEMENT), sizeof(vl_dom_element_funcs_t)))
@@ -54,7 +53,7 @@ typedef vl_dom_element_t* (*vl_dom_element_new_func)(vl_source_location_t loc);
     vl_dom_element_new_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 VL_API vl_dom_element_t *vl_dom_element_new_(const char *tag, vl_source_location_t loc);
 VL_API vl_result_t vl_dom_element_process(vl_dom_element_t *element);
-VL_API vl_result_t vl_dom_element_render(vl_dom_element_t *element, vl_dom_render_opts_t *opts);
+VL_API vl_result_t vl_dom_element_render(vl_dom_element_t *element);
 VL_API vl_result_t vl_dom_element_set_string(vl_dom_element_t *element, const char *property, const char *value);
 VL_API vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *property, vl_dom_element_property_type_t type, const void *value);
 VL_API vl_vec2_t vl_dom_element_get_content_size(vl_dom_element_t *element);

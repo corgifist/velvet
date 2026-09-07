@@ -53,7 +53,7 @@ static void collect_stylesheets(vl_dom_element_t *element, VL_DA(vl_css_styleshe
     }
 }
 
-vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
+vl_result_t vl_web_render(vl_web_t *web) {
     if (!web) return VL_ERROR;
     if (web->refresh_styles) {
         vl_css_stylesheet_deinit(&web->stylesheet);
@@ -74,7 +74,7 @@ vl_result_t vl_web_render(vl_web_t *web, vl_dom_render_opts_t *opts) {
         vl_dom_element_process(web->dom.root);
         web->refresh_styles = false;
     }
-    return vl_dom_render(&web->dom, opts);
+    return vl_dom_render(&web->dom);
 }
 
 vl_result_t vl_web_deinit(vl_web_t *web) {

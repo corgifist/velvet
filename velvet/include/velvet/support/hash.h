@@ -10,8 +10,7 @@
 typedef size_t vl_hash_t;
 
 vl_hash_t vl_hash_combine(vl_hash_t hash1, vl_hash_t hash2);
-
-vl_hash_t vl_hash_string(void *mem, size_t mem_length);
 vl_hash_t vl_hash_bytes(void *mem, size_t mem_length);
+vl_hash_t vl_hash_string(const char *mem);
 
 #endif // VELVET_SUPPORT_HASH_H

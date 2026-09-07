@@ -13,10 +13,6 @@ vl_font_shaper_run_t *vl_font_shaper_run_universal_new(vl_font_shaper_t *shaper,
     vl_font_shaper_run_universal_t *run = VL_NEW(vl_font_shaper_run_universal_t, loc);
     if (!run) return NULL;
     run->base.owner = shaper;
-    run->base.font = NULL;
-    run->base.newline = false;
-    run->run = (kbts_run) {0};
-    run->iterator = NULL;
     return (vl_font_shaper_run_t*) run;
 }
 
@@ -85,7 +81,7 @@ bool vl_font_shaper_universal_shape(vl_font_shaper_t *shaper, vl_font_shaper_run
     if (!shaper->font_stack || VL_DA_LENGTH(shaper->font_stack) <= 0) return false;
     bool status = kbts_ShapeRun(s->context, &r->run);
     if (!status) return false;
-    run->newline = r->run.Flags & KBTS_BREAK_FLAG_LINE_HARD;
+    run->hard_line_break = r->run.Flags & KBTS_BREAK_FLAG_LINE_HARD;
     run->font = r->run.Font->UserData;
     return true;
 }
@@ -109,7 +105,7 @@ vl_result_t vl_font_shaper_run_universal_reset(vl_font_shaper_run_t *run) {
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
     r->iterator = 0;
     r->run = (kbts_run) {0};
-    r->base.newline = false;
+    r->base.hard_line_break = false;
     return VL_SUCCESS;
 }
 
