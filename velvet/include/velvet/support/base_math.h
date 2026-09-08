@@ -2,6 +2,8 @@
 #define VELVET_SUPPORT_BASE_MATH_H
 
 #include <math.h>
+#include <stdint.h>
+#include <float.h>
 
 #define VL_PI 3.14159265358979323846
 #define VL_DEG2RAD 0.01745329251994329577
@@ -52,5 +54,14 @@
 #ifndef VL_IABS
 #define VL_IABS(A) ((int) VL_ABS(A))
 #endif // VL_IABS
+
+#define VL_INT_MAX INT32_MAX
+#define VL_INT_MIN INT32_MIN
+#define VL_LONG_MAX INT64_MAX
+#define VL_LONG_MIN INT64_MIN
+#define VL_FLOAT_MAX FLT_MAX
+#define VL_FLOAT_MIN FLT_MIN
+#define VL_DOUBLE_MAX DBL_MAX
+#define VL_DOUBLE_MIN DBL_MIN
 
 #endif // VELVET_SUPPORT_BASE_MATH_H

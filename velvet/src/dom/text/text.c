@@ -4,6 +4,7 @@
 #include "dom/dom.h"
 #include "dom/element.h"
 #include "font/atlas.h"
+#include "support/base_math.h"
 #include "support/hash.h"
 #include "support/math.h"
 #include "support/da.h"
@@ -13,8 +14,6 @@
 #include "vendor/utf8.h"
 #include "web/fonts.h"
 #include "web/web.h"
-#include <limits.h>
-#include <stdbool.h>
 
 vl_dom_element_t *vl_dom_element_text_new(const char *tag, vl_source_location_t loc) {
     vl_dom_element_funcs_t *funcs = vl_malloc(sizeof(vl_dom_element_funcs_t) + sizeof(vl_dom_element_text_t));
@@ -50,7 +49,7 @@ static int correct_weight(vl_web_fonts_t *fonts, const char *name, int weight) {
             vl_web_font_t *font = family->variations + j;
             if (font->weight == weight) return weight;
         }
-        int diff = INT_MAX;
+        int diff = VL_INT_MAX;
         int res = weight;
         for (int j = 0; j < VL_DA_LENGTH(family->variations); j++) {
             vl_web_font_t *font = family->variations + j;
@@ -59,7 +58,6 @@ static int correct_weight(vl_web_fonts_t *fonts, const char *name, int weight) {
             diff = curr_diff;
             res = font->weight;
         }
-        printf("corrected %i to %i for %s\n", weight, res, name);
         return res;
     }
     return weight;
@@ -124,7 +122,6 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
     vl_web_t *web = element->owner->owner;
     vl_web_fonts_t *fonts = &web->fonts;
     layout->glyphs = VL_DA_INIT(vl_dom_element_text_glyph_t);
-    printf("text: %s weight: %i\n", text->text, layout->blueprint.weight);
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(fonts->shaper);
     for (int i = 0; i < VL_DA_LENGTH(layout->blueprint.font_family); i++) {
         VL_DA(vl_web_sized_font_t*) parts = layout->blueprint.font_family[i];

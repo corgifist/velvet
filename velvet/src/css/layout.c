@@ -93,7 +93,7 @@ static vl_vec4_t construct_margin(vl_css_layout_node_t *node) {
         vl_css_rule_t *rule = node->style.applied_rules[i];
         if (!rule->property) continue;
         if (strcmp(rule->property, "margin") == 0) {
-            margin = generic_metric_to_metric4(node->parent, rule->value);
+            margin = generic_metric_to_metric4(node, rule->value);
             continue;
         }
         if (strcmp(rule->property, "margin-top") == 0) {
@@ -361,7 +361,7 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
         bool is_font_size = (property && strcmp(property, "font-size") == 0);
         vl_css_value_t font_size = vl_css_layout_node_get_property(is_font_size ? node->parent : node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_EM(1)));
         vl_css_size_metric_t processed_metric = font_size.as.metric1;
-        if (property && strcmp(node->tag, "html") != 0) {
+        if (node->tag && strcmp(node->tag, "html") != 0) {
             processed_metric = vl_css_layout_node_process_metric(is_font_size ? node->parent : node, "font-size", processed_metric, 0);
         } else {
             processed_metric = VL_CSS_SIZE_PIXELS(processed_metric.type == VL_CSS_SIZE_METRIC_PIXELS

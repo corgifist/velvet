@@ -1022,6 +1022,9 @@ void styling_test() {
     // );
     const char *input = VL_STRINGIFY(
         <style>
+            p {
+                background-color: red;
+            }
             body {
                 font-size: 2em;
             }
