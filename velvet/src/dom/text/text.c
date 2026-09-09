@@ -77,6 +77,17 @@ static const char *family_name_by_unit_font(vl_web_fonts_t *fonts, vl_font_t *un
     return NULL;
 }
 
+static int calculate_weight(vl_css_value_t weight) {
+    if (VL_CSS_VALUE_IS_LITERAL(weight)) {
+        if (VL_CSS_CONST_LITERAL_EQUAL(weight, "normal")) return 400;
+        if (VL_CSS_CONST_LITERAL_EQUAL(weight, "bold")) return 700;
+    }
+    if (weight.type == VL_CSS_VALUE_INTEGER) {
+        return weight.as.integer;
+    }
+    return 400;
+}
+
 static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *element, bool hollow) {
     vl_dom_element_text_blueprint_t blueprint = {0};
     vl_web_t *web = element->owner->owner;
@@ -84,7 +95,7 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
     vl_css_value_t font_weight_css = vl_css_layout_node_get_property(element->layout.parent, "font-weight", VL_CSS_VALUE_INTEGER(400));
     font_size_css.as.metric1 = vl_css_layout_node_process_metric(element->layout.parent ? element->layout.parent : &element->layout, "font-size", font_size_css.as.metric1, 0);
     blueprint.height = font_size_css.as.metric1.value;
-    blueprint.weight = font_weight_css.as.integer;
+    blueprint.weight = calculate_weight(font_weight_css);
 
     vl_css_value_t font_family = vl_css_layout_node_get_property(&element->layout, "font-family", VL_CSS_VALUE_CONST_LITERAL("serif"));
     if (!hollow) blueprint.font_family = VL_DA_INIT(VL_DA(vl_web_sized_font_t*));

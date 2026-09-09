@@ -161,7 +161,9 @@ static const char *s_const_literals[] = {
     "revert",
     "canvastext",
     "block",
-    "none"
+    "none",
+    "normal",
+    "bold"
 };
 
 static const char *try_parse_const_literal(vl_css_parser_t *parser, int limit) {

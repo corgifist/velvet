@@ -305,7 +305,13 @@ static const struct {
     {"p", layout_generic_div},
     {"div", layout_generic_div},
     {"span", layout_generic_div},
-    {"center", layout_center}
+    {"center", layout_center},
+    {"h1", layout_generic_div},
+    {"h2", layout_generic_div},
+    {"h3", layout_generic_div},
+    {"h4", layout_generic_div},
+    {"h5", layout_generic_div},    
+    {"h6", layout_generic_div}
 };
 
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
@@ -321,6 +327,7 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->span_y_offset = 0;
     node->bounds_offset = VL_VEC4(0);
     node->margin = construct_margin(node);
+    printf("%s %f %f\n", node->tag, node->margin.x, node->margin.z);
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             vl_result_t result = s_layout_overrides[i].layout(node);

@@ -29,7 +29,13 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"div", vl_dom_element_div_new},
     {"span", vl_dom_element_div_new},
     {"head", vl_dom_element_head_new},
-    {"center", vl_dom_element_div_new}
+    {"center", vl_dom_element_div_new},
+    {"h1", vl_dom_element_div_new},
+    {"h2", vl_dom_element_div_new},
+    {"h3", vl_dom_element_div_new},
+    {"h4", vl_dom_element_div_new},
+    {"h5", vl_dom_element_div_new},
+    {"h6", vl_dom_element_div_new}
 };
 
 static vl_vec2_t dom_to_css_size(vl_css_layout_node_t *node) {

@@ -52,6 +52,66 @@ static const char *s_default_stylesheet = VL_STRINGIFY(
     center {
         text-align: center;
     }
+
+    h1 {
+        display: block;
+        font-weight: bold;
+        font-size: 2em;
+        margin-block-start: 0.67em;
+        margin-block-end: 0.67em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    h2 {
+        display: block;
+        font-weight: bold;
+        font-size: 1.5em;
+        margin-block-start: 0.83em;
+        margin-block-end: 0.83em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    h3 {
+        display: block;
+        font-weight: bold;
+        font-size: 1.17em;
+        margin-block-start: 1em;
+        margin-block-end: 1em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    h4 {
+        display: block;
+        font-weight: bold;
+        font-size: 1em;
+        margin-block-start: 1.33em;
+        margin-block-end: 1.33em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    h5 {
+        display: block;
+        font-weight: bold;
+        font-size: 0.83em;
+        margin-block-start: 1.67em;
+        margin-block-end: 1.67em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    h6 {
+        display: block;
+        font-weight: bold;
+        font-size: 0.67em;
+        margin-block-start: 2.33em;
+        margin-block-end: 2.33em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
 );
 
 const char *vl_web_theme_default_stylesheet() {
