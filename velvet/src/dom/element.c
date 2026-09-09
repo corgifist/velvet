@@ -21,7 +21,6 @@ typedef struct {
 } vl_dom_element_pair_t;
 
 static const vl_dom_element_pair_t s_elements[] = {
-#if VL_FEATURE(DOM_TEXT_NODE)
     {"text", vl_dom_element_text_new},
     {"body", vl_dom_element_div_new},
     {"html", vl_dom_element_html_new},
@@ -29,8 +28,8 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"p", vl_dom_element_div_new},
     {"div", vl_dom_element_div_new},
     {"span", vl_dom_element_div_new},
-    {"head", vl_dom_element_head_new}
-#endif // VL_FEATURE(DOM_TEXT_NODE)
+    {"head", vl_dom_element_head_new},
+    {"center", vl_dom_element_div_new}
 };
 
 static vl_vec2_t dom_to_css_size(vl_css_layout_node_t *node) {

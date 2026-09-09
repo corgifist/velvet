@@ -1020,31 +1020,42 @@ void styling_test() {
     //     <p class="chinese">王明：这是什么？</p>
     //     <p>إِنَّ عِدَّةَ الشُّهُورِ عِندَ اللَّهِ اثْنَا عَشَرَ شَهْرًا</p>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         p {
+    //             background-color: red;
+    //         }
+    //         body {
+    //             font-size: 2em;
+    //         }
+    //         .regular {
+    //             font-weight: 400;
+    //         }
+    //         .bolder {
+    //             font-weight: 500;
+    //         }
+    //         .in-between {
+    //             font-weight: 600;
+    //         }
+    //         .bold {
+    //             font-weight: 700;
+    //         }
+    //     </style>
+    //     <p>Regular</p>
+    //     <p class="bolder">Bolder</p>
+    //     <p class="in-between">In between</p>
+    //     <p class="bold">Bold</p>
+    // );
     const char *input = VL_STRINGIFY(
         <style>
-            p {
-                background-color: red;
-            }
             body {
-                font-size: 2em;
-            }
-            .regular {
-                font-weight: 400;
-            }
-            .bolder {
-                font-weight: 500;
-            }
-            .in-between {
-                font-weight: 600;
-            }
-            .bold {
-                font-weight: 700;
+                // --velvet-element-highlight: highlight-green;
             }
         </style>
-        <p>Regular</p>
-        <p class="bolder">Bolder</p>
-        <p class="in-between">In between</p>
-        <p class="bold">Bold</p>
+        <center>
+            Hello, World! <span> or not...</span>
+        </center>
+        
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

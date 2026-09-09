@@ -155,7 +155,7 @@ static vl_css_value_t get_display_mode(vl_css_layout_node_t *node) {
 
 typedef struct {
     VL_DA(vl_css_layout_node_t*) elements;
-    float height;
+    float width, height;
 } vl_css_block_line;
 
 static vl_css_block_line *push_new_block_line(VL_DA(vl_css_block_line) *lines) {
@@ -163,12 +163,12 @@ static vl_css_block_line *push_new_block_line(VL_DA(vl_css_block_line) *lines) {
         *lines = VL_DA_INIT(vl_css_block_line);
     }
     vl_css_block_line *line = VL_DA_PUSH(*lines, vl_css_block_line);
-    *line = (vl_css_block_line) {VL_DA_INIT(vl_css_layout_node_t*), 0};
+    *line = (vl_css_block_line) {VL_DA_INIT(vl_css_layout_node_t*), 0, 0};
     return line;
 }
 #define PUSH_NEW_BLOCK_LINE(lines) push_new_block_line(&(lines))
 
-static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
+static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node) {
     vl_css_value_t node_display = get_display_mode(node);
     if (VL_CSS_CONST_LITERAL_EQUAL(node_display, "block")) 
         node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
@@ -207,6 +207,7 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
             child->position.y = cursor.y;
             cursor.y += child->size.y;
             node->block_last_margin = child->margin.z;
+            line->width = VL_MAX(line->width, cursor.x + child->size.x);
             line->height = VL_MAX(line->height, child->size.y);
             VL_DA_APPEND(line->elements, child);
             if (next && !VL_CSS_CONST_LITERAL_EQUAL(next->display, "inline")) {
@@ -220,6 +221,7 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
             child->position.x = cursor.x + child->margin.w;
             child->position.y = cursor.y;
             cursor.x += child->size.x;
+            line->width = VL_MAX(line->width, cursor.x);
             line->height = VL_MAX(line->height, child->size.y);
             size.x = VL_MAX(cursor.x, size.x);
             size.y = VL_MAX(size.y, cursor.y + line->height);
@@ -248,11 +250,32 @@ static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
         }
     }
     VL_DA_FREE(layout_targets);
+    node->size = size;
+    return lines;
+}
+
+static vl_result_t layout_generic_div(vl_css_layout_node_t *node) {
+    VL_DA(vl_css_block_line) lines = layout_generic_div_ex(node);
     for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
         VL_DA_FREE(lines[i].elements);
     }
     VL_DA_FREE(lines);
-    node->size = size;
+    return VL_SUCCESS;
+}
+
+static vl_result_t layout_center(vl_css_layout_node_t *node) {
+    VL_DA(vl_css_block_line) lines = layout_generic_div_ex(node);
+    for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
+        vl_css_block_line *line = lines + i;
+        for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
+            vl_css_layout_node_t *element = line->elements[j];
+            element->position.x += node->size.x / 2 - line->width / 2;
+        }
+    }
+    for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
+        VL_DA_FREE(lines[i].elements);
+    }
+    VL_DA_FREE(lines);
     return VL_SUCCESS;
 }
 
@@ -281,7 +304,8 @@ static const struct {
     {"body", layout_body},
     {"p", layout_generic_div},
     {"div", layout_generic_div},
-    {"span", layout_generic_div}
+    {"span", layout_generic_div},
+    {"center", layout_center}
 };
 
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {

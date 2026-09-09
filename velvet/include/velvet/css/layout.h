@@ -26,6 +26,7 @@ struct vl_css_layout_node {
 
     vl_css_value_t display;
     vl_vec2_t size;
+    vl_vec2_t content_size;
     vl_vec2_t position;
     vl_vec4_t margin;
     vl_vec4_t padding;

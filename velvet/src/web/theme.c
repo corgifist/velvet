@@ -48,6 +48,10 @@ static const char *s_default_stylesheet = VL_STRINGIFY(
     style {
         display: none;
     }
+
+    center {
+        text-align: center;
+    }
 );
 
 const char *vl_web_theme_default_stylesheet() {
