@@ -163,7 +163,13 @@ static const char *s_const_literals[] = {
     "block",
     "none",
     "normal",
-    "bold"
+    "bold",
+    "lighter",
+    "bolder",
+    "start",
+    "end",
+    "center",
+    "justify"
 };
 
 static const char *try_parse_const_literal(vl_css_parser_t *parser, int limit) {

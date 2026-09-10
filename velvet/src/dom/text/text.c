@@ -97,6 +97,17 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
     blueprint.height = font_size_css.as.metric1.value;
     blueprint.weight = calculate_weight(font_weight_css);
 
+    vl_css_value_t text_align_css = vl_css_layout_node_get_property(&element->layout, "text-align", VL_CSS_VALUE_CONST_LITERAL("start"));
+    if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "start")) {
+        blueprint.alignment = VL_DOM_TEXT_ALIGN_START;
+    } else if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "center")) {
+        blueprint.alignment = VL_DOM_TEXT_ALIGN_CENTER;
+    } else if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "end")) {
+        blueprint.alignment = VL_DOM_TEXT_ALIGN_END;
+    } else if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "justify")) {
+        blueprint.alignment = VL_DOM_TEXT_ALIGN_JUSTIFY;
+    }
+
     vl_css_value_t font_family = vl_css_layout_node_get_property(&element->layout, "font-family", VL_CSS_VALUE_CONST_LITERAL("serif"));
     if (!hollow) blueprint.font_family = VL_DA_INIT(VL_DA(vl_web_sized_font_t*));
     if (VL_CSS_VALUE_IS_LITERAL(font_family)) {
@@ -128,11 +139,17 @@ static void deinit_blueprint(vl_dom_element_text_blueprint_t *blueprint) {
     VL_ZERO_OUT(blueprint);
 }
 
+static vl_dom_element_text_line_t *push_new_line(VL_DA(vl_dom_element_text_line_t) *lines) {
+    vl_dom_element_text_line_t *line = VL_DA_PUSH(*lines, vl_dom_element_text_line_t);
+    line->glyphs = VL_DA_INIT(vl_dom_element_text_glyph_t);
+    return line;
+}
+
 static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layout_t *layout) {
     vl_dom_element_text_t *text = (vl_dom_element_text_t*) element;
     vl_web_t *web = element->owner->owner;
     vl_web_fonts_t *fonts = &web->fonts;
-    layout->glyphs = VL_DA_INIT(vl_dom_element_text_glyph_t);
+    layout->lines = VL_DA_INIT(vl_dom_element_text_line_t);
     vl_font_shaper_run_t *run = vl_font_shaper_run_new(fonts->shaper);
     for (int i = 0; i < VL_DA_LENGTH(layout->blueprint.font_family); i++) {
         VL_DA(vl_web_sized_font_t*) parts = layout->blueprint.font_family[i];
@@ -142,11 +159,13 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
         }
     }
     vl_font_shaper_process(fonts->shaper, text->text, VL_DA_LENGTH(text->text) - 1);
+    // printf("shaped '%s'\n", text->text);
+    vl_dom_element_text_line_t *line = push_new_line(&layout->lines);
+    float base_x = 0;
+    float base_y = 0;
     while (vl_font_shaper_shape(fonts->shaper, run)) {
         if (run->hard_line_break) {
-            vl_dom_element_text_glyph_t glyph = {0};
-            glyph.line_break = true;
-            VL_DA_APPEND(layout->glyphs, glyph);
+            line = push_new_line(&layout->lines);
         }
         vl_font_shaper_glyph_t shaper_glyph = {0};
         int corrected_weight = correct_weight(fonts, family_name_by_unit_font(fonts, run->font), layout->blueprint.weight);
@@ -156,21 +175,53 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             vl_dom_element_text_glyph_t text_glyph = {0};
             text_glyph.glyph_id = shaper_glyph.id;
             text_glyph.codepoint = shaper_glyph.codepoint;
-            text_glyph.advance_x = shaper_glyph.advance_x * layout->blueprint.height;
-            text_glyph.advance_y = shaper_glyph.advance_y * layout->blueprint.height;
-            text_glyph.x = shaper_glyph.x * layout->blueprint.height;
-            text_glyph.y = shaper_glyph.y * layout->blueprint.height;
             text_glyph.font = sized_font->font;
-            vl_web_fonts_find_glyph_id_with_font(&web->fonts, &text_glyph.web_codepoint, sized_font->font, text_glyph.glyph_id);
-            VL_DA_APPEND(layout->glyphs, text_glyph);
+            vl_web_font_atlas_codepoint_t web_codepoint = {0};
+            vl_web_fonts_find_glyph_id_with_font(&web->fonts, &web_codepoint, sized_font->font, text_glyph.glyph_id);
+            vl_font_atlas_codepoint_t *atlas_codepoint = fonts->atlases[web_codepoint.atlas_index].atlas.codepoints + web_codepoint.codepoint_index;
+            text_glyph.uv = atlas_codepoint->uv;
+            text_glyph.brush = fonts->atlases[web_codepoint.atlas_index].brush;
+            text_glyph.x1 = base_x + atlas_codepoint->x1 + shaper_glyph.x * layout->blueprint.height;
+            text_glyph.y1 = base_y + atlas_codepoint->y1 - shaper_glyph.y * layout->blueprint.height;
+            text_glyph.x2 = text_glyph.x1 + atlas_codepoint->w;
+            text_glyph.y2 = text_glyph.y1 + atlas_codepoint->h;
+            line->width = VL_MAX(line->width, text_glyph.x2 + (text_glyph.codepoint == ' ' ? shaper_glyph.advance_x * layout->blueprint.height : 0));
+            line->height = VL_MAX(line->height, text_glyph.y2);
+            line->span_offset = VL_MAX(line->span_offset, atlas_codepoint->y2 - text_glyph.font->ascent);
+            base_x += shaper_glyph.advance_x * layout->blueprint.height;
+            base_y += shaper_glyph.advance_y * layout->blueprint.height;
+            VL_DA_APPEND(line->glyphs, text_glyph);
         }
     }
     vl_font_shaper_run_free(run);
     vl_font_shaper_pop_all_fonts(fonts->shaper);
+
+    printf("layouting: %s %f\n", element->tag, element->layout.parent->size.x);
+    if (element->layout.parent->size.x >= 0) {
+        float min_offset = VL_FLOAT_MAX;
+        for (int i = 0; i < VL_DA_LENGTH(layout->lines); i++) {
+            vl_dom_element_text_line_t *line = layout->lines + i;
+            float align_offset = 0;
+            if (element->layout.parent) {
+                if (layout->blueprint.alignment == VL_DOM_TEXT_ALIGN_CENTER) {
+                    align_offset = element->layout.parent->size.x / 2 - line->width / 2;
+                } else if (layout->blueprint.alignment == VL_DOM_TEXT_ALIGN_END) {
+                    align_offset = element->layout.parent->size.x - line->width;
+                }
+            }
+            min_offset = VL_MIN(min_offset, align_offset);
+        }
+        if (min_offset != VL_FLOAT_MAX) element->layout.position.x += min_offset;
+    } 
 }
 
 static void deinit_layout(vl_dom_element_text_layout_t *layout) {
-    VL_DA_FREE(layout->glyphs);
+    if (layout->lines) {
+        for (int i = 0; i < VL_DA_LENGTH(layout->lines); i++) {
+            VL_DA_FREE(layout->lines[i]);
+        }
+    }
+    VL_DA_FREE(layout->lines);
     deinit_blueprint(&layout->blueprint);
 }
 
@@ -181,7 +232,8 @@ static void prepare_layout(vl_dom_element_t *element) {
     if (blueprint->height != fresh_blueprint.height 
             || blueprint->weight != fresh_blueprint.weight
             || blueprint->font_family_hash != fresh_blueprint.font_family_hash
-            || blueprint->text_hash != fresh_blueprint.text_hash) {
+            || blueprint->text_hash != fresh_blueprint.text_hash
+            || blueprint->alignment != fresh_blueprint.alignment) {
         deinit_layout(&text->layout);
         text->layout.blueprint = calculate_blueprint(element, false);
         calculate_layout(element, &text->layout);
@@ -205,19 +257,15 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element) {
     );
     vl_dom_element_text_layout_t *layout = &text->layout;
     vl_quad_colors_t quad_color = VL_QUAD_COLOR(normalized_color);
-    for (int i = 0; i < VL_DA_LENGTH(layout->glyphs); i++) {
-        vl_dom_element_text_glyph_t *glyph = layout->glyphs + i;
-        vl_web_fonts_find_glyph_id_with_font(&web->fonts, &glyph->web_codepoint, glyph->font, glyph->glyph_id);
-        vl_web_font_atlas_t *web_codepoint = web->fonts.atlases + glyph->web_codepoint.atlas_index;
-        vl_font_atlas_codepoint_t *atlas_codepoint = web_codepoint->atlas.codepoints + glyph->web_codepoint.codepoint_index;
-        float x = base_x + glyph->x + atlas_codepoint->x1;
-        float y = base_y - glyph->y + atlas_codepoint->y1;
-        vl_graphics_render_batch_rect_colored_uv(web->render, VL_RECT_EX(
-            x, y,
-            x + atlas_codepoint->w, y + atlas_codepoint->h
-        ), web->fonts.atlases[glyph->web_codepoint.atlas_index].brush, quad_color, atlas_codepoint->uv);
-        base_x += glyph->advance_x;
-        base_y += glyph->advance_y;
+    for (int i = 0; i < VL_DA_LENGTH(layout->lines); i++) {
+        vl_dom_element_text_line_t *line = layout->lines + i;
+        for (int j = 0; j < VL_DA_LENGTH(line->glyphs); j++) {
+            vl_dom_element_text_glyph_t *glyph = line->glyphs + j;
+            vl_graphics_render_batch_rect_colored_uv(web->render, VL_RECT_EX(
+                glyph->x1, glyph->y1,
+                glyph->x2, glyph->y2
+            ), glyph->brush, quad_color, glyph->uv);
+        }
     }
     return VL_SUCCESS;
 }
@@ -239,32 +287,13 @@ vl_vec2_t vl_dom_element_text_get_content_size(vl_dom_element_t *element) {
     vl_dom_element_text_layout_t *layout = &text->layout;
     vl_vec2_t size = {0};
     vl_web_t *web = element->owner->owner;
-    if (layout->glyphs) {
-        float base_x = 0;
-        float base_y = 0;
-        float max_x = 0;
-        float max_y = 0;
-        float lowest_char = 0;
-        for (int i = 0; i < VL_DA_LENGTH(layout->glyphs); i++) {
-            vl_dom_element_text_glyph_t *glyph = layout->glyphs + i;
-            vl_web_font_atlas_t *web_codepoint = web->fonts.atlases + glyph->web_codepoint.atlas_index;
-            vl_font_atlas_codepoint_t *atlas_codepoint = web_codepoint->atlas.codepoints + glyph->web_codepoint.codepoint_index;
-            float x = base_x + glyph->x + atlas_codepoint->x1;
-            float y = base_y - glyph->y + atlas_codepoint->y1;
-            float x2 = x + atlas_codepoint->w;
-            float y2 = y + atlas_codepoint->h;
-            if (glyph->codepoint == ' ') {
-                x2 += glyph->advance_x;
-                y2 += glyph->advance_y;
-            }
-            lowest_char = VL_MAX(lowest_char, atlas_codepoint->y2 - glyph->font->ascent);
-            max_x = VL_MAX(max_x, x2);
-            max_y = VL_MAX(max_y, y2);
-            base_x += glyph->advance_x;
-            base_y += glyph->advance_y;
+    if (layout->lines) {
+        for (int i = 0; i < VL_DA_LENGTH(layout->lines); i++) {
+            vl_dom_element_text_line_t *line = layout->lines + i;
+            size.x = VL_MAX(line->width, size.x);
+            size.y += line->height;
+            element->layout.span_y_offset = VL_MAX(element->layout.span_y_offset, line->span_offset);
         }
-        element->layout.span_y_offset = lowest_char;
-        size = (vl_vec2_t) {max_x, max_y};
     }
     return size;
 }

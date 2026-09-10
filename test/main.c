@@ -1046,21 +1046,45 @@ void styling_test() {
     //     <p class="in-between">In between</p>
     //     <p class="bold">Bold</p>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         body {
+    //             --velvet-element-highlight: highlight-green;
+    //         }
+    //     </style>
+    //     <center>
+    //         Hello, World!
+    //         <p>Hello, text-align property!</p>
+    //     </center>
+    //     <h1>Heading 1</h1>
+    //     <h2>Heading 2</h2>
+    //     <h3>Heading 3</h3>
+    //     <h4>Heading 4</h4>
+    //     <h5>Heading 5</h5>
+    //     <h6>Heading 6</h6>
+    //     <span>Hello, World!</span>
+    //     <center>
+    //         <h1>Welcome to My Website</h1>
+    //         <p>This entire block of content will be center-aligned.</p>
+    //     </center>
+    // );
     const char *input = VL_STRINGIFY(
         <style>
-            body {
-                // --velvet-element-highlight: highlight-green;
+            .start {
+                text-align: start;
+            }
+
+            .center {
+                text-align: center;
+            }
+
+            .end {
+                text-align: end;
             }
         </style>
-        <center>
-            Hello, World! <span> or not...</span>
-        </center>
-        <h1>Heading 1</h1>
-        <h2>Heading 2</h2>
-        <h3>Heading 3</h3>
-        <h4>Heading 4</h4>
-        <h5>Heading 5</h5>
-        <h6>Heading 6</h6>
+        <p class="start">text-align: start;</p>
+        <p class="center">text-align: center;</p>
+        <p class="end">text-align: end</p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
