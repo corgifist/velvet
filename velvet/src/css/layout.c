@@ -124,6 +124,14 @@ static vl_vec4_t construct_margin(vl_css_layout_node_t *node) {
             margin.z = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.y).value;
             continue;
         }
+        if (strcmp(rule->property, "margin-inline-start") == 0) {
+            margin.w = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
+            continue;
+        }
+        if (strcmp(rule->property, "margin-inline-end") == 0) {
+            margin.y = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
+            continue;
+        }
     }
     // printf("%s margin: %f %f %f %f\n", node->tag, margin.x, margin.y, margin.z, margin.w);
     return margin;
@@ -219,9 +227,9 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 line = PUSH_NEW_BLOCK_LINE(lines);
                 cursor.y += VL_MAX(child->margin.x, node->block_last_margin);
             }
-            child->position.x += cursor.x + child->margin.w;
+            child->position.x += cursor.x;
             child->position.y = cursor.y;
-            cursor.x += child->size.x;
+            cursor.x += child->size.x + child->margin.y + child->margin.w;
             line->width = VL_MAX(line->width, cursor.x);
             line->height = VL_MAX(line->height, child->size.y);
             size.x = VL_MAX(cursor.x, size.x);

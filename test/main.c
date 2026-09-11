@@ -1081,10 +1081,19 @@ void styling_test() {
             .end {
                 text-align: end;
             }
+            .margin {
+                margin-inline-start: 2em;
+                margin-inline-end: 3em;
+                background-color: red;
+            }
+            p {
+                background-color: green;
+            }
         </style>
         <p class="start">text-align: start;</p>
         <p class="center">text-align: center;</p>
         <p class="end">text-align: end</p>
+        <p>Hello,<span class="margin">span</span> World!</p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
