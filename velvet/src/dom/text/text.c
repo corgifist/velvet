@@ -196,7 +196,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
     vl_font_shaper_run_free(run);
     vl_font_shaper_pop_all_fonts(fonts->shaper);
 
-    printf("layouting: %s %f\n", element->tag, element->layout.parent->size.x);
+    // printf("layouting: %s %f\n", element->tag, element->layout.parent->size.x);
     if (element->layout.parent->size.x >= 0) {
         float min_offset = VL_FLOAT_MAX;
         for (int i = 0; i < VL_DA_LENGTH(layout->lines); i++) {

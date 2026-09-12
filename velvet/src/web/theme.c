@@ -112,6 +112,18 @@ static const char *s_default_stylesheet = VL_STRINGIFY(
         margin-inline-start: 0;
         margin-inline-end: 0;
     }
+
+    hr {
+        display: block;
+        color: gray;
+        border-style: inset;
+        border-width: 1px;
+        margin-block-start: 0.5em;
+        margin-block-end: 0.5em;
+        margin-inline-start: auto;
+        margin-inline-end: auto;
+        overflow: hidden;
+    }
 );
 
 const char *vl_web_theme_default_stylesheet() {

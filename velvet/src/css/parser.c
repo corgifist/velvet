@@ -126,9 +126,9 @@ static const struct {
     {"snow", VL_CSS_VALUE_RGBA(255, 250, 250, 1)},
     {"powderblue", VL_CSS_VALUE_RGBA(176, 224, 230, 1)},
     {"lavender", VL_CSS_VALUE_RGBA(230, 230, 250, 1)},
-    {"highlight-red", VL_CSS_VALUE_RGBA(128, 0, 0, 0.1)},
-    {"highlight-green", VL_CSS_VALUE_RGBA(0, 128, 0, 0.1)},
-    {"highlight-blue", VL_CSS_VALUE_RGBA(0, 0, 128, 0.1)}
+    {"highlight-red", VL_CSS_VALUE_RGBA(255, 0, 0, 0.1)},
+    {"highlight-green", VL_CSS_VALUE_RGBA(0, 255, 0, 0.1)},
+    {"highlight-blue", VL_CSS_VALUE_RGBA(0, 0, 255, 0.1)}
 };
 
 static vl_css_value_t parse_generic_color(vl_css_parser_t *parser, vl_css_rule_t *rule, int max_components) {
@@ -169,7 +169,8 @@ static const char *s_const_literals[] = {
     "start",
     "end",
     "center",
-    "justify"
+    "justify",
+    "fit-content"
 };
 
 static const char *try_parse_const_literal(vl_css_parser_t *parser, int limit) {

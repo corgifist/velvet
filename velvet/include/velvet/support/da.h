@@ -136,6 +136,8 @@ typedef void* VL_DA;
 
 #define VL_DA_LENGTH(DA) \
     (VL_DA_HEADER(DA)->count)
+#define VL_DA_EMPTY(DA) \
+    (VL_DA_LENGTH(DA) < 1)
 
 /*
     dispose the dynamic array using default deallocator

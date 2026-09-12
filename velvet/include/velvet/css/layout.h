@@ -25,6 +25,8 @@ struct vl_css_layout_node {
     vl_css_style_t style;
 
     vl_css_value_t display;
+    vl_vec2_t raw_dimensions;
+    bool lock_dimensions[2];
     vl_vec2_t size;
     vl_vec2_t content_size;
     vl_vec2_t position;
@@ -32,6 +34,8 @@ struct vl_css_layout_node {
     vl_vec4_t padding;
     vl_vec4_t bounds_offset;
     float block_last_margin;
+    float block_applied_margin;
+    float block_first_margin;
     float span_y_offset;
     bool calculating_layout;
 };

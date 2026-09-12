@@ -890,51 +890,51 @@ void css_test() {
 #undef I
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    // const char *input = VL_STRINGIFY(
-    //     <style>
-    //     body {
-    //         // --velvet-element-highlight: highlight-green;
-    //     }
-    //     p {
-    //         background-color: yellow;
-    //         font-size: 1.5em;
-    //     }
-    //     span {
-    //         background-color: green;
-    //         color: red;
-    //         font-size: 1.5em;
-    //     }
-    //     .reset {
-    //         font-size: unset;
-    //     }
-    //     .initial {
-    //         color: unset;
-    //         font-size: 16px;
-    //     }
-    //     .serif {
-    //         font-family: serif;
-    //     }
-    //     .sans-serif {
-    //         font-family: sans-serif;
-    //     }
-    //     .copperplate {
-    //         font-family: Copperplate;
-    //     }
-    //     .times-new-roman {
-    //         font-family: 'Times New Roman';
-    //     }
-    //     </style>
-    //     <p>Hello, <span>World!</span></p>
-    //     <p>Hello, <span>World,!</span></p>
-    //     <p>Hello, <span class="reset">World!</span></p>
-    //     <p class="initial">
-    //     yes, yielding a margin of <span class="initial">1.2rem</span> in between.
-    //     </p>
-    //     <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-    //     <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-    //     <p class="copperplate">Copperplate! Hello, World!</p>
-    //     <p class="times-new-roman">Times New Roman! Hello, World!</p>
-    // );
+    const char *input = VL_STRINGIFY(
+        <style>
+        body {
+            // --velvet-element-highlight: highlight-green;
+        }
+        p {
+            background-color: yellow;
+            font-size: 1.5em;
+        }
+        span {
+            background-color: green;
+            color: red;
+            font-size: 1.5em;
+        }
+        .reset {
+            font-size: unset;
+        }
+        .initial {
+            color: unset;
+            font-size: 16px;
+        }
+        .serif {
+            font-family: serif;
+        }
+        .sans-serif {
+            font-family: sans-serif;
+        }
+        .copperplate {
+            font-family: Copperplate;
+        }
+        .times-new-roman {
+            font-family: 'Times New Roman';
+        }
+        </style>
+        <p>Hello, <span>World!</span></p>
+        <p>Hello, <span>World,!</span></p>
+        <p>Hello, <span class="reset">World!</span></p>
+        <p class="initial">
+        yes, yielding a margin of <span class="initial">1.2rem</span> in between.
+        </p>
+        <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+        <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+        <p class="copperplate">Copperplate! Hello, World!</p>
+        <p class="times-new-roman">Times New Roman! Hello, World!</p>
+    );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //     html {
@@ -1051,6 +1051,10 @@ void styling_test() {
     //         body {
     //             --velvet-element-highlight: highlight-green;
     //         }
+    //         h1 {
+    //             // --velvet-element-highlight: unset;
+    //             --velvet-element-highlight: highlight-red;
+    //         }
     //     </style>
     //     <center>
     //         Hello, World!
@@ -1062,39 +1066,83 @@ void styling_test() {
     //     <h4>Heading 4</h4>
     //     <h5>Heading 5</h5>
     //     <h6>Heading 6</h6>
-    //     <span>Hello, World!</span>
+    //     <p>Hello, World!</p>
     //     <center>
     //         <h1>Welcome to My Website</h1>
     //         <p>This entire block of content will be center-aligned.</p>
     //     </center>
     // );
-    const char *input = VL_STRINGIFY(
-        <style>
-            .start {
-                text-align: start;
-            }
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         .start {
+    //             text-align: start;
+    //         }
 
-            .center {
-                text-align: center;
-            }
+    //         .center {
+    //             text-align: center;
+    //         }
 
-            .end {
-                text-align: end;
-            }
-            .margin {
-                margin-inline-start: 2em;
-                margin-inline-end: 3em;
-                background-color: red;
-            }
-            p {
-                background-color: green;
-            }
-        </style>
-        <p class="start">text-align: start;</p>
-        <p class="center">text-align: center;</p>
-        <p class="end">text-align: end</p>
-        <p>Hello,<span class="margin">span</span> World!</p>
-    );
+    //         .end {
+    //             text-align: end;
+    //         }
+    //         .margin {
+    //             margin-inline-start: 2em;
+    //             margin-inline-end: 3em;
+    //             background-color: red;
+    //         }
+    //         p {
+    //             background-color: green;
+    //         }
+    //     </style>
+    //     <p class="start">text-align: start;</p>
+    //     <p class="center">text-align: center;</p>
+    //     <p class="end">text-align: end;</p>
+    //     <p>Hello,<span class="margin">span</span> World!</p>
+    // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         html {
+    //             // --velvet-element-highlight: highlight-green;
+    //         }
+    //         p {
+    //             background-color: green;
+    //             margin: 20px 10px;
+    //         }
+    //         .red-rect {
+    //             width: fit-content;
+    //             height: fit-content;
+    //             background-color: red;
+    //         }
+    //         .yellow-rect {
+    //             width: 80px;
+    //             height: fit-content;
+    //             background-color: yellow;
+    //         }
+    //         .lavender-rect {
+    //             width: fit-content;
+    //             height: 80px;
+    //             background-color: lavender;
+    //         }
+    //     </style>
+    //     <div class="red-rect">
+    //         <p>I am in a rectangle!</p>
+    //         <p>I am in a rectangle!</p>
+    //         <p>I am in a rectangle!</p>
+    //         <p>I am in a rectangle!</p>
+    //     </div>
+    //     <div class="yellow-rect">
+    //         <p>My rectangle is yellow :D</p>
+    //         <p>My rectangle is yellow :D</p>
+    //         <p>My rectangle is yellow :D</p>
+    //         <p>My rectangle is yellow :D</p>
+    //     </div>
+    //     <div class="lavender-rect">
+    //         <p>I am lavender!</p>
+    //         <p>I am lavender!</p>
+    //         <p>I am lavender!</p>
+    //         <p>I am lavender!</p>
+    //     </div>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);
