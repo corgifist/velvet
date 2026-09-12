@@ -3,11 +3,14 @@
 
 #include "velvet/support/variadic.h"
 
-struct vl_color {
-    float r, g, b, a;
+union vl_color {
+    struct {
+        float r, g, b, a;
+    };
+    float m[4];
 };
 
-typedef struct vl_color vl_color_t;
+typedef union vl_color vl_color_t;
 
 #define VL_COLOR1(X) \
     VL_COLOR4(X, X, X, X)
@@ -18,8 +21,14 @@ typedef struct vl_color vl_color_t;
 #define VL_COLOR(...) \
     VL_VA_DISPATCH(VL_COLOR, __VA_ARGS__)
 
-#define VL_ALPHA(ALPHA) \
-    VL_COLOR(1, 1, 1, ALPHA)
+#define VL_ALPHA1(ALPHA) \
+    VL_COLOR4(1, 1, 1, ALPHA)
+#define VL_ALPHA2(COLOR, ALPHA) \
+    VL_COLOR4((COLOR).r, (COLOR).g, (COLOR).b, ALPHA)
+#define VL_ALPHA4(R, G, B, A) \
+    VL_COLOR4(R, G, B, A)
+#define VL_ALPHA(...) \
+    VL_VA_DISPATCH(VL_ALPHA, __VA_ARGS__)
 
 #define VL_COLOR_OP(A, B, OP) \
     VL_COLOR((A).r OP (B).r, (A).g OP (B).g, (A).b OP (B).b, (A).a OP (B).a)

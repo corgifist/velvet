@@ -104,6 +104,176 @@ vl_result_t vl_graphics_render_batch_rect_colored_uv(vl_graphics_render_t *rende
     return vl_graphics_render_batch_quad_colored_uv(render, VL_RECT_TO_QUAD(rect), brush, colors, uv);
 }
 
+vl_result_t vl_graphics_render_batch_line(vl_graphics_render_t *render, vl_line_t line, vl_graphics_brush_t *brush) {
+    return vl_graphics_render_batch_line_colored(render, line, brush, VL_WHITE);
+}
+
+vl_result_t vl_graphics_render_batch_line_colored(vl_graphics_render_t *render, vl_line_t line, vl_graphics_brush_t *brush, vl_color_t color) {
+    return vl_graphics_render_batch_line_colored_antialiased(render, line, brush, color, 0);
+}
+
+vl_result_t vl_graphics_render_batch_line_antialiased(vl_graphics_render_t *render, vl_line_t line, vl_graphics_brush_t *brush, float strength) {
+    return vl_graphics_render_batch_line_colored_antialiased(render, line, brush, VL_WHITE, strength);
+}
+
+vl_result_t vl_graphics_render_batch_line_colored_antialiased(
+    vl_graphics_render_t *render,
+    vl_line_t line,
+    vl_graphics_brush_t *brush,
+    vl_color_t color,
+    float strength
+) {
+    if (!render) return VL_ERROR;
+
+    vl_vec2_t d = VL_VEC2_SUB(line.to, line.from);
+    float length = VL_VEC2_LEN(d);
+    if (length <= 0.0f) return VL_SUCCESS;
+
+    vl_vec2_t t = VL_VEC2_SCALE(d, 1.0f / length);
+    vl_vec2_t n = VL_VEC2(-t.y, t.x);
+
+    float half_thickness = line.thickness * 0.5f;
+    strength = VL_MIN(strength, half_thickness);
+
+    float inner_half = half_thickness - strength;
+    float x0 = 0.0f;
+    float x1 = strength;
+    float x2 = length - strength;
+    float x3 = length;
+
+    float y0 = -half_thickness;
+    float y1 = -inner_half;
+    float y2 = inner_half;
+    float y3 = half_thickness;
+
+    if (x2 < x1) {
+        float xm = length * 0.5f;
+        x1 = xm;
+        x2 = xm;
+    }
+
+    vl_vec2_t p0 = line.from;
+    vl_vec2_t p1 = VL_VEC2_ADD(line.from, VL_VEC2_SCALE(t, x1));
+    vl_vec2_t p2 = VL_VEC2_ADD(line.from, VL_VEC2_SCALE(t, x2));
+    vl_vec2_t p3 = line.to;
+
+    vl_vec2_t a0 = VL_VEC2_SCALE(n, y0);
+    vl_vec2_t a1 = VL_VEC2_SCALE(n, y1);
+    vl_vec2_t a2 = VL_VEC2_SCALE(n, y2);
+    vl_vec2_t a3 = VL_VEC2_SCALE(n, y3);
+
+    #define P(x, y) VL_VEC2_ADD((x), (y))
+
+    if (x2 > x1 && y2 > y1) {
+        vl_graphics_render_batch_quad_colored(
+            render,
+            VL_QUAD(P(p1, a2), P(p1, a1), P(p2, a1), P(p2, a2)),
+            brush,
+            VL_QUAD_COLORS(color, color, color, color)
+        );
+    }
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p1, a3), P(p1, a2), P(p2, a2), P(p2, a3)),
+        brush,
+        VL_QUAD_COLORS(
+            VL_ALPHA(color, 0.0f),
+            color,
+            VL_ALPHA(color, 0.0f),
+            color
+        )
+    );
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p1, a1), P(p1, a0), P(p2, a0), P(p2, a1)),
+        brush,
+        VL_QUAD_COLORS(
+            color,
+            VL_ALPHA(color, 0.0f),
+            color,
+            VL_ALPHA(color, 0.0f)
+        )
+    );
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p0, a2), P(p0, a1), P(p1, a1), P(p1, a2)),
+        brush,
+        VL_QUAD_COLORS(
+            VL_ALPHA(color, 0.0f),
+            VL_ALPHA(color, 0.0f),
+            color,
+            color
+        )
+    );
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p0, a2), P(p1, a2), P(p1, a3), P(p0, a3)),
+        brush,
+        VL_QUAD_COLORS(
+            VL_ALPHA(color, 0.0f),
+            color,
+            VL_ALPHA(color, 0.0f),
+            VL_ALPHA(color, 0.0f)
+        )
+    );
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p0, a1), P(p0, a0), P(p1, a0), P(p1, a1)),
+        brush,
+        VL_QUAD_COLORS(
+            VL_ALPHA(color, 0.0f),
+            VL_ALPHA(color, 0.0f),
+            color,
+            VL_ALPHA(color, 0.0f)
+        )
+    );
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p2, a2), P(p2, a1), P(p3, a1), P(p3, a2)),
+        brush,
+        VL_QUAD_COLORS(
+            color,
+            color,
+            VL_ALPHA(color, 0.0f),
+            VL_ALPHA(color, 0.0f)
+        )
+    );
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p2, a3), P(p2, a2), P(p3, a2), P(p3, a3)),
+        brush,
+        VL_QUAD_COLORS(
+            VL_ALPHA(color, 0.0f),
+            color,
+            VL_ALPHA(color, 0.0f),
+            VL_ALPHA(color, 0.0f)
+        )
+    );
+
+    vl_graphics_render_batch_quad_colored(
+        render,
+        VL_QUAD(P(p2, a0), P(p3, a0), P(p3, a1), P(p2, a1)),
+        brush,
+        VL_QUAD_COLORS(
+            VL_ALPHA(color, 0.0f),
+            VL_ALPHA(color, 0.0f),
+            color,
+            VL_ALPHA(color, 0.0f)
+        )
+    );
+
+    #undef P
+
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, vl_point_t point, int size, vl_color_t color) {
     return vl_graphics_render_batch_rect_colored(render, VL_RECT(
         VL_POINT(point.x - (float) size / 2, point.y - (float) size / 2),

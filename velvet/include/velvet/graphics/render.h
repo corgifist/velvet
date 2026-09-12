@@ -34,6 +34,9 @@ VL_API vl_result_t vl_graphics_render_batch_rect(vl_graphics_render_t *render, v
 VL_API vl_result_t vl_graphics_render_batch_rect_colored(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors);
 VL_API vl_result_t vl_graphics_render_batch_rect_colored_uv(vl_graphics_render_t *render, vl_rect_t rect, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv);
 VL_API vl_result_t vl_graphics_render_batch_line(vl_graphics_render_t *render, vl_line_t line, vl_graphics_brush_t *brush);
+VL_API vl_result_t vl_graphics_render_batch_line_colored(vl_graphics_render_t *render, vl_line_t line, vl_graphics_brush_t *brush, vl_color_t color);
+VL_API vl_result_t vl_graphics_render_batch_line_antialiased(vl_graphics_render_t *render, vl_line_t line, vl_graphics_brush_t *brush, float strength);
+VL_API vl_result_t vl_graphics_render_batch_line_colored_antialiased(vl_graphics_render_t *render, vl_line_t line, vl_graphics_brush_t *brush, vl_color_t color, float strength);
 VL_API vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, vl_point_t point, int size, vl_color_t color);
 VL_API vl_result_t vl_graphics_render_batch_end(vl_graphics_render_t *render);
 VL_API vl_result_t vl_graphics_render_pop_transform(vl_graphics_render_t *render);

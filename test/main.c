@@ -1135,6 +1135,46 @@ void font_search() {
     }
 }
 
+void line_test() {
+    vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
+    vl_os_window_t *win = vl_os_window_new(ctx, "Lines test", 640, 480);
+    vl_graphics_render_t *render = vl_graphics_render_new(win);
+    vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, render);
+
+    bool close;
+    while (!vl_os_window_should_close(win, &close) && !close) {
+        vl_os_window_poll_events(ctx);
+        vl_graphics_presentation_begin(present);
+        vl_graphics_render_clear(render, VL_BLACK);
+        vl_graphics_render_batch_begin(render);
+            static float angle = 0;
+            angle += 1 * VL_DEG2RAD;
+            static vl_vec2_t origin = VL_VEC2(320, 240);
+            static float len = 150;
+            for (float angle_ = 0; angle_ <= 180; angle_ += 10) {
+                float angle = angle_ * VL_DEG2RAD;
+                vl_graphics_render_batch_line_antialiased(render, VL_LINE(
+                    VL_VEC2_SUB(origin, VL_VEC2(len * cosf(angle), len * sinf(angle))),
+                    VL_VEC2_ADD(origin, VL_VEC2(len * cosf(angle), len * sinf(angle))),
+                    10
+                ), NULL, win->io.mouse_down[VL_MOUSE_BUTTON_LEFT] ? 2 : 0);
+            }
+            vl_graphics_render_batch_line_antialiased(render, VL_LINE(
+                VL_VEC2(100, 100), VL_VEC2(200, 100), 5
+            ), NULL, 1);
+            vl_graphics_render_batch_line_antialiased(render, VL_LINE(
+                VL_VEC2(100, 100), VL_VEC2(100, 200), 5
+            ), NULL, 1);
+        vl_graphics_render_batch_end(render);
+        vl_graphics_presentation_end(present);
+    }
+    vl_graphics_presentation_free(present);
+    vl_graphics_render_free(render);
+    vl_os_window_free(win);
+    vl_platform_context_free(ctx);
+    vl_memory_print_allocations();
+}
+
 #include "velvet/support/main.h"
 
 int main(int argc, const char *argv[]) {
@@ -1165,8 +1205,9 @@ int main(int argc, const char *argv[]) {
     // segmentation_test();
     // css_lexer_text();
     // css_test();
-    styling_test();
+    // styling_test();
     // font_search();
+    line_test();
 
     return 0;
 }

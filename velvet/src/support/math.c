@@ -1,4 +1,5 @@
 #include "velvet/support/math.h"
+#include "support/base_math.h"
 #include "support/result.h"
 #include "support/memory.h"
 
@@ -129,6 +130,17 @@ vl_result_t vl_mat4_ortho(vl_mat4_t *dst, const float l, const float r, const fl
     return VL_SUCCESS;
 }
 
+vl_vec2_t vl_vec2_norm(vl_vec2_t vec2) {
+    float length = VL_VEC2_LEN(vec2);
+    if (length == 0.0f) {
+        return VL_VEC2(0);
+    }
+    return VL_VEC2(
+        vec2.x / length,
+        vec2.y / length
+    );
+}
+
 vl_vec3_t vl_vec3_norm(vl_vec3_t vec3) {
     float length = VL_VEC3_LEN(vec3);
     if (length == 0.0f) {
@@ -139,4 +151,26 @@ vl_vec3_t vl_vec3_norm(vl_vec3_t vec3) {
         vec3.y / length,
         vec3.z / length
     );
+}
+
+vl_vec4_t vl_vec4_norm(vl_vec4_t vec4) {
+    float length = VL_VEC4_LEN(vec4);
+    if (length == 0.0f) {
+        return VL_VEC4(0);
+    }
+    return VL_VEC4(
+        vec4.x / length,
+        vec4.y / length,
+        vec4.z / length,
+        vec4.w / length
+    );
+}
+
+float vl_clamp(float x, float min, float max) {
+    return VL_MIN(VL_MAX(x, min), max);
+}
+
+float vl_smoothstep(float edge0, float edge1, float x) {
+    float t = vl_clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
 }

@@ -26,6 +26,10 @@ typedef union vl_vec2 vl_point_t;
 #define VL_VEC2_LEN(VEC2) VL_SQRTF(VL_SQRF(VEC2.x) + VL_SQRF(VEC2.y))
 #define VL_VEC2_SCALE(VEC2, SCALE) \
     VL_VEC2((VEC2).x * (SCALE), (VEC2).y * (SCALE))
+#define VL_VEC2_ABS(VEC2) \
+    VL_VEC2(VL_ABS(VEC2.x), VL_ABS(VEC2.y))
+#define VL_VEC2_SWAP(VEC2) \
+    VL_VEC2(VEC2.y, VEC2.x)
 
 #define VL_VEC2_OP(A, B, OP) \
     ((vl_vec2_t) {.x = (A).x OP (B).x, .y = (A).y OP (B).y})
@@ -64,6 +68,8 @@ typedef union vl_vec3 vl_vec3_t;
 #define VL_VEC3_LEN(VEC3) VL_SQRTF(VL_SQRF(VEC3.x) + VL_SQRF(VEC3.y) + VL_SQRF(VEC3.z))
 #define VL_VEC3_SCALE(VEC3, SCALE) \
     VL_VEC3((VEC3).x * (SCALE), (VEC3).y * (SCALE), (VEC3).z * (SCALE))
+#define VL_VEC3_ABS(VEC3) \
+    VL_VEC3(VL_ABS(VEC3.x), VL_ABS(VEC3.y), VL_ABS(VEC3.z))
 
 #define VL_VEC3_OP(A, B, OP) \
     ((vl_vec3_t) {.x = (A).x OP (B).x, .y = (A).y OP (B).y, .z = (A).z OP (B).z})
@@ -96,6 +102,8 @@ typedef union vl_vec4 vl_vec4_t;
 #define VL_VEC4_LEN(VEC4) VL_SQRTF(VL_SQRF(VEC4.x) + VL_SQRF(VEC4.y) + VL_SQRF(VEC4.z) + VL_SQRF(VEC4.w))
 #define VL_VEC4_SCALE(VEC4, SCALE) \
     VL_VEC4((VEC4).x * (SCALE), (VEC4).y * (SCALE), (VEC4).z * (SCALE), (VEC4).w * (SCALE))
+#define VL_VEC4_ABS(VEC4) \
+    VL_VEC4(VL_ABS(VEC4.x), VL_ABS(VEC4.y), VL_ABS(VEC4.z), VL_ABS(VEC4.w))
 
 #define VL_VEC4_OP(A, B, OP) \
     ((vl_vec4_t) {.x = (A).x OP (B).x, .y = (A).y OP (B).y, .z = (A).z OP (B).z, .w = (A).w OP (B).w})
@@ -248,6 +256,10 @@ VL_API vl_result_t vl_mat4_scale_aniso(vl_mat4_t *dst, const vl_mat4_t src, cons
 VL_API vl_result_t vl_mat4_translate(vl_mat4_t *dst, const vl_mat4_t src, float x, float y, float z);
 VL_API vl_result_t vl_mat4_rotate(vl_mat4_t *dst, const vl_mat4_t src, vl_vec3_t axis, float angle);
 VL_API vl_result_t vl_mat4_ortho(vl_mat4_t *dst, const float left, const float right, const float bottom, const float top, const float near, const float far);
+VL_API vl_vec2_t vl_vec2_norm(vl_vec2_t vec2);
 VL_API vl_vec3_t vl_vec3_norm(vl_vec3_t vec3);
+VL_API vl_vec4_t vl_vec4_norm(vl_vec4_t vec4);
+VL_API float vl_clamp(float x, float min, float max);
+VL_API float vl_smoothstep(float edge0, float edge1, float x);
 
 #endif // VELVET_SUPPORT_MATH_H
