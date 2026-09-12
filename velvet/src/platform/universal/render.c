@@ -156,7 +156,7 @@ void main() {
             int format = brushes[vBrushIndex].brush_data.z;
             vec4 texel = sampleBitmap(bitmapIndex, vST);
             if (format == RGBA8) color *= texel;
-            else if (format == RRRR8 || format == RRRR8_MIPMAP) color = vec4(color.rgb * texel.r, texel.r);
+            else if (format == RRRR8 || format == RRRR8_MIPMAP) color.a *= texel.a;
         }
     }
     if (color.a <= 0.0) discard;

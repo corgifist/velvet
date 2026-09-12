@@ -596,7 +596,7 @@ void font_test() {
         vl_os_window_poll_events(ctx);
         vl_graphics_presentation_begin(present);
         vl_graphics_render_batch_begin(r); 
-            vl_graphics_render_clear(r, VL_BLACK);
+            vl_graphics_render_clear(r, win->io.mouse_down[VL_MOUSE_BUTTON_LEFT] ? VL_WHITE : VL_BLACK);
             bool pressed = win->io.mouse_down[VL_MOUSE_BUTTON_LEFT];
             vl_graphics_render_batch_rect(r, VL_RECT_EX(0, 0, 512, 512), brush);
             vl_font_t *font = pressed ? font1 : font2;
@@ -1205,9 +1205,9 @@ int main(int argc, const char *argv[]) {
     // segmentation_test();
     // css_lexer_text();
     // css_test();
-    // styling_test();
+    styling_test();
     // font_search();
-    line_test();
+    // line_test();
 
     return 0;
 }
