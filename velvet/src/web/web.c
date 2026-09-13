@@ -77,6 +77,7 @@ vl_result_t vl_web_render(vl_web_t *web) {
         vl_dom_element_process(web->dom.root);
         vl_measurement_end(&css_measure);
         vl_measurement_print(&css_measure);
+        printf("we're consuming %f megabytes of ram rn\n", ((float) vl_memory_allocated_bytes()) / 1024 / 1024);
         web->refresh_styles = false;
     }
     return vl_dom_render(&web->dom);

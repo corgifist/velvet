@@ -153,3 +153,7 @@ void vl_memory_print_allocations() {
 size_t vl_memory_allocations_count() {
     return s_allocations_count;
 }
+
+size_t vl_memory_allocated_bytes() {
+    return s_bytes_allocated;
+}

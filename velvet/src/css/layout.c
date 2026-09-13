@@ -344,7 +344,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             float y_offset = max_span_offset - child->span_y_offset;
             child->position.y += line->height - child->size.y - y_offset;
             child->bounds_offset = VL_VEC4(0, child->position.y < 0 ? -child->position.y : 0, 0, y_offset);
-            printf("%s %p %f %f\n", child->tag, child, child->block_first_margin, child->block_applied_margin);
+            // printf("%s %p %f %f\n", child->tag, child, child->block_first_margin, child->block_applied_margin);
             if (child->block_first_margin > child->block_applied_margin && child->block_applied_margin != VL_FLOAT_MIN) {
                 for (int k = i; k < VL_DA_LENGTH(lines); k++) {
                     vl_css_block_line *line = lines + k;

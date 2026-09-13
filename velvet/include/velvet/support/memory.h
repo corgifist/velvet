@@ -98,5 +98,6 @@ VL_API void vl_free_(void *mem, vl_source_location_t loc);
 
 VL_API void vl_memory_print_allocations();
 VL_API size_t vl_memory_allocations_count();
+VL_API size_t vl_memory_allocated_bytes();
 
 #endif // VELVET_MEMORY_H
