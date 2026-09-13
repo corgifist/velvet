@@ -20,6 +20,8 @@ typedef union vl_vec2 vl_point_t;
     ((vl_vec2_t) {.x = (float) (X), .y = (float) (Y)})
 #define VL_VEC21(X) \
     VL_VEC22(X, X)
+#define VL_VEC20() \
+    VL_VEC22(0, 0)
 #define VL_VEC2(...) \
     VL_VA_DISPATCH(VL_VEC2, __VA_ARGS__)
 #define VL_POINT VL_VEC2
@@ -66,6 +68,8 @@ typedef union vl_vec3 vl_vec3_t;
     ((vl_vec3_t) {.x = (float) (X), .y = (float) (Y), .z = (float) (Z)})
 #define VL_VEC31(A) \
     VL_VEC33(A, A, A)
+#define VL_VEC30() \
+    VL_VEC33(0, 0, 0)
 #define VL_VEC3(...) \
     VL_VA_DISPATCH(VL_VEC3, __VA_ARGS__)
 #define VL_VEC3_LEN(VEC3) VL_SQRTF(VL_SQRF(VEC3.x) + VL_SQRF(VEC3.y) + VL_SQRF(VEC3.z))
@@ -103,6 +107,8 @@ typedef union vl_vec4 vl_vec4_t;
     ((vl_vec4_t) {.x = (float) (X), .y = (float) (Y), .z = (float) (Z), .w = (float) (W)})
 #define VL_VEC41(A) \
     VL_VEC44(A, A, A, A)
+#define VL_VEC40() \
+    VL_VEC44(0, 0, 0, 0)
 #define VL_VEC4(...) \
     VL_VA_DISPATCH(VL_VEC4, __VA_ARGS__)
 #define VL_VEC4_LEN(VEC4) VL_SQRTF(VL_SQRF(VEC4.x) + VL_SQRF(VEC4.y) + VL_SQRF(VEC4.z) + VL_SQRF(VEC4.w))

@@ -479,6 +479,7 @@ vl_vec2_t vl_css_layout_node_get_raw_content_size(vl_css_layout_node_t *node) {
 static const char *s_inherited_properties[] = {
     "color",
     "--velvet-element-highlight",
+    "--velvet-margin-highlight",
     "font-family",
     "text-align"
 };

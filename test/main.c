@@ -972,7 +972,7 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         html {
-    //             font-size: 2em;
+    //             font-size: 1.5em;
     //         }
     //         p {
     //             background-color: red;
@@ -1145,6 +1145,9 @@ void styling_test() {
     // );
     const char *input = VL_STRINGIFY(
         <style>
+            html {
+                --velvet-margin-highlight: highlight-orange;
+            }
             p {
                 --velvet-element-highlight: highlight-green;
             }

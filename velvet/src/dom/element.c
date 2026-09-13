@@ -89,25 +89,46 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     }
     vl_result_t result = funcs->render(element);
     vl_css_value_t velvet_element_highlight = vl_css_layout_node_get_property(&element->layout, 
-        "--velvet-element-highlight", VL_CSS_VALUE_RGBA(0, 0, 0, 0)
+        "--velvet-element-highlight", VL_CSS_VALUE_NONE()
     );
-    if (VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_element_highlight)) {
+    if (velvet_element_highlight.type != VL_CSS_VALUE_NONE && VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_element_highlight)) {
         vl_color_t highlight_color = vl_css_value_to_rgba(velvet_element_highlight);
         if (highlight_color.a != 0) {
             vl_graphics_render_batch_rect_colored(web->render, 
                 VL_RECT(VL_VEC2(0, 0), element->layout.size), NULL, 
                 VL_QUAD_COLOR(highlight_color)
             );
-            vl_color_t margin_highlight_color = vl_color_hue_shift(highlight_color, 120);
-            vl_graphics_render_batch_rect_colored(web->render, 
-                VL_RECT(VL_VEC2(-element->layout.margin.w, 0), VL_VEC2(0, element->layout.size.y)), NULL, 
-                VL_QUAD_COLOR(margin_highlight_color)
-            );
-            vl_graphics_render_batch_rect_colored(web->render, 
-                VL_RECT(VL_VEC2(element->layout.size.x, 0), VL_VEC2(element->layout.size.x + element->layout.margin.y, element->layout.size.y)), NULL, 
-                VL_QUAD_COLOR(margin_highlight_color)
-            );
         }
+    }
+    vl_css_value_t velvet_margin_highlight = vl_css_layout_node_get_property(&element->layout, "--velvet-margin-highlight", VL_CSS_VALUE_NONE());
+    if (velvet_element_highlight.type != VL_CSS_VALUE_NONE && VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_margin_highlight)) {
+        vl_color_t margin_highlight_color = vl_css_value_to_rgba(velvet_margin_highlight);
+        // margin-left
+        vl_graphics_render_batch_rect_colored(web->render, 
+            VL_RECT(VL_VEC2(-element->layout.margin.w, 0), VL_VEC2(0, element->layout.size.y)), NULL, 
+            VL_QUAD_COLOR(margin_highlight_color)
+        );
+        // margin-right
+        vl_graphics_render_batch_rect_colored(web->render, 
+            VL_RECT(VL_VEC2(element->layout.size.x, 0), VL_VEC2(element->layout.size.x + element->layout.margin.y, element->layout.size.y)), NULL, 
+            VL_QUAD_COLOR(margin_highlight_color)
+        );
+        // margin-top
+        vl_graphics_render_batch_rect_colored(web->render, 
+            VL_RECT(
+                VL_VEC2(-element->layout.margin.w, -element->layout.margin.x),
+                VL_VEC2(element->layout.size.x + element->layout.margin.y, 0)
+            ), NULL, 
+            VL_QUAD_COLOR(margin_highlight_color)
+        );
+        // margin-bottom
+        vl_graphics_render_batch_rect_colored(web->render, 
+            VL_RECT(
+                VL_VEC2(-element->layout.margin.w, element->layout.size.y + element->layout.margin.x),
+                VL_VEC2(element->layout.size.x + element->layout.margin.y, element->layout.size.y)
+            ), NULL, 
+            VL_QUAD_COLOR(margin_highlight_color)
+        );
     }
     vl_graphics_render_pop_transform(web->render);
     return result;
