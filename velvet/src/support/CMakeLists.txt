@@ -12,5 +12,6 @@ set(Velvet_Sources
     src/support/math.c
     src/support/io.c
     src/support/color.c
+    src/support/measurement.c
     PARENT_SCOPE
 )

@@ -5,6 +5,7 @@
 #include "dom/element.h"
 #include "html/document.h"
 #include "platform/context.h"
+#include "support/measurement.h"
 #include "support/memory.h"
 #include "web/fonts.h"
 #include "dom/style/style.h"
@@ -71,7 +72,11 @@ vl_result_t vl_web_render(vl_web_t *web) {
         printf("---------------\n");
         vl_os_window_t *window = web->render->owner;
         web->root_layout_node.size = VL_VEC2(window->io.window_size.x, window->io.window_size.y);
+        vl_measurement_t css_measure = {0};
+        vl_measurement_start(&css_measure, "css process");
         vl_dom_element_process(web->dom.root);
+        vl_measurement_end(&css_measure);
+        vl_measurement_print(&css_measure);
         web->refresh_styles = false;
     }
     return vl_dom_render(&web->dom);
