@@ -35,7 +35,8 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"h3", vl_dom_element_div_new},
     {"h4", vl_dom_element_div_new},
     {"h5", vl_dom_element_div_new},
-    {"h6", vl_dom_element_div_new}
+    {"h6", vl_dom_element_div_new},
+    {"code", vl_dom_element_div_new}
 };
 
 static vl_vec2_t dom_to_css_size(vl_css_layout_node_t *node) {
@@ -101,7 +102,7 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
         }
     }
     vl_css_value_t velvet_margin_highlight = vl_css_layout_node_get_property(&element->layout, "--velvet-margin-highlight", VL_CSS_VALUE_NONE());
-    if (velvet_element_highlight.type != VL_CSS_VALUE_NONE && VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_margin_highlight)) {
+    if (velvet_margin_highlight.type != VL_CSS_VALUE_NONE && VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_margin_highlight)) {
         vl_color_t margin_highlight_color = vl_css_value_to_rgba(velvet_margin_highlight);
         // margin-left
         vl_graphics_render_batch_rect_colored(web->render, 

@@ -36,6 +36,7 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     web->fonts.owner = web;
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Times New Roman");
     vl_web_fonts_add_parts_from_system(&web->fonts, "sans-serif", "Arial");
+    vl_web_fonts_add_parts_from_system(&web->fonts, "monospace", "Courier New");
 
     return VL_SUCCESS;
 }

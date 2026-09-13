@@ -313,7 +313,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             if (prev && VL_CSS_CONST_LITERAL_EQUAL(prev->display, "block")) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
                 cursor.y += VL_MAX(child->margin.x, node->block_last_margin);
-                node->block_applied_margin = VL_MAX(child->margin.x, node->block_last_margin);
+                child->block_applied_margin = VL_MAX(child->margin.x, node->block_last_margin);
             }
             child->position.x += cursor.x;
             child->position.y = cursor.y;
@@ -428,7 +428,8 @@ static const struct {
     {"h3", layout_generic_div},
     {"h4", layout_generic_div},
     {"h5", layout_generic_div},    
-    {"h6", layout_generic_div}
+    {"h6", layout_generic_div},
+    {"code", layout_generic_div}
 };
 
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
@@ -521,12 +522,19 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
         bool is_font_size = (property && strcmp(property, "font-size") == 0);
         vl_css_value_t font_size = vl_css_layout_node_get_property(is_font_size ? node->parent : node, "font-size", VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_EM(1)));
         vl_css_size_metric_t processed_metric = font_size.as.metric1;
+        float base_scale = optional_parent_size == 0 ? 16 : optional_parent_size;
+        if (is_font_size) {
+            vl_css_value_t font_family = vl_css_layout_node_get_property(node, "font-family", VL_CSS_VALUE_NONE());
+            if (VL_CSS_CONST_LITERAL_EQUAL(font_family, "monospace")) {
+                base_scale = 13;
+            }
+        }
         if (node->tag && strcmp(node->tag, "html") != 0) {
-            processed_metric = vl_css_layout_node_process_metric(is_font_size ? node->parent : node, "font-size", processed_metric, 0);
+            processed_metric = vl_css_layout_node_process_metric(is_font_size ? node->parent : node, "font-size", processed_metric, base_scale);
         } else {
             processed_metric = VL_CSS_SIZE_PIXELS(processed_metric.type == VL_CSS_SIZE_METRIC_PIXELS
                                                     ? processed_metric.value
-                                                    : 16 * processed_metric.value);
+                                                    : parent_size * processed_metric.value);
         }
         return VL_CSS_SIZE_PIXELS(processed_metric.value * metric.value);
     }

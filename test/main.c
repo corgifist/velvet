@@ -1148,8 +1148,8 @@ void styling_test() {
             html {
                 --velvet-margin-highlight: highlight-orange;
             }
-            p {
-                --velvet-element-highlight: highlight-green;
+            html {
+                // --velvet-element-highlight: highlight-green;
             }
             .center {
                 background-color: red;
@@ -1171,6 +1171,7 @@ void styling_test() {
         <p class="center">Hello, World!</p>
         <p class="right">Hello, World!</p>
         <p class="left">Hello, World!</p>
+        <p>Warning! <code>Monospace fonts</code> are supported</p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

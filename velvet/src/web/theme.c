@@ -113,6 +113,10 @@ static const char *s_default_stylesheet = VL_STRINGIFY(
         margin-inline-end: 0;
     }
 
+    code {
+        font-family: monospace;
+    }
+
     hr {
         display: block;
         color: gray;
