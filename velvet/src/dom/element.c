@@ -93,11 +93,21 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     );
     if (VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_element_highlight)) {
         vl_color_t highlight_color = vl_css_value_to_rgba(velvet_element_highlight);
-        if (highlight_color.a != 0) 
+        if (highlight_color.a != 0) {
             vl_graphics_render_batch_rect_colored(web->render, 
                 VL_RECT(VL_VEC2(0, 0), element->layout.size), NULL, 
                 VL_QUAD_COLOR(highlight_color)
             );
+            vl_color_t margin_highlight_color = vl_color_hue_shift(highlight_color, 120);
+            vl_graphics_render_batch_rect_colored(web->render, 
+                VL_RECT(VL_VEC2(-element->layout.margin.w, 0), VL_VEC2(0, element->layout.size.y)), NULL, 
+                VL_QUAD_COLOR(margin_highlight_color)
+            );
+            vl_graphics_render_batch_rect_colored(web->render, 
+                VL_RECT(VL_VEC2(element->layout.size.x, 0), VL_VEC2(element->layout.size.x + element->layout.margin.y, element->layout.size.y)), NULL, 
+                VL_QUAD_COLOR(margin_highlight_color)
+            );
+        }
     }
     vl_graphics_render_pop_transform(web->render);
     return result;

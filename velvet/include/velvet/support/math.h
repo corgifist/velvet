@@ -55,6 +55,9 @@ union vl_vec3 {
     struct {
         float r, g, b;
     };
+    struct {
+        float h, s, v;
+    };
     float m[3];
 };
 typedef union vl_vec3 vl_vec3_t;
@@ -89,6 +92,9 @@ union vl_vec4 {
     struct {
         float r, g, b, a;
     };
+    vl_vec3_t vec3;
+    vl_vec3_t rgb;
+    vl_vec3_t hsv;
     float m[4];
 };
 typedef union vl_vec4 vl_vec4_t;

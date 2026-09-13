@@ -29,6 +29,7 @@ enum vl_css_size_metric_type {
     VL_CSS_SIZE_METRIC_PERCENTAGE,
     VL_CSS_SIZE_METRIC_EM,
     VL_CSS_SIZE_METRIC_REM,
+    VL_CSS_SIZE_METRIC_AUTO
 };
 
 typedef enum vl_css_size_metric_type vl_css_size_metric_type_t;
@@ -46,6 +47,7 @@ typedef struct vl_css_size_metric vl_css_size_metric_t;
 #define VL_CSS_SIZE_PERCENTAGE(PERCENTAGE) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_PERCENTAGE, ((float) (PERCENTAGE)) / 100.0f)
 #define VL_CSS_SIZE_EM(EM) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_EM, EM)
 #define VL_CSS_SIZE_REM(REM) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_REM, REM)
+#define VL_CSS_SIZE_AUTO() VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_AUTO, 0)
 
 struct vl_css_color_rgba {
     union {

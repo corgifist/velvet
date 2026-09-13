@@ -158,11 +158,16 @@ static void print_metric_unit(vl_css_size_metric_t *metric) {
         printf("rem");
         break;
     }
+    case VL_CSS_SIZE_METRIC_AUTO: {
+        printf("auto");
+        break;
+    }
     }
 }
 
 static void print_size_metric(vl_css_size_metric_t *metric) {
-    printf("%0.2f", metric->type == VL_CSS_SIZE_METRIC_PERCENTAGE ? metric->value * 100.0f : metric->value);
+    if (metric->type != VL_CSS_SIZE_METRIC_AUTO)
+        printf("%0.2f", metric->type == VL_CSS_SIZE_METRIC_PERCENTAGE ? metric->value * 100.0f : metric->value);
     print_metric_unit(metric);
 }
 

@@ -72,9 +72,13 @@ static vl_css_size_metric_type_t map_str_to_metric_type(const char *str) {
 
 static vl_css_value_t parse_single_metric(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     vl_css_token_t *current = parser->lookahead;
+    if (VL_TOKEN_COMPARE(current, "auto")) {
+        tokenize(parser);
+        return VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_AUTO());
+    }
     float value = strtod(current->text, NULL);
     if (tokenize(parser)) return VL_CSS_VALUE_NONE();
-    if (current->type != VL_CSS_TOKEN_TYPE_ID) {
+    if (current->type != VL_CSS_TOKEN_TYPE_ID || VL_TOKEN_COMPARE(current, "auto")) {
         return VL_CSS_VALUE_METRIC1(
             VL_CSS_SIZE_PIXELS(value)
         );
@@ -202,7 +206,8 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
             }
         }
     }
-    if (current->type == VL_CSS_TOKEN_TYPE_NUMBER && (current + 1)->type == VL_CSS_TOKEN_TYPE_ID) {
+    if ((current->type == VL_CSS_TOKEN_TYPE_NUMBER && (current + 1)->type == VL_CSS_TOKEN_TYPE_ID)
+            || VL_TOKEN_COMPARE(current, "auto")) {
         // single metric: 10px / 5em / 25%
         return parse_single_metric(parser, rule);
     }
@@ -240,7 +245,7 @@ static vl_css_value_t parse_shorthand_metric4(vl_css_parser_t *parser, vl_css_ru
 
     vl_css_token_t *current = parser->lookahead;
     for (int i = 0; i < VL_ARR_LEN(max_metric); i++) {
-        if (current->type != VL_CSS_TOKEN_TYPE_NUMBER)
+        if (current->type != VL_CSS_TOKEN_TYPE_NUMBER && !VL_TOKEN_COMPARE(current, "auto"))
             break;
         vl_css_value_t single_metric = parse_single_metric(parser, rule);
         if (single_metric.type != VL_CSS_VALUE_SIZE_METRIC1) {

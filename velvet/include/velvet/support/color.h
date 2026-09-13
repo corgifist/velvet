@@ -1,25 +1,16 @@
 #ifndef VELVET_SUPPORT_COLOR_H
 #define VELVET_SUPPORT_COLOR_H
 
+#include "velvet/support/math.h"
 #include "velvet/support/variadic.h"
 
-union vl_color {
-    struct {
-        float r, g, b, a;
-    };
-    float m[4];
-};
+typedef vl_vec4_t vl_color_t;
+typedef vl_vec3_t vl_rgb_t;
+typedef vl_vec3_t vl_hsv_t;
 
-typedef union vl_color vl_color_t;
-
-#define VL_COLOR1(X) \
-    VL_COLOR4(X, X, X, X)
-#define VL_COLOR3(R, G, B) \
-    VL_COLOR4(R, G, B, 1)
-#define VL_COLOR4(R, G, B, A) \
-    ((vl_color_t) {.r = ((float) (R)), .g = ((float) (G)), .b = ((float) (B)), .a = ((float) (A))})
-#define VL_COLOR(...) \
-    VL_VA_DISPATCH(VL_COLOR, __VA_ARGS__)
+#define VL_COLOR4 VL_VEC44
+#define VL_COLOR1 VL_VEC41
+#define VL_COLOR VL_VEC4
 
 #define VL_ALPHA1(ALPHA) \
     VL_COLOR4(1, 1, 1, ALPHA)
@@ -80,5 +71,9 @@ typedef struct vl_gradient_stop vl_gradient_stop_t;
     ((vl_gradient_stop_t) {.percentage = (float) (P), .color = (COLOR)})
 #define VL_GRADIENT_STOP_EX(P, R, G, B, A) \
     ((vl_gradient_stop_t) {.percentage = (float) (P), .color = VL_COLOR(R, G, B, A)})
+
+VL_API vl_hsv_t vl_rgb_to_hsv(vl_rgb_t rgb);
+VL_API vl_rgb_t vl_hsv_to_rgb(vl_hsv_t hsv);
+VL_API vl_color_t vl_color_hue_shift(vl_color_t color, float hue);
 
 #endif // VELVET_GRAPHICS_COLOR_H

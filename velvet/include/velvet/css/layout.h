@@ -31,6 +31,7 @@ struct vl_css_layout_node {
     vl_vec2_t content_size;
     vl_vec2_t position;
     vl_vec4_t margin;
+    bool auto_margin[4];
     vl_vec4_t padding;
     vl_vec4_t bounds_offset;
     float block_last_margin;

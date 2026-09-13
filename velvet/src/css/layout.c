@@ -4,6 +4,7 @@
 #include "support/base_math.h"
 #include "support/da.h"
 #include "support/result.h"
+#include "support/str.h"
 #include "web/web.h"
 #include "support/math.h"
 #include <float.h>
@@ -52,24 +53,55 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
 }
 
 
-static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *node, vl_css_value_t value) {
+static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *node, bool *auto_metric, vl_css_value_t value) {
     if (value.type == VL_CSS_VALUE_SIZE_METRIC1) {
+        if (value.as.metric1.type == VL_CSS_SIZE_METRIC_AUTO) {
+            memset(auto_metric, 1, sizeof(bool) * 4);
+            return VL_VEC4(0);
+        }
         float mx = vl_css_layout_node_process_metric(node, NULL, value.as.metric1, node->parent->size.x).value;
         float my = vl_css_layout_node_process_metric(node, NULL, value.as.metric1, node->parent->size.y).value;
         return (vl_vec4_t) {my, mx, my, mx};
     }
     if (value.type == VL_CSS_VALUE_SIZE_METRIC2) {
+        if (value.as.metric2[0].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[0] = auto_metric[2] = true;
+        }
+        if (value.as.metric2[1].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[1] = auto_metric[3] = true;
+        }
         float mx = vl_css_layout_node_process_metric(node, NULL, value.as.metric2[1], node->parent->size.x).value;
         float my = vl_css_layout_node_process_metric(node, NULL, value.as.metric2[0], node->parent->size.y).value;
         return VL_VEC4(my, mx, my, mx);
     }
     if (value.type == VL_CSS_VALUE_SIZE_METRIC3) {
+        if (value.as.metric3[0].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[0] = true;
+        }
+        if (value.as.metric3[1].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[1] = auto_metric[3] = true;
+        }
+        if (value.as.metric3[2].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[2] = true;
+        }
         float mt = vl_css_layout_node_process_metric(node, NULL, value.as.metric3[0], node->parent->size.y).value;
         float mb = vl_css_layout_node_process_metric(node, NULL, value.as.metric3[2], node->parent->size.y).value;
         float mx = vl_css_layout_node_process_metric(node, NULL, value.as.metric3[1], node->parent->size.x).value;
         return VL_VEC4(mt, mx, mb, mx);
     }
     if (value.type == VL_CSS_VALUE_SIZE_METRIC4) {
+        if (value.as.metric4[0].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[0] = true;
+        }
+        if (value.as.metric4[1].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[1] = true;
+        }
+        if (value.as.metric4[2].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[2] = true;
+        }
+        if (value.as.metric4[3].type == VL_CSS_SIZE_METRIC_AUTO) {
+            auto_metric[3] = true;
+        }
         float x = vl_css_layout_node_process_metric(node, NULL, value.as.metric4[0], node->parent->size.y).value;
         float y = vl_css_layout_node_process_metric(node, NULL, value.as.metric4[1], node->parent->size.x).value;
         float z = vl_css_layout_node_process_metric(node, NULL, value.as.metric4[2], node->parent->size.y).value;
@@ -89,54 +121,71 @@ static vl_css_size_metric_t select_metric(vl_css_rule_t *rule, int i1, int i2, i
     }
 }
 
-static vl_vec4_t construct_margin(vl_css_layout_node_t *node) {
-    vl_vec4_t margin = {0};
+static void construct_complex_metric(const char *root, vl_vec4_t *result, bool *auto_metric, vl_css_layout_node_t *node) {
     for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
         vl_css_rule_t *rule = node->style.applied_rules[i];
         if (!rule->property) continue;
-        if (strcmp(rule->property, "margin") == 0) {
-            margin = generic_metric_to_metric4(node, rule->value);
+        if (strcmp(rule->property, root) == 0) {
+            *result = generic_metric_to_metric4(node, auto_metric, rule->value);
             continue;
         }
-        if (strcmp(rule->property, "margin-top") == 0) {
+        if (strcmp(rule->property, vl_sprintf_tmp("%s-top", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 0, 0, 0);
-            margin.x = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.y).value;
+            auto_metric[0] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[0] = true;
+            else result->x = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.y).value;
             continue;
         }
-        if (strcmp(rule->property, "margin-right") == 0) {
+        if (strcmp(rule->property, vl_sprintf_tmp("%s-right", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 1, 1, 1);
-            margin.y = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.x).value;
+            auto_metric[1] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[1] = true;
+            else result->y = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.x).value;
             continue;
         }
-        if (strcmp(rule->property, "margin-bottom") == 0) {
+        if (strcmp(rule->property, vl_sprintf_tmp("%s-bottom", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 0, 2, 2);
-            margin.z = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.y).value;
+            node->auto_margin[2] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[2] = true;
+            else result->z = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.y).value;
             continue;
         }
-        if (strcmp(rule->property, "margin-left") == 0) {
+        if (strcmp(rule->property, vl_sprintf_tmp("%s-left", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 1, 1, 3);
-            margin.w = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.x).value;
+            node->auto_margin[3] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[3] = true;
+            else result->w = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.x).value;
             continue;
         }
+        if (strcmp(root, "margin") != 0) continue;
         if (strcmp(rule->property, "margin-block-start") == 0) {
-            margin.x = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.y).value;
+            node->auto_margin[0] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[0] = true;
+            else result->x = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.y).value;
             continue;
         }
         if (strcmp(rule->property, "margin-block-end") == 0) {
-            margin.z = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.y).value;
+            node->auto_margin[2] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[2] = true;
+            else result->z = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.y).value;
             continue;
         }
         if (strcmp(rule->property, "margin-inline-start") == 0) {
-            margin.w = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
+            node->auto_margin[3] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[3] = true;
+            else result->w = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
             continue;
         }
         if (strcmp(rule->property, "margin-inline-end") == 0) {
-            margin.y = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
+            node->auto_margin[1] = false;
+            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto")) auto_metric[1] = true;
+            else result->y = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
             continue;
         }
     }
-    // printf("%s margin: %f %f %f %f\n", node->tag, margin.x, margin.y, margin.z, margin.w);
-    return margin;
+    for (int i = 0; i < 4; i++) {
+        if (auto_metric[i]) result->m[i] = 0;
+    }
 }
 
 typedef vl_result_t (*layout_func)(vl_css_layout_node_t *node);
@@ -398,7 +447,7 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->span_y_offset = 0;
     node->bounds_offset = VL_VEC4(0);
     construct_dimensions(node);
-    node->margin = construct_margin(node);
+    construct_complex_metric("margin", &node->margin, node->auto_margin, node);
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             s_layout_overrides[i].layout(node);
@@ -408,6 +457,14 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->size = vl_css_layout_node_get_raw_content_size(node);
 
     final:
+    if (node->auto_margin[1] && node->auto_margin[3]) {
+        node->margin.y = (node->parent->size.x / 2 - node->size.x / 2);
+        node->margin.w = node->margin.y;
+    } else if (node->auto_margin[3]) {
+        node->margin.w = node->parent->size.x - node->size.x;
+    } else if (node->auto_margin[1]) {
+        node->margin.y = node->parent->size.x - node->size.x;
+    }
     node->position.x += node->margin.w;
     node->position.y += node->margin.x;
     node->calculating_layout = false;

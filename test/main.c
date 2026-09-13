@@ -874,8 +874,8 @@ void css_test() {
             margin-left: 8px;
             color: red;
             outline-color: rgba(128 128 128 0.6);
-            padding: 8px;
             font-family: Roboto, 'EB Garamond', serif;
+            margin: 0 auto;
         }
     );
     vl_css_parser_t parser = {0};
@@ -890,51 +890,51 @@ void css_test() {
 #undef I
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    const char *input = VL_STRINGIFY(
-        <style>
-        body {
-            // --velvet-element-highlight: highlight-green;
-        }
-        p {
-            background-color: yellow;
-            font-size: 1.5em;
-        }
-        span {
-            background-color: green;
-            color: red;
-            font-size: 1.5em;
-        }
-        .reset {
-            font-size: unset;
-        }
-        .initial {
-            color: unset;
-            font-size: 16px;
-        }
-        .serif {
-            font-family: serif;
-        }
-        .sans-serif {
-            font-family: sans-serif;
-        }
-        .copperplate {
-            font-family: Copperplate;
-        }
-        .times-new-roman {
-            font-family: 'Times New Roman';
-        }
-        </style>
-        <p>Hello, <span>World!</span></p>
-        <p>Hello, <span>World,!</span></p>
-        <p>Hello, <span class="reset">World!</span></p>
-        <p class="initial">
-        yes, yielding a margin of <span class="initial">1.2rem</span> in between.
-        </p>
-        <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-        <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-        <p class="copperplate">Copperplate! Hello, World!</p>
-        <p class="times-new-roman">Times New Roman! Hello, World!</p>
-    );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //     body {
+    //         // --velvet-element-highlight: highlight-green;
+    //     }
+    //     p {
+    //         background-color: yellow;
+    //         font-size: 1.5em;
+    //     }
+    //     span {
+    //         background-color: green;
+    //         color: red;
+    //         font-size: 1.5em;
+    //     }
+    //     .reset {
+    //         font-size: unset;
+    //     }
+    //     .initial {
+    //         color: unset;
+    //         font-size: 16px;
+    //     }
+    //     .serif {
+    //         font-family: serif;
+    //     }
+    //     .sans-serif {
+    //         font-family: sans-serif;
+    //     }
+    //     .copperplate {
+    //         font-family: Copperplate;
+    //     }
+    //     .times-new-roman {
+    //         font-family: 'Times New Roman';
+    //     }
+    //     </style>
+    //     <p>Hello, <span>World!</span></p>
+    //     <p>Hello, <span>World,!</span></p>
+    //     <p>Hello, <span class="reset">World!</span></p>
+    //     <p class="initial">
+    //     yes, yielding a margin of <span class="initial">1.2rem</span> in between.
+    //     </p>
+    //     <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+    //     <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+    //     <p class="copperplate">Copperplate! Hello, World!</p>
+    //     <p class="times-new-roman">Times New Roman! Hello, World!</p>
+    // );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //     html {
@@ -1143,6 +1143,32 @@ void styling_test() {
     //         <p>I am lavender!</p>
     //     </div>
     // );
+    const char *input = VL_STRINGIFY(
+        <style>
+            p {
+                --velvet-element-highlight: highlight-green;
+            }
+            .center {
+                background-color: red;
+                width: fit-content;
+                margin: 0 auto;
+            }
+            .right {
+                background-color: green;
+                width: fit-content;
+                margin: 0 0 0 auto;
+            }
+            .left {
+                background-color: yellow;
+                width: fit-content;
+                margin: 0 auto 0 0;
+            }
+        </style>
+        <p>Just a paragraph</p>
+        <p class="center">Hello, World!</p>
+        <p class="right">Hello, World!</p>
+        <p class="left">Hello, World!</p>
+    );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);
