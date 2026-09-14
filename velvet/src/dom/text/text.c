@@ -211,7 +211,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             }
             min_offset = VL_MIN(min_offset, align_offset);
         }
-        if (min_offset != VL_FLOAT_MAX) element->layout.position.x += min_offset;
+        if (min_offset != VL_FLOAT_MAX && min_offset > 0) element->layout.position.x += min_offset;
     } 
 }
 

@@ -27,6 +27,7 @@ struct vl_css_layout_node {
     vl_css_value_t display;
     vl_vec2_t raw_dimensions;
     bool lock_dimensions[2];
+    bool allow_width_growth;
     vl_vec2_t size;
     vl_vec2_t content_size;
     vl_vec2_t position;
