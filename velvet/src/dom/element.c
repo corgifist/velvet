@@ -3,6 +3,7 @@
 #include "css/style.h"
 #include "support/color.h"
 #include "graphics/render.h"
+#include "support/math.h"
 #include "support/memory.h"
 #include "support/result.h"
 #include "velvet/support/feature.h"
@@ -63,10 +64,7 @@ vl_result_t vl_dom_element_process(vl_dom_element_t *element) {
     return vl_css_layout_node_process(&element->layout);
 }
 
-vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
-    if (!element) return VL_ERROR;
-    vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
-    if (!funcs->render) return VL_SUCCESS;
+static void render_element_background(vl_dom_element_t *element) {
     vl_web_t *web = element->owner->owner;
     vl_css_value_t background_color = vl_css_layout_node_get_property(&element->layout, 
         "background-color", VL_CSS_VALUE_RGBA(0, 0, 0, 0)
@@ -88,7 +86,30 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
                 VL_POINT_ADD(element->layout.size, VL_VEC2(element->layout.bounds_offset.z, element->layout.bounds_offset.w))), 
             NULL, VL_QUAD_COLOR(raw_color));
     }
-    vl_result_t result = funcs->render(element);
+}
+
+static void render_element_border(vl_dom_element_t *element) {
+    vl_web_t *web = element->owner->owner;
+    float max01 = VL_MAX(element->layout.border[0].width, element->layout.border[1].width);
+    float max12 = VL_MAX(element->layout.border[1].width, element->layout.border[2].width);
+    float max23 = VL_MAX(element->layout.border[2].width, element->layout.border[3].width);
+    float max31 = VL_MAX(element->layout.border[3].width, element->layout.border[1].width);
+    vl_line_t lines[4] = {
+        VL_LINE(VL_VEC2(0, max01 / 2), VL_VEC2(element->layout.size.x, max01 / 2), element->layout.border[0].width),
+        VL_LINE(VL_VEC2(element->layout.size.x - max01 / 2, max01), VL_VEC2(element->layout.size.x - max01 / 2, element->layout.size.y), element->layout.border[1].width),
+        VL_LINE(VL_VEC2(element->layout.size.x, element->layout.size.y - max23 / 2), VL_VEC2(0, element->layout.size.y - max23 / 2), element->layout.border[2].width),
+        VL_LINE(VL_VEC2(max31 / 2, element->layout.size.y - max23), VL_VEC2(max31 / 2, max31), element->layout.border[3].width),
+    };
+    for (int i = 0; i < 4; i++) {
+        vl_css_layout_border_t *border = element->layout.border + i;
+        if (border->type == VL_CSS_LAYOUT_BORDER_SOLID) {
+            vl_graphics_render_batch_line_colored(web->render, lines[i], NULL, border->color);
+        }
+    }
+}
+
+static void render_element_highlight(vl_dom_element_t *element) {
+    vl_web_t *web = element->owner->owner;
     vl_css_value_t velvet_element_highlight = vl_css_layout_node_get_property(&element->layout, 
         "--velvet-element-highlight", VL_CSS_VALUE_NONE()
     );
@@ -101,6 +122,10 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
             );
         }
     }
+}
+
+static void render_margin_highlight(vl_dom_element_t *element) {
+    vl_web_t *web = element->owner->owner;
     vl_css_value_t velvet_margin_highlight = vl_css_layout_node_get_property(&element->layout, "--velvet-margin-highlight", VL_CSS_VALUE_NONE());
     if (velvet_margin_highlight.type != VL_CSS_VALUE_NONE && VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_margin_highlight)) {
         vl_color_t margin_highlight_color = vl_css_value_to_rgba(velvet_margin_highlight);
@@ -131,6 +156,18 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
             VL_QUAD_COLOR(margin_highlight_color)
         );
     }
+}
+
+vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
+    if (!element) return VL_ERROR;
+    vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
+    if (!funcs->render) return VL_SUCCESS;
+    vl_web_t *web = element->owner->owner;
+    render_element_background(element);
+    render_element_border(element);
+    vl_result_t result = funcs->render(element);
+    render_element_highlight(element);
+    render_margin_highlight(element);
     vl_graphics_render_pop_transform(web->render);
     return result;
 }

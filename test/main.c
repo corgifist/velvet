@@ -1143,109 +1143,123 @@ void styling_test() {
     //         <p>I am lavender!</p>
     //     </div>
     // );
-    // const char *input = VL_STRINGIFY(
-    //     <style>
-    //         html {
-    //             --velvet-margin-highlight: highlight-orange;
-    //         }
-    //         html {
-    //             // --velvet-element-highlight: highlight-green;
-    //         }
-    //         .center {
-    //             background-color: red;
-    //             width: fit-content;
-    //             margin: 0 auto;
-    //         }
-    //         .right {
-    //             background-color: green;
-    //             width: fit-content;
-    //             margin: 0 0 0 auto;
-    //         }
-    //         .left {
-    //             background-color: yellow;
-    //             width: fit-content;
-    //             margin: 0 auto 0 0;
-    //         }
-    //     </style>
-    //     <p>Just a paragraph</p>
-    //     <p class="center">Hello, World!</p>
-    //     <p class="right">Hello, World!</p>
-    //     <p class="left">Hello, World!</p>
-    //     <p>Warning! <code>Monospace fonts</code> are supported</p>
-    // );
     const char *input = VL_STRINGIFY(
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                .ref {
-                    background-color: red;
-                }
-                .one {
-                    // border: 1px solid black;
-                    background-color: lightblue;
-                    padding-top: 50px;
-                    padding-right: 30px;
-                    padding-bottom: 50px;
-                    padding-left: 80px;
-                }
+        <style>
+            html {
+                --velvet-margin-highlight: highlight-orange;
+            }
+            html {
+                // --velvet-element-highlight: highlight-green;
+            }
+            .center {
+                background-color: red;
+                width: fit-content;
+                margin: 0 auto;
+            }
+            .right {
+                background-color: green;
+                width: fit-content;
+                margin: 0 0 0 auto;
+            }
+            .left {
+                background-color: yellow;
+                width: fit-content;
+                margin: 0 auto 0 0;
+            }
 
-                .two {
-                    background-color: orange;
-                    padding: 16px;
-                }
-                .w3-large {
-                    font-size: 18px!important;
-                }
-                .w3-blue {
-                    color: white!important;
-                    background-color: lightblue!important;
-                }
-
-                .w3-padding-48 {
-                    padding-top: 48px!important;
-                    padding-bottom: 48px!important;
-                }
-
-                .w3-center {
-                    text-align: center!important;
-                }
-
-                .w3-container, .w3-panel {
-                    // --velvet-element-highlight: highlight-orange;
-                    padding: 0.01em 16px;
-                    font-family: sans-serif;
-                }
-
-                .fake-button {
-                    background-color: white!important;
-                    color: black!important;
-                    width: fit-content;
-                    margin: 0 auto;
-                }
-            </style>
-        </head>
-        <body>
-            <h2>Using individual padding properties</h2>
-            <div class="one">
-                First example
-            </div>
-            <div class='ref'>
-                Reference div
-            </div>
-            <div class="two">
-                <p>Hello, World!</p>
-                <p>Hello, World!</p>
-                ALKSLKAJSLKAJLKSKLASLKAJSKLAKJLSKLAJSKLJAKLJSKLJKLJASLJKLAKSLKASKLALKSALKSKLAKLSLKSALKSLAKS
-            </div>
-            <div class="w3-container w3-blue w3-center w3-padding-48">
-                <h2>Explore Norway</h2>
-                <p class="w3-large">Mountains, fjords, cities, and northern lights.</p>
-                <p class="fake-button">Explore</p>
-            </div>
-        </body>
-        </html>
+            .border-top {
+                border-top: solid 10px black;
+            }
+            .all-around {
+                border: 8px solid red;
+                border-top-color: red;
+                border-right-color: green;
+                border-bottom-color: blue;
+                border-left-color: purple;
+            }
+        </style>
+        <p>Just a paragraph</p>
+        <p class="center">Hello, World!</p>
+        <p class="right">Hello, World!</p>
+        <p class="left">Hello, World!</p>
+        <p>Warning! <code>Monospace fonts</code> are supported</p>
+        <p class="border-top">Borders!</p>
+        <p class="all-around">All-around border</p>
+        <p>Simple paragraph</p>
     );
+    // const char *input = VL_STRINGIFY(
+    //     <!DOCTYPE html>
+    //     <html>
+    //     <head>
+    //         <style>
+    //             .ref {
+    //                 background-color: red;
+    //             }
+    //             .one {
+    //                 // border: 1px solid black;
+    //                 background-color: lightblue;
+    //                 padding-top: 50px;
+    //                 padding-right: 30px;
+    //                 padding-bottom: 50px;
+    //                 padding-left: 80px;
+    //             }
+
+    //             .two {
+    //                 background-color: orange;
+    //                 padding: 16px;
+    //             }
+    //             .w3-large {
+    //                 font-size: 18px!important;
+    //             }
+    //             .w3-blue {
+    //                 color: white!important;
+    //                 background-color: lightblue!important;
+    //             }
+
+    //             .w3-padding-48 {
+    //                 padding-top: 48px!important;
+    //                 padding-bottom: 48px!important;
+    //             }
+
+    //             .w3-center {
+    //                 text-align: center!important;
+    //             }
+
+    //             .w3-container, .w3-panel {
+    //                 // --velvet-element-highlight: highlight-orange;
+    //                 padding: 0.01em 16px;
+    //                 font-family: sans-serif;
+    //             }
+
+    //             .fake-button {
+    //                 background-color: white!important;
+    //                 color: black!important;
+    //                 width: fit-content;
+    //                 margin: 0 auto;
+    //             }
+    //         </style>
+    //     </head>
+    //     <body>
+    //         <h2>Using individual padding properties</h2>
+    //         <div class="one">
+    //             First example
+    //         </div>
+    //         <div class='ref'>
+    //             Reference div
+    //         </div>
+    //         <div class="two">
+    //             <p>Hello, World!</p>
+    //             <p>Hello, World!</p>
+    //             ALKSLKAJSLKAJLKSKLASLKAJSKLAKJLSKLAJSKLJAKLJSKLJKLJASLJKLAKSLKASKLALKSALKSKLAKLSLKSALKSLAKS
+    //         </div>
+    //         <div class="w3-container w3-blue w3-center w3-padding-48">
+    //             <h2>Explore Norway</h2>
+    //             <p class="w3-large">Mountains, fjords, cities, and northern lights.</p>
+    //             <p class="fake-button">Explore</p>
+    //         </div>
+    //     </body>
+    //     </html>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

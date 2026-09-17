@@ -30,7 +30,8 @@ static const struct {
     {"darkorange", VL_CSS_VALUE_RGBA(255, 140, 0, 1)},
     {"orange", VL_CSS_VALUE_RGBA(255, 165, 0, 1)},
     {"lightblue", VL_CSS_VALUE_RGBA(173, 216, 230, 1)},
-    {"black", VL_CSS_VALUE_RGBA(0, 0, 0, 1)}
+    {"black", VL_CSS_VALUE_RGBA(0, 0, 0, 1)},
+    {"purple", VL_CSS_VALUE_RGBA(128, 0, 128, 1)}
 };
 
 #endif // VELVET_CSS_COLORS_H

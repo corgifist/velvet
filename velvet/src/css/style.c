@@ -128,6 +128,16 @@ vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) 
         dst->as.literal = VL_DA_COPY(value->as.literal);
         break;
     }
+    case VL_CSS_VALUE_LIST: {
+        if (value->as.list) {
+            dst->as.list = VL_DA_INIT_WITH_CAPACITY(vl_css_value_t, VL_DA_LENGTH(value->as.list));
+            VL_DA_HEADER(dst->as.list)->count = VL_DA_LENGTH(value->as.list);
+            for (int i = 0; i < VL_DA_LENGTH(value->as.list); i++) {
+                vl_css_value_copy(dst->as.list + i, value->as.list + i);
+            }
+        }
+        break;
+    }
     default: {
         *dst = *value;
         return VL_SUCCESS;
@@ -223,6 +233,18 @@ static void print_value(vl_css_value_t value) {
     }
     case VL_CSS_VALUE_INTEGER: {
         printf("%i", value.as.integer);
+        break;
+    }
+    case VL_CSS_VALUE_LIST: {
+        if (!value.as.list) {
+            printf("-");
+            break;
+        }
+        int len = VL_DA_LENGTH(value.as.list);
+        for (int i = 0; i < VL_DA_LENGTH(value.as.list); i++) {
+            print_value(value.as.list[i]);
+            if (i != len - 1) printf(", ");
+        }
         break;
     }
     default: break;
@@ -347,6 +369,15 @@ vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
     }
     case VL_CSS_VALUE_DYNAMIC_LITERAL: {
         VL_DA_FREE(value->as.literal);
+        break;
+    }
+    case VL_CSS_VALUE_LIST: {
+        if (value->as.list) {
+            for (int i = 0; i < VL_DA_LENGTH(value->as.list); i++) {
+                vl_css_value_deinit(value->as.list + i);
+            }
+        }
+        VL_DA_FREE(value->as.list);
         break;
     }
     default: return VL_SUCCESS;

@@ -5,6 +5,19 @@
 #include "velvet/css/stylesheet.h"
 #include "velvet/support/math.h"
 
+enum vl_css_layout_border_type {
+    VL_CSS_LAYOUT_BORDER_NONE = 0,
+    VL_CSS_LAYOUT_BORDER_SOLID
+};
+typedef enum vl_css_layout_border_type vl_css_layout_border_type_t;
+
+struct vl_css_layout_border {
+    vl_css_layout_border_type_t type;
+    float width;
+    vl_color_t color;
+};
+typedef struct vl_css_layout_border vl_css_layout_border_t;
+
 typedef void* vl_css_layout_node_owner_t;
 
 struct vl_css_layout_node;
@@ -34,6 +47,9 @@ struct vl_css_layout_node {
     vl_vec4_t margin;
     bool auto_margin[4];
     vl_vec4_t padding;
+    vl_css_layout_border_t border[4];
+    vl_vec4_t border_size;
+    vl_vec4_t effective_padding;
     vl_vec4_t bounds_offset;
     float block_last_margin;
     float block_applied_margin;

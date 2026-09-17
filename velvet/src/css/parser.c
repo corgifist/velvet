@@ -132,24 +132,7 @@ static vl_css_value_t parse_generic_color(vl_css_parser_t *parser, vl_css_rule_t
     return VL_CSS_VALUE_NONE();
 }
 
-static const char *s_const_literals[] = {
-    "inherit",
-    "initial",
-    "unset",
-    "revert",
-    "canvastext",
-    "block",
-    "none",
-    "normal",
-    "bold",
-    "lighter",
-    "bolder",
-    "start",
-    "end",
-    "center",
-    "justify",
-    "fit-content"
-};
+#include "constants.h"
 
 static const char *try_parse_const_literal(vl_css_parser_t *parser, int limit) {
     vl_css_token_t *current = parser->lookahead;
@@ -265,6 +248,23 @@ static vl_css_value_t parse_font_list(vl_css_parser_t *parser, vl_css_rule_t *ru
     return result;
 }
 
+static vl_css_value_t parse_list(vl_css_parser_t *parser, vl_css_rule_t *rule) {
+    vl_css_value_t result = VL_CSS_VALUE_LIST();
+    vl_css_token_t *current = parser->lookahead;
+    while (!VL_TOKEN_COMPARE(current, ";")) {
+        vl_css_value_t value = parse_primary_value(parser, rule);
+        if (VL_TOKEN_COMPARE(current, ",")) {
+            tokenize(parser);
+        }
+        if (value.type == VL_CSS_VALUE_NONE) {
+            tokenize(parser);
+            continue;
+        }
+        VL_DA_APPEND(result.as.list, value);
+    }
+    return result;
+}
+
 typedef vl_css_value_t (*vl_parse_value_with_context)(vl_css_parser_t *parser, vl_css_rule_t *rule);
 static const struct {
     const char *property;
@@ -272,7 +272,14 @@ static const struct {
 } s_context_table[] = {
     {"padding", parse_shorthand_metric4},
     {"margin", parse_shorthand_metric4},
-    {"font-family", parse_font_list}
+    {"font-family", parse_font_list},
+    {"border", parse_list},
+    {"border-style", parse_list},
+    {"border-top", parse_list},
+    {"border-right", parse_list},
+    {"border-bottom", parse_list},
+    {"border-left", parse_list},
+    {"border-color", parse_list}
 };
 
 static vl_css_value_t dispatch_parse_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {

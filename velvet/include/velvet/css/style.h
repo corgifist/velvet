@@ -18,7 +18,8 @@ enum vl_css_value_type {
     VL_CSS_VALUE_CONST_LITERAL,
     VL_CSS_VALUE_FONT_LIST,
     VL_CSS_VALUE_DYNAMIC_LITERAL,
-    VL_CSS_VALUE_INTEGER
+    VL_CSS_VALUE_INTEGER,
+    VL_CSS_VALUE_LIST
 };
 
 typedef enum vl_css_value_type vl_css_value_type_t;
@@ -49,16 +50,7 @@ typedef struct vl_css_size_metric vl_css_size_metric_t;
 #define VL_CSS_SIZE_REM(REM) VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_REM, REM)
 #define VL_CSS_SIZE_AUTO() VL_CSS_SIZE_METRIC(VL_CSS_SIZE_METRIC_AUTO, 0)
 
-struct vl_css_color_rgba {
-    union {
-        struct {
-            float r, g, b, a;
-        };
-        float m[4];
-    };
-};
-
-typedef struct vl_css_color_rgba vl_css_color_rgba_t;
+typedef vl_color_t vl_css_color_rgba_t;
 
 #define VL_CSS_COLOR_RGBA(R, G, B, A) \
     ((vl_css_color_rgba_t) {.r = (float) (R), .g = (float) (G), .b = (float) (B), .a = (float) (A)})
@@ -80,6 +72,7 @@ struct vl_css_value {
         vl_css_color_rgba_t rgba;
         const char *literal;
         vl_css_font_list_t font_list;
+        VL_DA(struct vl_css_value) list;
     } as;
 };
 
@@ -112,6 +105,14 @@ typedef struct vl_css_value vl_css_value_t;
 
 #define VL_CSS_VALUE_INTEGER(INTEGER) \
     VL_CSS_VALUE(VL_CSS_VALUE_INTEGER, {.integer = (int) (INTEGER)})
+
+
+#define VL_CSS_VALUE_LIST1(LIST) \
+    VL_CSS_VALUE(VL_CSS_VALUE_LIST, {.list = (LIST)})
+#define VL_CSS_VALUE_LIST0() \
+    VL_CSS_VALUE_LIST1(VL_DA_INIT(vl_css_value_t))
+#define VL_CSS_VALUE_LIST(...) \
+    VL_VA_DISPATCH(VL_CSS_VALUE_LIST, __VA_ARGS__)
 
 #define VL_CSS_VALUE_COLOR_COMPATIBLE(VALUE) \
     (VALUE.type == VL_CSS_VALUE_COLOR_RGBA)
