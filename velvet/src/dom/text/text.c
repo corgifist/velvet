@@ -79,8 +79,8 @@ static const char *family_name_by_unit_font(vl_web_fonts_t *fonts, vl_font_t *un
 
 static int calculate_weight(vl_css_value_t weight) {
     if (VL_CSS_VALUE_IS_LITERAL(weight)) {
-        if (VL_CSS_CONST_LITERAL_EQUAL(weight, "normal")) return 400;
-        if (VL_CSS_CONST_LITERAL_EQUAL(weight, "bold")) return 700;
+        if (VL_CSS_VALUE_COMPARE_LITERALS(weight, "normal")) return 400;
+        if (VL_CSS_VALUE_COMPARE_LITERALS(weight, "bold")) return 700;
     }
     if (weight.type == VL_CSS_VALUE_INTEGER) {
         return weight.as.integer;
@@ -98,13 +98,13 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
     blueprint.weight = calculate_weight(font_weight_css);
 
     vl_css_value_t text_align_css = vl_css_layout_node_get_property(&element->layout, "text-align", VL_CSS_VALUE_CONST_LITERAL("start"));
-    if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "start")) {
+    if (VL_CSS_VALUE_COMPARE_LITERALS(text_align_css, "start")) {
         blueprint.alignment = VL_DOM_TEXT_ALIGN_START;
-    } else if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "center")) {
+    } else if (VL_CSS_VALUE_COMPARE_LITERALS(text_align_css, "center")) {
         blueprint.alignment = VL_DOM_TEXT_ALIGN_CENTER;
-    } else if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "end")) {
+    } else if (VL_CSS_VALUE_COMPARE_LITERALS(text_align_css, "end")) {
         blueprint.alignment = VL_DOM_TEXT_ALIGN_END;
-    } else if (VL_CSS_CONST_LITERAL_EQUAL(text_align_css, "justify")) {
+    } else if (VL_CSS_VALUE_COMPARE_LITERALS(text_align_css, "justify")) {
         blueprint.alignment = VL_DOM_TEXT_ALIGN_JUSTIFY;
     }
 

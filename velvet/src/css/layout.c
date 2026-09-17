@@ -132,53 +132,53 @@ static void construct_complex_metric(const char *root, vl_vec4_t *result, bool *
         if (strcmp(rule->property, vl_sprintf_tmp("%s-top", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 0, 0, 0);
             if (auto_metric) auto_metric[0] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[0] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[0] = true;
             else result->x = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.y).value;
             continue;
         }
         if (strcmp(rule->property, vl_sprintf_tmp("%s-right", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 1, 1, 1);
             if (auto_metric) auto_metric[1] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[1] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[1] = true;
             else result->y = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.x).value;
             continue;
         }
         if (strcmp(rule->property, vl_sprintf_tmp("%s-bottom", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 0, 2, 2);
             if (auto_metric) node->auto_margin[2] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[2] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[2] = true;
             else result->z = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.y).value;
             continue;
         }
         if (strcmp(rule->property, vl_sprintf_tmp("%s-left", root)) == 0) {
             vl_css_size_metric_t metric = select_metric(rule, 1, 1, 3);
             if (auto_metric) node->auto_margin[3] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[3] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[3] = true;
             else result->w = vl_css_layout_node_process_metric(node, NULL, metric, node->parent->size.x).value;
             continue;
         }
         if (strcmp(root, "margin") != 0) continue;
         if (strcmp(rule->property, "margin-block-start") == 0) {
             if (auto_metric)  node->auto_margin[0] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[0] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[0] = true;
             else result->x = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.y).value;
             continue;
         }
         if (strcmp(rule->property, "margin-block-end") == 0) {
             if (auto_metric)  node->auto_margin[2] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[2] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[2] = true;
             else result->z = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.y).value;
             continue;
         }
         if (strcmp(rule->property, "margin-inline-start") == 0) {
             if (auto_metric)  node->auto_margin[3] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[3] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[3] = true;
             else result->w = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
             continue;
         }
         if (strcmp(rule->property, "margin-inline-end") == 0) {
             if (auto_metric)  node->auto_margin[1] = false;
-            if (VL_CSS_CONST_LITERAL_EQUAL(rule->value, "auto") && auto_metric) auto_metric[1] = true;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(rule->value, "auto") && auto_metric) auto_metric[1] = true;
             else result->y = vl_css_layout_node_process_metric(node, NULL, rule->value.as.metric1, node->parent->size.x).value;
             continue;
         }
@@ -217,13 +217,13 @@ static void construct_dimensions(vl_css_layout_node_t *node) {
     vl_vec2_t dimensions = {VL_FLOAT_MIN, VL_FLOAT_MIN};
     node->allow_width_growth = vl_html_is_tag_inline(node->tag);
     VL_ZERO_OUT(node->lock_dimensions, sizeof(node->lock_dimensions));
-    if (VL_CSS_CONST_LITERAL_EQUAL(node->display, "block")) {
+    if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "block")) {
         vl_css_value_t width_value = vl_css_layout_node_get_property(node, "width", VL_CSS_VALUE_NONE());
         if (VL_CSS_VALUE_IS_METRIC(width_value)) {
             vl_css_size_metric_t width_metric = vl_css_layout_node_process_metric(node, "width", width_value.as.metric1, node->parent->size.x);
             dimensions.x = width_metric.value;
             node->lock_dimensions[0] = true;
-        } else if (VL_CSS_CONST_LITERAL_EQUAL(width_value, "fit-content")) {
+        } else if (VL_CSS_VALUE_COMPARE_LITERALS(width_value, "fit-content")) {
             dimensions.x = 0;
             node->allow_width_growth = true;
         }
@@ -232,7 +232,7 @@ static void construct_dimensions(vl_css_layout_node_t *node) {
             vl_css_size_metric_t height_metric = vl_css_layout_node_process_metric(node, "height", height_value.as.metric1, node->parent->size.y);
             dimensions.y = height_metric.value;
             node->lock_dimensions[1] = true;
-        } else if (VL_CSS_CONST_LITERAL_EQUAL(height_value, "fit-content")) {
+        } else if (VL_CSS_VALUE_COMPARE_LITERALS(height_value, "fit-content")) {
             dimensions.y = 0;
         }
     }
@@ -241,8 +241,8 @@ static void construct_dimensions(vl_css_layout_node_t *node) {
 
 static vl_css_layout_border_type_t get_border_type(vl_css_value_t *value) {
     if (!VL_CSS_VALUE_IS_LITERAL(*value)) return VL_CSS_LAYOUT_BORDER_NONE;
-    if (VL_CSS_CONST_LITERAL_EQUAL(*value, "none")) return VL_CSS_LAYOUT_BORDER_NONE;
-    if (VL_CSS_CONST_LITERAL_EQUAL(*value, "solid")) return VL_CSS_LAYOUT_BORDER_SOLID;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "none")) return VL_CSS_LAYOUT_BORDER_NONE;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "solid")) return VL_CSS_LAYOUT_BORDER_SOLID;
     return VL_CSS_LAYOUT_BORDER_NONE;
 }
 
@@ -369,7 +369,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     bool lock_height = node->lock_dimensions[1];
     // printf("%s locks: %i (%f) %i (%f)\n", node->tag, lock_width, node->raw_dimensions.x, lock_height, node->raw_dimensions.y);
     if (node->raw_dimensions.x == VL_FLOAT_MIN) {
-        if (VL_CSS_CONST_LITERAL_EQUAL(node->display, "block"))
+        if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "block"))
             node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
     } else {
         node->size.x = node->raw_dimensions.x;
@@ -389,7 +389,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         vl_css_layout_node_t *child = node->children[i];
         vl_css_layout_node_process(child);
         vl_css_value_t display_value = get_display_mode(child);
-        if (VL_CSS_CONST_LITERAL_EQUAL(display_value, "none")) continue;
+        if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "none")) continue;
         VL_DA_APPEND(layout_targets, child);
     }
     node->size.x += (node->effective_padding.w + node->effective_padding.y);
@@ -405,12 +405,12 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         if (!prev) {
             node->block_first_margin = VL_MAX(child->margin.x, child->block_first_margin);
         }
-        if (VL_CSS_CONST_LITERAL_EQUAL(child->display, "block") || !child->display.as.literal) {
+        if (VL_CSS_VALUE_COMPARE_LITERALS(child->display, "block") || !child->display.as.literal) {
             if (!prev && (node->effective_padding.x != 0)) {
                 cursor.y += child->margin.x;
                 size.y += child->margin.x;
             } else if (prev) {
-                if (VL_CSS_CONST_LITERAL_EQUAL(prev->display, "inline")) {
+                if (VL_CSS_VALUE_COMPARE_LITERALS(prev->display, "inline")) {
                     cursor.y += prev->size.y;
                     line = PUSH_NEW_BLOCK_LINE(lines);
                 }
@@ -435,11 +435,11 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             line->width = VL_MAX(line->width, cursor.x + child->size.x);
             line->height = VL_MAX(line->height, child->size.y);
             VL_DA_APPEND(line->elements, child);
-            if (next && !VL_CSS_CONST_LITERAL_EQUAL(next->display, "inline")) {
+            if (next && !VL_CSS_VALUE_COMPARE_LITERALS(next->display, "inline")) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
         } else {
-            if (prev && VL_CSS_CONST_LITERAL_EQUAL(prev->display, "block")) {
+            if (prev && VL_CSS_VALUE_COMPARE_LITERALS(prev->display, "block")) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
                 if (margins_can_collapse(prev, child))  {
                     child->block_applied_margin = VL_MAX(child->margin.x, node->block_last_margin);
@@ -530,7 +530,7 @@ static float get_first_top_margin(vl_css_layout_node_t *node) {
     if (!node->children || VL_DA_EMPTY(node->children)) return node->margin.x;
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
-        if (VL_CSS_CONST_LITERAL_EQUAL(child->display, "none")) continue;
+        if (VL_CSS_VALUE_COMPARE_LITERALS(child->display, "none")) continue;
         float child_margin_x = get_first_top_margin(child);
         return VL_MAX(node->margin.x, child_margin_x);
     }
@@ -543,7 +543,7 @@ static vl_result_t layout_body(vl_css_layout_node_t *node) {
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
             vl_css_layout_node_t *child = node->children[i];
             vl_css_value_t display = get_display_mode(child);
-            if (VL_CSS_CONST_LITERAL_EQUAL(display, "none")) continue;
+            if (VL_CSS_VALUE_COMPARE_LITERALS(display, "none")) continue;
             float max_top_margin = get_first_top_margin(child);
             if (max_top_margin > node->margin.y) {
                 node->position.y += max_top_margin - node->margin.y;
@@ -642,10 +642,10 @@ vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const
             property_automatically_inherited = true;
         }
     }
-    if ((result.type == VL_CSS_VALUE_NONE && property_automatically_inherited) || VL_CSS_CONST_LITERAL_EQUAL(result, "inherit")) {
+    if ((result.type == VL_CSS_VALUE_NONE && property_automatically_inherited) || VL_CSS_VALUE_COMPARE_LITERALS(result, "inherit")) {
         result = vl_css_layout_node_get_property(node->parent, property, fallback);
     }
-    if (VL_CSS_CONST_LITERAL_EQUAL(result, "unset") || VL_CSS_CONST_LITERAL_EQUAL(result, "initial")) {
+    if (VL_CSS_VALUE_COMPARE_LITERALS(result, "unset") || VL_CSS_VALUE_COMPARE_LITERALS(result, "initial")) {
         result = fallback;
     }
     if (result.type == VL_CSS_VALUE_CONST_LITERAL 
@@ -670,7 +670,7 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
         float base_scale = optional_parent_size == 0 ? 16 : optional_parent_size;
         if (is_font_size) {
             vl_css_value_t font_family = vl_css_layout_node_get_property(node, "font-family", VL_CSS_VALUE_NONE());
-            if (VL_CSS_CONST_LITERAL_EQUAL(font_family, "monospace")) {
+            if (VL_CSS_VALUE_COMPARE_LITERALS(font_family, "monospace")) {
                 base_scale = 13;
             }
         }

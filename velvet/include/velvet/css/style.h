@@ -120,7 +120,7 @@ typedef struct vl_css_value vl_css_value_t;
 #define VL_CSS_VALUE_IS_LITERAL(CSS_VALUE) \
     ((CSS_VALUE).type == VL_CSS_VALUE_CONST_LITERAL || (CSS_VALUE).type == VL_CSS_VALUE_DYNAMIC_LITERAL)
 
-#define VL_CSS_CONST_LITERAL_EQUAL(CSS_VALUE, LITERAL) \
+#define VL_CSS_VALUE_COMPARE_LITERALS(CSS_VALUE, LITERAL) \
     (VL_CSS_VALUE_IS_LITERAL(CSS_VALUE) \
         && (CSS_VALUE).as.literal \
         && strcmp((CSS_VALUE).as.literal, (LITERAL)) == 0)
