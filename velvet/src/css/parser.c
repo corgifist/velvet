@@ -372,7 +372,7 @@ static vl_result_t parse_class_selectors(vl_css_parser_t *parser, vl_css_class_t
 }
 
 vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
-    if (!parser) return VL_ERROR;
+    if (!parser || !class) return VL_ERROR;
     vl_css_token_t *current = parser->lookahead;
     if (current->type == VL_CSS_TOKEN_TYPE_STOP) {
         return VL_STOP;
@@ -418,6 +418,17 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
     vl_css_class_deinit(class);
     tokenize(parser); // skip faulty token to avoid infinite loops
     return VL_ERROR;
+}
+
+vl_result_t vl_css_parser_get_rule(vl_css_parser_t *parser, vl_css_rule_t *rule) {
+    if (!parser || !rule) return VL_ERROR;
+    vl_css_token_t *current = parser->lookahead;
+    if (current->type == VL_CSS_TOKEN_TYPE_STOP) {
+        return VL_STOP;
+    }
+    vl_result_t result = parse_rule(parser, rule);
+    if (VL_TOKEN_COMPARE(current, ";") || result) tokenize(parser);
+    return result;
 }
 
 vl_result_t vl_css_parser_deinit(vl_css_parser_t *parser) {

@@ -29,6 +29,7 @@ typedef struct vl_css_parser vl_css_parser_t;
     VL_VA_DISPATCH(vl_css_parser_init, __VA_ARGS__)
 VL_API vl_result_t vl_css_parser_init_(vl_css_parser_t *parser, const char *text, vl_source_location_t loc, vl_error_pool_t *ep);
 VL_API vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class);
+VL_API vl_result_t vl_css_parser_get_rule(vl_css_parser_t *parser, vl_css_rule_t *rule);
 VL_API vl_result_t vl_css_parser_deinit(vl_css_parser_t *parser);
 
 #endif // VELVET_CSS_PARSER_H

@@ -1301,6 +1301,7 @@ void styling_test() {
         <p class="right-border">Big right border</p>
         <p class="bottom-border">Big bottom border</p>
         <p class="left-border">Big left border</p>
+        <h1 style="color: red; font-size: 40px;">Hello World</h1>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

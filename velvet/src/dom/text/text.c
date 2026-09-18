@@ -249,11 +249,12 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element) {
     float base_x = 0;
     float base_y = 0;
     vl_color_t normalized_color = VL_COLOR(
-        element->layout.color.r / 255.0f,
-        element->layout.color.g / 255.0f,
-        element->layout.color.b / 255.0f,
+        element->layout.color.r,
+        element->layout.color.g,
+        element->layout.color.b,
         element->layout.color.a
     );
+    // printf("%f %f %f\n", normalized_color.r, normalized_color.g, normalized_color.b);
     vl_dom_element_text_layout_t *layout = &text->layout;
     vl_quad_colors_t quad_color = VL_QUAD_COLOR(normalized_color);
     for (int i = 0; i < VL_DA_LENGTH(layout->lines); i++) {

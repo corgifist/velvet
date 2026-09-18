@@ -36,6 +36,7 @@ struct vl_css_layout_node {
     vl_css_class_selector_t tag_selector;
     VL_DA(vl_css_class_selector_t) affecting_selectors;
     vl_css_style_t style;
+    vl_css_inline_style_t inline_style;
 
     vl_css_value_t display;
     vl_vec2_t raw_dimensions;

@@ -229,6 +229,12 @@ static vl_result_t element_set_class_name(vl_dom_element_t *element, const char 
     return VL_SUCCESS;
 }
 
+static vl_result_t element_set_style(vl_dom_element_t *element, const char *css) {
+    vl_css_inline_style_deinit(&element->layout.inline_style);
+    vl_css_inline_style_init(&element->layout.inline_style, css);
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *property, vl_dom_element_property_type_t type, const void *value) {
     if (!element || !property) return VL_ERROR;
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
@@ -237,6 +243,12 @@ vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *p
             return VL_ERROR;
         }
         return element_set_class_name(element, value);
+    }
+    if (strcmp(property, "style") == 0) {
+        if (type != VL_DOM_ELEMENT_PROPERTY_STRING) {
+            return VL_ERROR;
+        }
+        return element_set_style(element, value);
     }
     if (!funcs->set_property) return VL_ERROR;
     return funcs->set_property(element, property, type, value);

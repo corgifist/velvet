@@ -21,7 +21,6 @@ enum vl_css_value_type {
     VL_CSS_VALUE_INTEGER,
     VL_CSS_VALUE_LIST
 };
-
 typedef enum vl_css_value_type vl_css_value_type_t;
 
 enum vl_css_size_metric_type {
@@ -32,14 +31,12 @@ enum vl_css_size_metric_type {
     VL_CSS_SIZE_METRIC_REM,
     VL_CSS_SIZE_METRIC_AUTO
 };
-
 typedef enum vl_css_size_metric_type vl_css_size_metric_type_t;
 
 struct vl_css_size_metric {
     float value;
     vl_css_size_metric_type_t type;
 };
-
 typedef struct vl_css_size_metric vl_css_size_metric_t;
 
 #define VL_CSS_SIZE_METRIC(TYPE, VALUE) \
@@ -58,7 +55,6 @@ typedef vl_color_t vl_css_color_rgba_t;
 struct vl_css_font_list {
     VL_DA(VL_DA_STRING) fonts;
 };
-
 typedef struct vl_css_font_list vl_css_font_list_t;
 
 struct vl_css_value {
@@ -75,7 +71,6 @@ struct vl_css_value {
         VL_DA(struct vl_css_value) list;
     } as;
 };
-
 typedef struct vl_css_value vl_css_value_t;
 
 #define VL_CSS_VALUE(TYPE, ...) \
@@ -138,7 +133,6 @@ struct vl_css_rule {
     bool important;
     int priority;
 };
-
 typedef struct vl_css_rule vl_css_rule_t;
 
 enum vl_css_class_id_type {
@@ -146,43 +140,49 @@ enum vl_css_class_id_type {
     VL_CSS_CLASS_ID_CLASS,
     VL_CSS_CLASS_ID_ALL
 };
-
 typedef enum vl_css_class_id_type vl_css_class_id_type_t;
 
 struct vl_css_class_id {
     vl_css_class_id_type_t type;
     VL_DA(char) name;
 };
-
 typedef struct vl_css_class_id vl_css_class_id_t;
 
 struct vl_css_class_selector {
     VL_DA(vl_css_class_id_t) id_chain;
 };
-
 typedef struct vl_css_class_selector vl_css_class_selector_t;
 
 struct vl_css_class {
     VL_DA(vl_css_class_selector_t) selectors;
     VL_DA(vl_css_rule_t) rules;
 };
-
 typedef struct vl_css_class vl_css_class_t;
 
 struct vl_css_style {
-    VL_DA(vl_css_rule_t*) applied_rules;
+    VL_DA(const vl_css_rule_t*) applied_rules;
 };
-
 typedef struct vl_css_style vl_css_style_t;
+
+struct vl_css_inline_style {
+    VL_DA(vl_css_rule_t) rules;
+};
+typedef struct vl_css_inline_style vl_css_inline_style_t;
 
 #define vl_css_style_init_va_expand(style, loc, ...) \
     vl_css_style_init_(style, loc)
 #define vl_css_style_init(...) \
     vl_css_style_init_va_expand(__VA_ARGS__, VL_HERE)
 VL_API vl_result_t vl_css_style_init_(vl_css_style_t *style, vl_source_location_t loc);
+#define vl_css_inline_style_init_va_expand(style, css, loc, ...) \
+    vl_css_inline_style_init_(style, css, loc)
+#define vl_css_inline_style_init(...) \
+    vl_css_inline_style_init_va_expand(__VA_ARGS__, VL_HERE)
+VL_API vl_result_t vl_css_inline_style_init_(vl_css_inline_style_t *style, const char *css, vl_source_location_t loc);
 VL_API vl_css_value_t vl_css_style_get_property(vl_css_style_t *style, const char *property, vl_css_value_t fallback);
 VL_API vl_result_t vl_css_style_from_class(vl_css_style_t *style, const vl_css_class_t *class);
 VL_API vl_result_t vl_css_style_merge(vl_css_style_t *dst, const vl_css_style_t *style);
+VL_API vl_result_t vl_css_style_merge_inline(vl_css_style_t *dst, const vl_css_inline_style_t *style);
 
 VL_API vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *src);
 VL_API vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src);
@@ -201,6 +201,7 @@ VL_API vl_color_t vl_css_value_to_rgba(vl_css_value_t value);
 
 VL_API vl_result_t vl_css_value_deinit(vl_css_value_t *value);
 VL_API vl_result_t vl_css_style_deinit(vl_css_style_t *style);
+VL_API vl_result_t vl_css_inline_style_deinit(vl_css_inline_style_t *style);
 VL_API vl_result_t vl_css_class_deinit(vl_css_class_t *class);
 VL_API vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector);
 VL_API vl_result_t vl_css_class_id_deinit(vl_css_class_id_t *id);

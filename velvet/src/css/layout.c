@@ -48,7 +48,8 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
         }
     }
     VL_DA_FREE(matched_classes);
-    // vl_css_style_print(&node->style);
+    vl_css_style_merge_inline(&node->style, &node->inline_style);
+    vl_css_style_print(&node->style);
     return VL_SUCCESS;
 }
 
@@ -111,7 +112,7 @@ static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *node, bool *aut
     return (vl_vec4_t) {0};
 }
 
-static vl_css_size_metric_t select_metric(vl_css_rule_t *rule, int i1, int i2, int i3) {
+static vl_css_size_metric_t select_metric(const vl_css_rule_t *rule, int i1, int i2, int i3) {
     switch (rule->value.type) {
     case VL_CSS_VALUE_SIZE_METRIC1: return rule->value.as.metric1;
     case VL_CSS_VALUE_SIZE_METRIC2: return rule->value.as.metric2[i1];
@@ -123,7 +124,7 @@ static vl_css_size_metric_t select_metric(vl_css_rule_t *rule, int i1, int i2, i
 
 static void construct_complex_metric(const char *root, vl_vec4_t *result, bool *auto_metric, vl_css_layout_node_t *node) {
     for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
-        vl_css_rule_t *rule = node->style.applied_rules[i];
+        const vl_css_rule_t *rule = node->style.applied_rules[i];
         if (!rule->property) continue;
         if (strcmp(rule->property, root) == 0) {
             *result = generic_metric_to_metric4(node, auto_metric, rule->value);
@@ -239,14 +240,14 @@ static void construct_dimensions(vl_css_layout_node_t *node) {
     node->raw_dimensions = dimensions;
 }
 
-static vl_css_layout_border_type_t get_border_type(vl_css_value_t *value) {
+static vl_css_layout_border_type_t get_border_type(const vl_css_value_t *value) {
     if (!VL_CSS_VALUE_IS_LITERAL(*value)) return VL_CSS_LAYOUT_BORDER_NONE;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "none")) return VL_CSS_LAYOUT_BORDER_NONE;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "solid")) return VL_CSS_LAYOUT_BORDER_SOLID;
     return VL_CSS_LAYOUT_BORDER_NONE;
 }
 
-static float get_border_width(vl_css_layout_node_t *node, vl_css_value_t *value) {
+static float get_border_width(vl_css_layout_node_t *node, const vl_css_value_t *value) {
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "thin")) return 1;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "medium")) return 3;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "thick")) return 5;
@@ -257,7 +258,7 @@ static float get_border_width(vl_css_layout_node_t *node, vl_css_value_t *value)
     return 3;
 }
 
-static vl_css_layout_border_t construct_border(vl_css_layout_node_t *node, vl_css_value_t *value) {
+static vl_css_layout_border_t construct_border(vl_css_layout_node_t *node, const vl_css_value_t *value) {
     vl_css_layout_border_t result = {0};
     if (value->as.list)
         for (int i = 0; i < VL_DA_LENGTH(value->as.list); i++) {
@@ -287,7 +288,7 @@ static void construct_borders(vl_css_layout_node_t *node) {
         node->border[i].color = node->color;
     }
     for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
-        vl_css_rule_t *rule = node->style.applied_rules[i];
+        const vl_css_rule_t *rule = node->style.applied_rules[i];
         static const char *sides[] = {
             "top", "right", "bottom", "left"
         };
@@ -815,6 +816,7 @@ vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node) {
         VL_DA_FREE(node->affecting_selectors);
     }
     vl_css_style_deinit(&node->style);
+    vl_css_inline_style_deinit(&node->inline_style);
     if (node->children) {
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
             vl_css_layout_node_deinit(node->children[i]);
