@@ -398,22 +398,6 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
     return brush_index;
 }
 
-vl_result_t vl_graphics_render_universal_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
-    if (!render) return VL_ERROR;
-    vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;
-    if (r->batch_offset + 6 > BATCH_MAX) {
-        vl_graphics_render_universal_batch_end(render);
-        vl_graphics_render_universal_batch_begin(render);
-    }
-    int brush_index = get_brush_index(render, brush);
-    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr, uv.tr);
-    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl, uv.bl);
-    batch_add_vertex(render, quad.x3, quad.y3, brush_index, colors.br, uv.br);
-    batch_add_vertex(render, quad.x2, quad.y2, brush_index, colors.tr, uv.tr);
-    batch_add_vertex(render, quad.x1, quad.y1, brush_index, colors.tl, uv.tl);
-    batch_add_vertex(render, quad.x4, quad.y4, brush_index, colors.bl, uv.bl);
-    return VL_SUCCESS;
-}
 
 vl_result_t vl_graphics_render_universal_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv) {
     if (!render) return VL_ERROR;
