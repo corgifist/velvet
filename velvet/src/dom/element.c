@@ -90,21 +90,38 @@ static void render_element_background(vl_dom_element_t *element) {
 
 static void render_element_border(vl_dom_element_t *element) {
     vl_web_t *web = element->owner->owner;
-    float max01 = VL_MAX(element->layout.border[0].width, element->layout.border[1].width);
-    float max12 = VL_MAX(element->layout.border[1].width, element->layout.border[2].width);
-    float max23 = VL_MAX(element->layout.border[2].width, element->layout.border[3].width);
-    float max31 = VL_MAX(element->layout.border[3].width, element->layout.border[1].width);
-    vl_line_t lines[4] = {
-        VL_LINE(VL_VEC2(0, max01 / 2), VL_VEC2(element->layout.size.x, max01 / 2), element->layout.border[0].width),
-        VL_LINE(VL_VEC2(element->layout.size.x - max01 / 2, max01), VL_VEC2(element->layout.size.x - max01 / 2, element->layout.size.y), element->layout.border[1].width),
-        VL_LINE(VL_VEC2(element->layout.size.x, element->layout.size.y - max23 / 2), VL_VEC2(0, element->layout.size.y - max23 / 2), element->layout.border[2].width),
-        VL_LINE(VL_VEC2(max31 / 2, element->layout.size.y - max23), VL_VEC2(max31 / 2, max31), element->layout.border[3].width),
-    };
-    for (int i = 0; i < 4; i++) {
-        vl_css_layout_border_t *border = element->layout.border + i;
-        if (border->type == VL_CSS_LAYOUT_BORDER_SOLID) {
-            vl_graphics_render_batch_line_colored(web->render, lines[i], NULL, border->color);
-        }
+    vl_css_layout_border_t *top = element->layout.border;
+    vl_css_layout_border_t *right = top + 1;
+    vl_css_layout_border_t *bottom = right + 1;
+    vl_css_layout_border_t *left = bottom + 1;
+    vl_vec2_t size = element->layout.size;
+    if (top->type) {
+        vl_quad_t top_quad = VL_QUAD(
+            VL_VEC2(0, 0), VL_VEC2(size.x, 0),
+            VL_VEC2(left->width, top->width), VL_VEC2(size.x - right->width, top->width)
+        );
+        vl_graphics_render_batch_quad_colored(web->render, top_quad, NULL, VL_QUAD_COLOR(top->color));
+    }
+    if (right->type) {
+        vl_quad_t right_quad = VL_QUAD(
+            VL_VEC2(size.x - right->width, top->width), VL_VEC2(size.x, 0),
+            VL_VEC2(size.x - right->width, size.y - bottom->width), VL_VEC2(size.x, size.y)
+        );
+        vl_graphics_render_batch_quad_colored(web->render, right_quad, NULL, VL_QUAD_COLOR(right->color));
+    }
+    if (bottom->type) {
+        vl_quad_t bottom_quad = VL_QUAD(
+            VL_VEC2(right->width, size.y - bottom->width), VL_VEC2(size.x - right->width, size.y - bottom->width),
+            VL_VEC2(0, size.y), size
+        );
+        vl_graphics_render_batch_quad_colored(web->render, bottom_quad, NULL, VL_QUAD_COLOR(bottom->color));
+    }
+    if (left->type) {
+        vl_quad_t left_quad = VL_QUAD(
+            VL_VEC2(0, 0), VL_VEC2(left->width, top->width),
+            VL_VEC2(0, size.y), VL_VEC2(left->width, size.y - bottom->width)
+        );
+        vl_graphics_render_batch_quad_colored(web->render, left_quad, NULL, VL_QUAD_COLOR(left->color));
     }
 }
 

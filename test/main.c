@@ -1143,50 +1143,54 @@ void styling_test() {
     //         <p>I am lavender!</p>
     //     </div>
     // );
-    const char *input = VL_STRINGIFY(
-        <style>
-            html {
-                --velvet-margin-highlight: highlight-orange;
-            }
-            html {
-                // --velvet-element-highlight: highlight-green;
-            }
-            .center {
-                background-color: red;
-                width: fit-content;
-                margin: 0 auto;
-            }
-            .right {
-                background-color: green;
-                width: fit-content;
-                margin: 0 0 0 auto;
-            }
-            .left {
-                background-color: yellow;
-                width: fit-content;
-                margin: 0 auto 0 0;
-            }
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         html {
+    //             --velvet-margin-highlight: highlight-orange;
+    //         }
+    //         html {
+    //             // --velvet-element-highlight: highlight-green;
+    //         }
+    //         .red-bg {
+    //             background-color: red;
+    //         }
+    //         .center {
+    //             background-color: red;
+    //             width: fit-content;
+    //             margin: 0 auto;
+    //         }
+    //         .right {
+    //             background-color: green;
+    //             width: fit-content;
+    //             margin: 0 0 0 auto;
+    //         }
+    //         .left {
+    //             background-color: yellow;
+    //             width: fit-content;
+    //             margin: 0 auto 0 0;
+    //         }
 
-            .border-top {
-                border-top: solid 10px black;
-            }
-            .all-around {
-                border: 8px solid red;
-                border-top-color: red;
-                border-right-color: green;
-                border-bottom-color: blue;
-                border-left-color: purple;
-            }
-        </style>
-        <p>Just a paragraph</p>
-        <p class="center">Hello, World!</p>
-        <p class="right">Hello, World!</p>
-        <p class="left">Hello, World!</p>
-        <p>Warning! <code>Monospace fonts</code> are supported</p>
-        <p class="border-top">Borders!</p>
-        <p class="all-around">All-around border</p>
-        <p>Simple paragraph</p>
-    );
+    //         .border-top {
+    //             border-top: solid 10px black;
+    //         }
+    //         .all-around {
+    //             border: 8px solid red;
+    //             border-top-color: red;
+    //             border-right-color: green;
+    //             border-bottom-color: blue;
+    //             border-left-color: purple;
+    //         }
+    //     </style>
+    //     <p>Just a paragraph</p>
+    //     <p class="center">Hello, World!</p>
+    //     <p class="right">Hello, World!</p>
+    //     <p class="left">Hello, World!</p>
+    //     <p>Warning! <code>Monospace fonts</code> are supported</p>
+    //     <p class="border-top">Borders!</p>
+    //     <p class="all-around">All-around border</p>
+    //     <p>Simple paragraph</p>
+    //     <p class="red-bg">Red background</p>
+    // );
     // const char *input = VL_STRINGIFY(
     //     <!DOCTYPE html>
     //     <html>
@@ -1260,6 +1264,44 @@ void styling_test() {
     //     </body>
     //     </html>
     // );
+    const char *input = VL_STRINGIFY(
+        <style>
+            p {
+                border-color: red green blue purple;
+                border-style: solid;
+            }
+
+            .even {
+                border-width: 8px;
+            }
+
+            .top-border {
+                border-width: 8px;
+                border-top-width: 16px;
+            }
+
+            .right-border {
+                border-width: 8px;
+                border-right-width: 16px;
+            }
+
+            .bottom-border {
+                border-width: 8px;
+                border-bottom-width: 16px;
+            }
+
+            .left-border {
+                border-width: 8px;
+                border-left-width: 16px;
+            }
+        </style>
+        <p>Standard paragraph</p>
+        <p class="even">Even borders</p>
+        <p class="top-border">Big top border</p>
+        <p class="right-border">Big right border</p>
+        <p class="bottom-border">Big bottom border</p>
+        <p class="left-border">Big left border</p>
+    );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

@@ -281,11 +281,7 @@ static void construct_borders(vl_css_layout_node_t *node) {
                 node->border[0] = node->border[1] = node->border[2] = node->border[3] = border;
                 goto next;
             }
-            if (strcmp(rule->property, vl_sprintf_tmp("border-%s", sides[j])) == 0) {
-                node->border[j] = construct_border(node, &rule->value);
-                goto next;
-            }
-            if (strcmp(rule->property, "border-color") == 0 && rule->value.as.list) {
+                        if (strcmp(rule->property, "border-color") == 0 && rule->value.as.list) {
                 int len = VL_DA_LENGTH(rule->value.as.list);
                 switch (len) {
                 case 1: {
@@ -321,6 +317,35 @@ static void construct_borders(vl_css_layout_node_t *node) {
                     break;
                 }
                 }
+                goto next;
+            }
+            if (strcmp(rule->property, "border-style") == 0) {
+                if (rule->value.as.list) {
+                    switch (VL_DA_LENGTH(rule->value.as.list)) {
+                    case 1: {
+                        vl_css_layout_border_type_t type = get_border_type(rule->value.as.list);
+                        node->border[0].type = node->border[1].type = node->border[2].type = node->border[3].type = type;
+                        break;
+                    }
+                    }
+                }
+                goto next;
+            }
+            if (strcmp(rule->property, "border-width") == 0) {
+                if (rule->value.as.list) {
+                    switch (VL_DA_LENGTH(rule->value.as.list)) {
+                    case 1: {
+                        vl_css_size_metric_t m = vl_css_layout_node_process_metric(node, NULL, rule->value.as.list[0].as.metric1, 0);
+                        node->border[0].width = node->border[1].width =
+                        node->border[2].width = node->border[3].width = m.value;
+                        break;
+                    }
+                    }
+                }
+                goto next;
+            }
+            if (strcmp(rule->property, vl_sprintf_tmp("border-%s", sides[j])) == 0) {
+                node->border[j] = construct_border(node, &rule->value);
                 goto next;
             }
             if (strcmp(rule->property, vl_sprintf_tmp("border-%s-width", sides[j])) == 0 && VL_CSS_VALUE_IS_METRIC(rule->value)) {

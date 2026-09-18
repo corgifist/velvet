@@ -279,7 +279,8 @@ static const struct {
     {"border-right", parse_list},
     {"border-bottom", parse_list},
     {"border-left", parse_list},
-    {"border-color", parse_list}
+    {"border-color", parse_list},
+    {"border-width", parse_list}
 };
 
 static vl_css_value_t dispatch_parse_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {

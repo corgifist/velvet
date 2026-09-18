@@ -79,12 +79,12 @@ vl_result_t vl_graphics_render_batch_quad_colored(vl_graphics_render_t *render, 
 
 vl_result_t vl_graphics_render_batch_quad_colored_uv(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush, vl_quad_colors_t colors, vl_quad_uv_t uv) {
     if (!render || !vl_platform_context_valid(render->context)) return VL_ERROR;
-    if (vl_graphics_render_batch_vertex(render, quad.p2, brush, colors.tr, uv.tr)) return VL_ERROR;
-    if (vl_graphics_render_batch_vertex(render, quad.p4, brush, colors.bl, uv.bl)) return VL_ERROR;
-    if (vl_graphics_render_batch_vertex(render, quad.p3, brush, colors.br, uv.br)) return VL_ERROR;
-    if (vl_graphics_render_batch_vertex(render, quad.p2, brush, colors.tr, uv.tr)) return VL_ERROR;
-    if (vl_graphics_render_batch_vertex(render, quad.p1, brush, colors.tl, uv.tl)) return VL_ERROR;
-    if (vl_graphics_render_batch_vertex(render, quad.p4, brush, colors.bl, uv.bl)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.tr, brush, colors.tr, uv.tr)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.bl, brush, colors.bl, uv.bl)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.br, brush, colors.br, uv.br)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.tr, brush, colors.tr, uv.tr)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.tl, brush, colors.tl, uv.tl)) return VL_ERROR;
+    if (vl_graphics_render_batch_vertex(render, quad.bl, brush, colors.bl, uv.bl)) return VL_ERROR;
     return VL_SUCCESS;
 }
 
