@@ -18,14 +18,14 @@ struct vl_css_layout_border {
 };
 typedef struct vl_css_layout_border vl_css_layout_border_t;
 
-typedef void* vl_css_layout_node_owner_t;
+typedef void vl_css_layout_node_owner_t;
 
 struct vl_css_layout_node;
 struct vl_web;
 typedef vl_vec2_t (*vl_css_layout_node_get_content_size)(struct vl_css_layout_node *node);
 struct vl_css_layout_node {
     struct vl_web *web;
-    vl_css_layout_node_owner_t owner;
+    vl_css_layout_node_owner_t *owner;
     struct vl_css_layout_node *parent;
     VL_DA(struct vl_css_layout_node*) children;
     vl_css_stylesheet_t *stylesheet;
@@ -48,6 +48,7 @@ struct vl_css_layout_node {
     bool auto_margin[4];
     vl_vec4_t padding;
     vl_css_layout_border_t border[4];
+    vl_vec4_t color;
     vl_vec4_t border_size;
     vl_vec4_t effective_padding;
     vl_vec4_t bounds_offset;

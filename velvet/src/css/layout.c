@@ -246,6 +246,17 @@ static vl_css_layout_border_type_t get_border_type(vl_css_value_t *value) {
     return VL_CSS_LAYOUT_BORDER_NONE;
 }
 
+static float get_border_width(vl_css_layout_node_t *node, vl_css_value_t *value) {
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "thin")) return 1;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "medium")) return 3;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "thick")) return 5;
+    if (VL_CSS_VALUE_IS_METRIC(*value)) {
+        vl_css_size_metric_t processed_metric = vl_css_layout_node_process_metric(node, NULL, value->as.metric1, 0);
+        return processed_metric.value;
+    }
+    return 3;
+}
+
 static vl_css_layout_border_t construct_border(vl_css_layout_node_t *node, vl_css_value_t *value) {
     vl_css_layout_border_t result = {0};
     if (value->as.list)
@@ -270,6 +281,11 @@ static vl_css_layout_border_t construct_border(vl_css_layout_node_t *node, vl_cs
 
 static void construct_borders(vl_css_layout_node_t *node) {
     VL_ZERO_OUT(node->border, sizeof(node->border));
+    vl_css_value_t medium_border = VL_CSS_VALUE_CONST_LITERAL("medium");
+    for (int i = 0; i < VL_ARR_LEN(node->border); i++) {
+        node->border[i].width = get_border_width(node, &medium_border);
+        node->border[i].color = node->color;
+    }
     for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
         vl_css_rule_t *rule = node->style.applied_rules[i];
         static const char *sides[] = {
@@ -281,9 +297,10 @@ static void construct_borders(vl_css_layout_node_t *node) {
                 node->border[0] = node->border[1] = node->border[2] = node->border[3] = border;
                 goto next;
             }
-                        if (strcmp(rule->property, "border-color") == 0 && rule->value.as.list) {
+            if (strcmp(rule->property, "border-color") == 0 && rule->value.as.list) {
                 int len = VL_DA_LENGTH(rule->value.as.list);
                 switch (len) {
+                case 0: break;
                 case 1: {
                     vl_css_color_rgba_t rgba = vl_css_value_to_rgba(rule->value.as.list[0]);
                     for (int k = 0; k < 4; k++) node->border[k].color = rgba;
@@ -305,6 +322,7 @@ static void construct_borders(vl_css_layout_node_t *node) {
                     node->border[2].color = rgbab;
                     break;
                 }
+                default:
                 case 4: {
                     vl_css_color_rgba_t rgbat = vl_css_value_to_rgba(rule->value.as.list[0]);
                     vl_css_color_rgba_t rgbar = vl_css_value_to_rgba(rule->value.as.list[1]);
@@ -322,9 +340,38 @@ static void construct_borders(vl_css_layout_node_t *node) {
             if (strcmp(rule->property, "border-style") == 0) {
                 if (rule->value.as.list) {
                     switch (VL_DA_LENGTH(rule->value.as.list)) {
+                    case 0: break;
                     case 1: {
                         vl_css_layout_border_type_t type = get_border_type(rule->value.as.list);
                         node->border[0].type = node->border[1].type = node->border[2].type = node->border[3].type = type;
+                        break;
+                    }
+                    case 2: {
+                        vl_css_layout_border_type_t y = get_border_type(rule->value.as.list);
+                        vl_css_layout_border_type_t x = get_border_type(rule->value.as.list + 1);
+                        node->border[0].type = node->border[2].type = y;
+                        node->border[1].type = node->border[3].type = x;
+                        break;
+                    }
+                    case 3: {
+                        vl_css_layout_border_type_t t = get_border_type(rule->value.as.list);
+                        vl_css_layout_border_type_t x = get_border_type(rule->value.as.list + 1);
+                        vl_css_layout_border_type_t b = get_border_type(rule->value.as.list + 2);
+                        node->border[0].type = t;
+                        node->border[1].type = node->border[3].type = x;
+                        node->border[2].type = b;
+                        break;
+                    }
+                    default:
+                    case 4: {
+                        vl_css_layout_border_type_t t = get_border_type(rule->value.as.list);
+                        vl_css_layout_border_type_t r = get_border_type(rule->value.as.list + 1);
+                        vl_css_layout_border_type_t b = get_border_type(rule->value.as.list + 2);
+                        vl_css_layout_border_type_t l = get_border_type(rule->value.as.list + 3);
+                        node->border[0].type = t;
+                        node->border[1].type = r;
+                        node->border[2].type = b;
+                        node->border[3].type = l;
                         break;
                     }
                     }
@@ -334,10 +381,39 @@ static void construct_borders(vl_css_layout_node_t *node) {
             if (strcmp(rule->property, "border-width") == 0) {
                 if (rule->value.as.list) {
                     switch (VL_DA_LENGTH(rule->value.as.list)) {
+                    case 0: break;
                     case 1: {
-                        vl_css_size_metric_t m = vl_css_layout_node_process_metric(node, NULL, rule->value.as.list[0].as.metric1, 0);
+                        float m = get_border_width(node, rule->value.as.list);
                         node->border[0].width = node->border[1].width =
-                        node->border[2].width = node->border[3].width = m.value;
+                        node->border[2].width = node->border[3].width = m;
+                        break;
+                    }
+                    case 2: {
+                        float y = get_border_width(node, rule->value.as.list);
+                        float x = get_border_width(node, rule->value.as.list + 1);
+                        node->border[0].width = node->border[2].width = y;
+                        node->border[1].width = node->border[3].width = x;
+                        break;
+                    }
+                    case 3: {
+                        float t = get_border_width(node, rule->value.as.list);
+                        float x = get_border_width(node, rule->value.as.list + 1);
+                        float b = get_border_width(node, rule->value.as.list + 2);
+                        node->border[0].width = t;
+                        node->border[1].width = node->border[3].width = x;
+                        node->border[2].width = b;
+                        break;
+                    }
+                    default:
+                    case 4: {
+                        float t = get_border_width(node, rule->value.as.list);
+                        float r = get_border_width(node, rule->value.as.list + 1);
+                        float b = get_border_width(node, rule->value.as.list + 2);
+                        float l = get_border_width(node, rule->value.as.list + 3);
+                        node->border[0].width = t;
+                        node->border[1].width = r;
+                        node->border[2].width = b;
+                        node->border[3].width = l;
                         break;
                     }
                     }
@@ -613,6 +689,11 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->block_first_margin = 0;
     node->span_y_offset = 0;
     node->bounds_offset = node->padding = node->border_size = VL_VEC4(0);
+    vl_css_value_t css_color = vl_css_layout_node_get_property(node, "color", VL_CSS_VALUE_RGBA(0, 0, 0, 1));
+    if (!VL_CSS_VALUE_COLOR_COMPATIBLE(css_color)) {
+        css_color = VL_CSS_VALUE_RGBA(0, 0, 0, 1);
+    }
+    node->color = vl_css_value_to_rgba(css_color);
     construct_dimensions(node);
     construct_complex_metric("margin", &node->margin, node->auto_margin, node);
     construct_complex_metric("padding", &node->padding, NULL, node);

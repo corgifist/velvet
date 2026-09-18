@@ -248,12 +248,11 @@ vl_result_t vl_dom_element_text_render(vl_dom_element_t *element) {
     prepare_layout(element);
     float base_x = 0;
     float base_y = 0;
-    vl_css_value_t text_color = vl_css_layout_node_get_property(&element->layout, "color", VL_CSS_VALUE_RGBA(0, 0, 0, 1));
     vl_color_t normalized_color = VL_COLOR(
-        text_color.as.rgba.r / 255.0f,
-        text_color.as.rgba.g / 255.0f,
-        text_color.as.rgba.b / 255.0f,
-        text_color.as.rgba.a
+        element->layout.color.r / 255.0f,
+        element->layout.color.g / 255.0f,
+        element->layout.color.b / 255.0f,
+        element->layout.color.a
     );
     vl_dom_element_text_layout_t *layout = &text->layout;
     vl_quad_colors_t quad_color = VL_QUAD_COLOR(normalized_color);

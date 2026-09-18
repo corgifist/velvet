@@ -94,32 +94,36 @@ static void render_element_border(vl_dom_element_t *element) {
     vl_css_layout_border_t *right = top + 1;
     vl_css_layout_border_t *bottom = right + 1;
     vl_css_layout_border_t *left = bottom + 1;
+    float t = top->type ? top->width : 0;
+    float r = right->type ? right->width : 0;
+    float b = bottom->type ? bottom->width : 0;
+    float l = left->type ? left->width : 0;
     vl_vec2_t size = element->layout.size;
     if (top->type) {
         vl_quad_t top_quad = VL_QUAD(
             VL_VEC2(0, 0), VL_VEC2(size.x, 0),
-            VL_VEC2(left->width, top->width), VL_VEC2(size.x - right->width, top->width)
+            VL_VEC2(l, t), VL_VEC2(size.x - r, t)
         );
         vl_graphics_render_batch_quad_colored(web->render, top_quad, NULL, VL_QUAD_COLOR(top->color));
     }
     if (right->type) {
         vl_quad_t right_quad = VL_QUAD(
-            VL_VEC2(size.x - right->width, top->width), VL_VEC2(size.x, 0),
-            VL_VEC2(size.x - right->width, size.y - bottom->width), VL_VEC2(size.x, size.y)
+            VL_VEC2(size.x - r, t), VL_VEC2(size.x, 0),
+            VL_VEC2(size.x - r, size.y - b), VL_VEC2(size.x, size.y)
         );
         vl_graphics_render_batch_quad_colored(web->render, right_quad, NULL, VL_QUAD_COLOR(right->color));
     }
     if (bottom->type) {
         vl_quad_t bottom_quad = VL_QUAD(
-            VL_VEC2(right->width, size.y - bottom->width), VL_VEC2(size.x - right->width, size.y - bottom->width),
+            VL_VEC2(l, size.y - b), VL_VEC2(size.x - r, size.y - b),
             VL_VEC2(0, size.y), size
         );
         vl_graphics_render_batch_quad_colored(web->render, bottom_quad, NULL, VL_QUAD_COLOR(bottom->color));
     }
     if (left->type) {
         vl_quad_t left_quad = VL_QUAD(
-            VL_VEC2(0, 0), VL_VEC2(left->width, top->width),
-            VL_VEC2(0, size.y), VL_VEC2(left->width, size.y - bottom->width)
+            VL_VEC2(0, 0), VL_VEC2(l, t),
+            VL_VEC2(0, size.y), VL_VEC2(l, size.y - b)
         );
         vl_graphics_render_batch_quad_colored(web->render, left_quad, NULL, VL_QUAD_COLOR(left->color));
     }
