@@ -398,7 +398,6 @@ static int get_brush_index(vl_graphics_render_t *render, vl_graphics_brush_t *br
     return brush_index;
 }
 
-
 vl_result_t vl_graphics_render_universal_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv) {
     if (!render) return VL_ERROR;
     vl_graphics_render_universal_t *r = (vl_graphics_render_universal_t*) render;

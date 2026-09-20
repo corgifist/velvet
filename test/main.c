@@ -1268,7 +1268,8 @@ void styling_test() {
         <style>
             p {
                 border-color: red green blue purple;
-                border-style: solid;
+                // border-style: solid;
+                border-style: double;
             }
 
             .even {
@@ -1297,6 +1298,7 @@ void styling_test() {
         </style>
         <p>Standard paragraph</p>
         <p class="even">Even borders</p>
+        <p class="even">Double borders</p>
         <p class="top-border">Big top border</p>
         <p class="right-border">Big right border</p>
         <p class="bottom-border">Big bottom border</p>

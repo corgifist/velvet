@@ -7,7 +7,8 @@
 
 enum vl_css_layout_border_type {
     VL_CSS_LAYOUT_BORDER_NONE = 0,
-    VL_CSS_LAYOUT_BORDER_SOLID
+    VL_CSS_LAYOUT_BORDER_SOLID,
+    VL_CSS_LAYOUT_BORDER_DOUBLE
 };
 typedef enum vl_css_layout_border_type vl_css_layout_border_type_t;
 

@@ -244,6 +244,7 @@ static vl_css_layout_border_type_t get_border_type(const vl_css_value_t *value) 
     if (!VL_CSS_VALUE_IS_LITERAL(*value)) return VL_CSS_LAYOUT_BORDER_NONE;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "none")) return VL_CSS_LAYOUT_BORDER_NONE;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "solid")) return VL_CSS_LAYOUT_BORDER_SOLID;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "double")) return VL_CSS_LAYOUT_BORDER_DOUBLE;
     return VL_CSS_LAYOUT_BORDER_NONE;
 }
 

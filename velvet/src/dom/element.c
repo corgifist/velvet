@@ -88,45 +88,137 @@ static void render_element_background(vl_dom_element_t *element) {
     }
 }
 
-static void render_element_border(vl_dom_element_t *element) {
+static void render_element_border_solid(vl_dom_element_t *element, int side) {
     vl_web_t *web = element->owner->owner;
     vl_css_layout_border_t *top = element->layout.border;
     vl_css_layout_border_t *right = top + 1;
     vl_css_layout_border_t *bottom = right + 1;
     vl_css_layout_border_t *left = bottom + 1;
+    vl_css_layout_border_t *border = top + side;
     float t = top->type ? top->width : 0;
     float r = right->type ? right->width : 0;
     float b = bottom->type ? bottom->width : 0;
     float l = left->type ? left->width : 0;
     vl_vec2_t size = element->layout.size;
-    if (top->type) {
+
+    switch (side) {
+    case 0: {
         vl_quad_t top_quad = VL_QUAD(
             VL_VEC2(0, 0), VL_VEC2(size.x, 0),
             VL_VEC2(l, t), VL_VEC2(size.x - r, t)
         );
         vl_graphics_render_batch_quad_colored(web->render, top_quad, NULL, VL_QUAD_COLOR(top->color));
+        break;
     }
-    if (right->type) {
+    case 1: {
         vl_quad_t right_quad = VL_QUAD(
             VL_VEC2(size.x - r, t), VL_VEC2(size.x, 0),
             VL_VEC2(size.x - r, size.y - b), VL_VEC2(size.x, size.y)
         );
         vl_graphics_render_batch_quad_colored(web->render, right_quad, NULL, VL_QUAD_COLOR(right->color));
+        break;
     }
-    if (bottom->type) {
+    case 2: {
         vl_quad_t bottom_quad = VL_QUAD(
             VL_VEC2(l, size.y - b), VL_VEC2(size.x - r, size.y - b),
             VL_VEC2(0, size.y), size
         );
         vl_graphics_render_batch_quad_colored(web->render, bottom_quad, NULL, VL_QUAD_COLOR(bottom->color));
+        break;
     }
-    if (left->type) {
+    case 3: {
         vl_quad_t left_quad = VL_QUAD(
             VL_VEC2(0, 0), VL_VEC2(l, t),
             VL_VEC2(0, size.y), VL_VEC2(l, size.y - b)
         );
         vl_graphics_render_batch_quad_colored(web->render, left_quad, NULL, VL_QUAD_COLOR(left->color));
+        break;
     }
+    }
+}
+
+static void render_element_border_double(vl_dom_element_t *element, int side) {
+    vl_web_t *web = element->owner->owner;
+    vl_css_layout_border_t *top = element->layout.border;
+    vl_css_layout_border_t *right = top + 1;
+    vl_css_layout_border_t *bottom = right + 1;
+    vl_css_layout_border_t *left = bottom + 1;
+    vl_css_layout_border_t *border = top + side;
+    float t = top->type ? top->width : 0;
+    float r = right->type ? right->width : 0;
+    float b = bottom->type ? bottom->width : 0;
+    float l = left->type ? left->width : 0;
+    vl_vec2_t size = element->layout.size;
+
+    switch (side) {
+    case 0: {
+        vl_quad_t top_quad1 = VL_QUAD(
+            VL_VEC2(0, 0), VL_VEC2(size.x, 0),
+            VL_VEC2(l / 3, t / 3), VL_VEC2(size.x - r / 3, t / 3)
+        );
+        vl_quad_t top_quad2 = VL_QUAD(
+            VL_VEC2(l * 2 / 3, t * 2 / 3), VL_VEC2(size.x - r * 2 / 3, t * 2 / 3),
+            VL_VEC2(l, t), VL_VEC2(size.x - r, t)
+        );
+        vl_graphics_render_batch_quad_colored(web->render, top_quad1, NULL, VL_QUAD_COLOR(top->color));
+        vl_graphics_render_batch_quad_colored(web->render, top_quad2, NULL, VL_QUAD_COLOR(top->color));
+        break;
+    }
+    case 1: {
+        vl_quad_t right_quad1 = VL_QUAD(
+            VL_VEC2(size.x - r / 3, t / 3), VL_VEC2(size.x, 0),
+            VL_VEC2(size.x - r / 3, size.y - b / 3), VL_VEC2(size.x, size.y)
+        );
+        vl_quad_t right_quad2 = VL_QUAD(
+            VL_VEC2(size.x - r, t), VL_VEC2(size.x - r * 2 / 3, t * 2 / 3),
+            VL_VEC2(size.x - r, size.y - b), VL_VEC2(size.x - r * 2 / 3, size.y - b * 2 / 3)
+        );
+        vl_graphics_render_batch_quad_colored(web->render, right_quad1, NULL, VL_QUAD_COLOR(right->color));
+        vl_graphics_render_batch_quad_colored(web->render, right_quad2, NULL, VL_QUAD_COLOR(right->color));
+        break;
+    }
+    case 2: {
+        vl_quad_t bottom_quad1 = VL_QUAD(
+            VL_VEC2(l / 3, size.y - b / 3), VL_VEC2(size.x - r / 3, size.y - b / 3),
+            VL_VEC2(0, size.y), size
+        );
+        vl_quad_t bottom_quad2 = VL_QUAD(
+            VL_VEC2(l, size.y - b), VL_VEC2(size.x - r, size.y - b),
+            VL_VEC2(l * 2 / 3, size.y - b * 2 / 3), VL_VEC2(size.x - r * 2 / 3, size.y - b * 2 / 3)
+        );
+        vl_graphics_render_batch_quad_colored(web->render, bottom_quad1, NULL, VL_QUAD_COLOR(bottom->color));
+        vl_graphics_render_batch_quad_colored(web->render, bottom_quad2, NULL, VL_QUAD_COLOR(bottom->color));
+        break;
+    }
+    case 3: {
+        vl_quad_t left_quad1 = VL_QUAD(
+            VL_VEC2(0, 0), VL_VEC2(l / 3, t / 3),
+            VL_VEC2(0, size.y), VL_VEC2(l / 3, size.y - b / 3)
+        );
+        vl_quad_t left_quad2 = VL_QUAD(
+            VL_VEC2(l * 2 / 3, t * 2 / 3), VL_VEC2(l, t),
+            VL_VEC2(l * 2 / 3, size.y - b * 2 / 3), VL_VEC2(l, size.y - b)
+        );
+        vl_graphics_render_batch_quad_colored(web->render, left_quad1, NULL, VL_QUAD_COLOR(left->color));
+        vl_graphics_render_batch_quad_colored(web->render, left_quad2, NULL, VL_QUAD_COLOR(left->color));
+        break;
+    }
+    }
+}
+
+static void render_element_border(vl_dom_element_t *element, int side) {
+    switch (element->layout.border[side].type) {
+    case VL_CSS_LAYOUT_BORDER_SOLID: render_element_border_solid(element, side); break;
+    case VL_CSS_LAYOUT_BORDER_DOUBLE: render_element_border_double(element, side); break;
+    default: break;
+    }
+}
+
+static void render_element_borders(vl_dom_element_t *element) {
+    render_element_border(element, 0);
+    render_element_border(element, 1);
+    render_element_border(element, 2);
+    render_element_border(element, 3);
 }
 
 static void render_element_highlight(vl_dom_element_t *element) {
@@ -185,7 +277,7 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     if (!funcs->render) return VL_SUCCESS;
     vl_web_t *web = element->owner->owner;
     render_element_background(element);
-    render_element_border(element);
+    render_element_borders(element);
     vl_result_t result = funcs->render(element);
     render_element_highlight(element);
     render_margin_highlight(element);
