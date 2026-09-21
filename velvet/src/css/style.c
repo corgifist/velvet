@@ -170,7 +170,8 @@ vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) 
         }
         break;
     }
-    case VL_CSS_VALUE_DYNAMIC_LITERAL: {
+    case VL_CSS_VALUE_DYNAMIC_LITERAL: 
+    case VL_CSS_VALUE_STRING: {
         dst->as.literal = VL_DA_COPY(value->as.literal);
         break;
     }
@@ -293,6 +294,10 @@ static void print_value(const vl_css_value_t value) {
         }
         break;
     }
+    case VL_CSS_VALUE_STRING: {
+        printf("\"%s\"", value.as.literal);
+        break;
+    }
     default: break;
     }
 }
@@ -346,6 +351,10 @@ static void print_class_id(vl_css_class_id_t *id) {
         printf(".");
         break;
     }
+    case VL_CSS_CLASS_ID_PSEUDO_ELEMENT: {
+        printf("::");
+        break;
+    }
     }
     printf("%s", id->name);
 }
@@ -354,8 +363,8 @@ static void print_class_selector(vl_css_class_selector_t *selector) {
     if (!selector->id_chain) return;
     size_t len = VL_DA_LENGTH(selector->id_chain);
     for (int i = 0; i < len; i++) {
-        print_class_id(selector->id_chain + i);
-        if (i != len - 1) printf(" ");
+        vl_css_class_id_t *id = selector->id_chain + i;
+        print_class_id(id);
     }
 }
 
@@ -413,7 +422,8 @@ vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
         }
         break;
     }
-    case VL_CSS_VALUE_DYNAMIC_LITERAL: {
+    case VL_CSS_VALUE_DYNAMIC_LITERAL:
+    case VL_CSS_VALUE_STRING: {
         VL_DA_FREE(value->as.literal);
         break;
     }

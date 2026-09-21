@@ -1240,6 +1240,7 @@ void styling_test() {
     //                 color: black!important;
     //                 width: fit-content;
     //                 margin: 0 auto;
+    //                 // --velvet-element-highlight: highlight-orange;
     //             }
     //         </style>
     //     </head>
@@ -1266,6 +1267,9 @@ void styling_test() {
     // );
     const char *input = VL_STRINGIFY(
         <style>
+            html {
+                --velvet-element-highlight: highlight-orange;
+            }
             p {
                 border-color: red green blue purple;
                 // border-style: solid;
@@ -1295,6 +1299,20 @@ void styling_test() {
                 border-width: 8px;
                 border-left-width: 16px;
             }
+
+            .before-test::before {
+                content: "testing .before-test::before!";
+                --velvet-element-highlight: highlight-red;
+            }
+
+            .fake-button {
+                border: none;
+                background-color: blue!important;
+                color: white!important;
+                width: fit-content;
+                margin: 0 auto;
+                font-family: sans-serif;
+            }
         </style>
         <p>Standard paragraph</p>
         <p class="even">Even borders</p>
@@ -1304,6 +1322,8 @@ void styling_test() {
         <p class="bottom-border">Big bottom border</p>
         <p class="left-border">Big left border</p>
         <h1 style="color: red; font-size: 40px;">Hello World</h1>
+        <p class="before-test">Hello, World!</p>
+        <p class="fake-button">Explore</p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

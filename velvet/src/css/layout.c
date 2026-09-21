@@ -1,10 +1,14 @@
 #include "velvet/css/layout.h"
 #include "css/style.h"
+#include "dom/element.h"
 #include "html/tags.h"
 #include "support/base_math.h"
+#include "support/color.h"
 #include "support/da.h"
+#include "support/hash.h"
 #include "support/result.h"
 #include "support/str.h"
+#include "web/theme.h"
 #include "web/web.h"
 #include "support/math.h"
 #include <float.h>
@@ -31,6 +35,14 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     vl_css_style_deinit(&node->style);
     vl_css_style_init(&node->style);
+    if (node->force_styling) {
+        for (int i = 0; i < VL_DA_LENGTH(node->force_styling); i++) {
+            vl_css_style_t tmp = {0};
+            vl_css_style_from_class(&tmp, node->force_styling[i]);
+            vl_css_style_merge(&node->style, &tmp);
+            vl_css_style_deinit(&tmp);
+        }
+    }
 
     VL_DA(vl_css_class_t*) matched_classes = NULL;
     vl_css_stylesheet_broad_query(node->stylesheet, &node->tag_selector, &matched_classes);
@@ -41,15 +53,45 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     }
     if (matched_classes) {
         for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
+            vl_css_class_t *matched_class = matched_classes[i];
             vl_css_style_t tmp_style = {0};
-            vl_css_style_from_class(&tmp_style, matched_classes[i]);
+            bool is_before = false;
+            for (int j = 0; j < VL_DA_LENGTH(matched_class->selectors); j++) {
+                vl_css_class_selector_t *selector = matched_class->selectors + j;
+                for (int k = 0; k < VL_DA_LENGTH(selector->id_chain); k++) {
+                    vl_css_class_id_t *id = selector->id_chain + k;
+                    if (id->type == VL_CSS_CLASS_ID_PSEUDO_ELEMENT && strcmp(id->name, "before") == 0) {
+                        is_before = true;
+                    }
+                }
+            }
+            vl_css_style_from_class(&tmp_style, matched_class);
+            if (is_before) {
+                if (!node->pseudo_before) {
+                    node->pseudo_before = &vl_dom_element_new("text")->layout;
+                    node->pseudo_before->web = node->web;
+                    node->pseudo_before->parent = node;
+                    node->pseudo_before->force_styling = VL_DA_INIT(vl_css_class_t*);
+                    VL_DA_APPEND(node->pseudo_before->force_styling, matched_class);
+                    ((vl_dom_element_t*) node->pseudo_before->owner)->owner = ((vl_dom_element_t*) node->owner)->owner;
+                }
+                vl_css_value_t content_string = vl_css_style_get_property(&tmp_style, "content", VL_CSS_VALUE_NONE());
+                if (!VL_CSS_VALUE_IS_LITERAL(content_string)) {
+                    node->content_hash = 0;
+                } else {
+                    vl_dom_element_set_string(node->pseudo_before->owner, "innerText", content_string.as.literal);
+                    node->content_hash = vl_hash_string(content_string.as.literal);
+                }
+                goto next;
+            }
             vl_css_style_merge(&node->style, &tmp_style);
+            next:
             vl_css_style_deinit(&tmp_style);
         }
     }
     VL_DA_FREE(matched_classes);
     vl_css_style_merge_inline(&node->style, &node->inline_style);
-    vl_css_style_print(&node->style);
+    // vl_css_style_print(&node->style);
     return VL_SUCCESS;
 }
 
@@ -261,6 +303,7 @@ static float get_border_width(vl_css_layout_node_t *node, const vl_css_value_t *
 
 static vl_css_layout_border_t construct_border(vl_css_layout_node_t *node, const vl_css_value_t *value) {
     vl_css_layout_border_t result = {0};
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "none")) return result;
     if (value->as.list)
         for (int i = 0; i < VL_DA_LENGTH(value->as.list); i++) {
             vl_css_value_t v = value->as.list[i];
@@ -444,6 +487,9 @@ static void construct_borders(vl_css_layout_node_t *node) {
         next:
         continue;
     }
+    for (int i = 0; i < VL_ARR_LEN(node->border); i++) {
+        if (!node->border[i].type) node->border[i].width = 0;
+    }
 }
 
 typedef struct {
@@ -463,7 +509,23 @@ static vl_css_block_line *push_new_block_line(VL_DA(vl_css_block_line) *lines) {
 
 static bool margins_can_collapse(vl_css_layout_node_t *prev, vl_css_layout_node_t *child) {
     if (!prev || !child) return false;
-    return prev->effective_padding.z == 0 && child->effective_padding.x == 0;
+    return prev->padding.z == 0 && child->padding.x == 0;
+}
+
+static void try_add_layout_target(VL_DA(vl_css_layout_node_t*) *targets, vl_css_layout_node_t *node) {
+    vl_css_layout_node_process(node);
+    if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "none")) return;
+    VL_DA_APPEND(*targets, node);
+}
+
+static VL_DA(vl_css_layout_node_t*) get_layout_targets(vl_css_layout_node_t *node) {
+    VL_DA(vl_css_layout_node_t*) layout_targets = VL_DA_INIT(vl_css_layout_node_t*);
+    if (node->pseudo_before) try_add_layout_target(&layout_targets, node->pseudo_before);
+    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
+        vl_css_layout_node_t *child = node->children[i];
+        try_add_layout_target(&layout_targets, child);
+    }
+    return layout_targets;
 }
 
 static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node) {
@@ -487,14 +549,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     vl_vec2_t size = node->size;
     node->size.x -= (node->effective_padding.w + node->effective_padding.y);
     node->size.y -= (node->effective_padding.x + node->effective_padding.z);
-    VL_DA(vl_css_layout_node_t*) layout_targets = VL_DA_INIT(vl_css_layout_node_t*);
-    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
-        vl_css_layout_node_t *child = node->children[i];
-        vl_css_layout_node_process(child);
-        vl_css_value_t display_value = get_display_mode(child);
-        if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "none")) continue;
-        VL_DA_APPEND(layout_targets, child);
-    }
+    VL_DA(vl_css_layout_node_t*) layout_targets = get_layout_targets(node);
     node->size.x += (node->effective_padding.w + node->effective_padding.y);
     node->size.y += (node->effective_padding.x + node->effective_padding.z);
     int len = VL_DA_LENGTH(layout_targets);
@@ -509,7 +564,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             node->block_first_margin = VL_MAX(child->margin.x, child->block_first_margin);
         }
         if (VL_CSS_VALUE_COMPARE_LITERALS(child->display, "block") || !child->display.as.literal) {
-            if (!prev && (node->effective_padding.x != 0)) {
+            if (!prev && (node->padding.x != 0)) {
                 cursor.y += child->margin.x;
                 size.y += child->margin.x;
             } else if (prev) {
@@ -530,7 +585,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             if (node->allow_width_growth) size.x = VL_MAX(size.x, child->size.x + child->position.x + child->margin.y);
             size.x = VL_MIN(size.x, node->parent->size.x);
             if (!lock_height) size.y += (prev ? 1 : 0) * (VL_MAX(node->block_last_margin, child->margin.x)) + child->size.y;
-            if (!next && node->effective_padding.z != 0) {
+            if (!next && node->padding.z != 0) {
                 size.y += child->margin.z;
             }
             cursor.y += child->size.y;
@@ -550,7 +605,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 } else {
                     cursor.y += prev->margin.z;
                 }
-            } else if (!prev && (node->effective_padding.x != 0)) {
+            } else if (!prev && (node->padding.x != 0)) {
                 cursor.y += child->margin.x;
                 size.y += child->margin.x;
             }
@@ -691,7 +746,11 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->block_first_margin = 0;
     node->span_y_offset = 0;
     node->bounds_offset = node->padding = node->border_size = VL_VEC4(0);
-    vl_css_value_t css_color = vl_css_layout_node_get_property(node, "color", VL_CSS_VALUE_RGBA(0, 0, 0, 1));
+    vl_color_t default_color = VL_COLOR(0, 0, 0, 1);
+    if (strcmp(node->tag, "text") == 0) {
+        default_color = vl_web_theme_get_property(node->web->theme, "canvastext", default_color);
+    }
+    vl_css_value_t css_color = vl_css_layout_node_get_property(node, "color", VL_CSS_VALUE_RGBA(default_color.r, default_color.g, default_color.b, default_color.a));
     if (!VL_CSS_VALUE_COLOR_COMPATIBLE(css_color)) {
         css_color = VL_CSS_VALUE_RGBA(0, 0, 0, 1);
     }

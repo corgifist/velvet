@@ -19,7 +19,8 @@ enum vl_css_value_type {
     VL_CSS_VALUE_FONT_LIST,
     VL_CSS_VALUE_DYNAMIC_LITERAL,
     VL_CSS_VALUE_INTEGER,
-    VL_CSS_VALUE_LIST
+    VL_CSS_VALUE_LIST,
+    VL_CSS_VALUE_STRING
 };
 typedef enum vl_css_value_type vl_css_value_type_t;
 
@@ -98,6 +99,9 @@ typedef struct vl_css_value vl_css_value_t;
 #define VL_CSS_VALUE_DYNAMIC_LITERAL(LITERAL) \
     VL_CSS_VALUE(VL_CSS_VALUE_DYNAMIC_LITERAL, {.literal = (const char*) (LITERAL)})
 
+#define VL_CSS_VALUE_STRING(STRING) \
+    VL_CSS_VALUE(VL_CSS_VALUE_STRING, {.literal = (const char*) (STRING)})
+
 #define VL_CSS_VALUE_INTEGER(INTEGER) \
     VL_CSS_VALUE(VL_CSS_VALUE_INTEGER, {.integer = (int) (INTEGER)})
 
@@ -113,7 +117,7 @@ typedef struct vl_css_value vl_css_value_t;
     (VALUE.type == VL_CSS_VALUE_COLOR_RGBA)
 
 #define VL_CSS_VALUE_IS_LITERAL(CSS_VALUE) \
-    ((CSS_VALUE).type == VL_CSS_VALUE_CONST_LITERAL || (CSS_VALUE).type == VL_CSS_VALUE_DYNAMIC_LITERAL)
+    ((CSS_VALUE).type == VL_CSS_VALUE_CONST_LITERAL || (CSS_VALUE).type == VL_CSS_VALUE_DYNAMIC_LITERAL || (CSS_VALUE).type == VL_CSS_VALUE_STRING)
 
 #define VL_CSS_VALUE_COMPARE_LITERALS(CSS_VALUE, LITERAL) \
     (VL_CSS_VALUE_IS_LITERAL(CSS_VALUE) \
@@ -138,7 +142,8 @@ typedef struct vl_css_rule vl_css_rule_t;
 enum vl_css_class_id_type {
     VL_CSS_CLASS_ID_ELEMENT = 1,
     VL_CSS_CLASS_ID_CLASS,
-    VL_CSS_CLASS_ID_ALL
+    VL_CSS_CLASS_ID_ALL,
+    VL_CSS_CLASS_ID_PSEUDO_ELEMENT
 };
 typedef enum vl_css_class_id_type vl_css_class_id_type_t;
 

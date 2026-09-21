@@ -278,6 +278,9 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     vl_web_t *web = element->owner->owner;
     render_element_background(element);
     render_element_borders(element);
+    if (element->layout.pseudo_before) {
+        vl_dom_element_render(element->layout.pseudo_before->owner);
+    }
     vl_result_t result = funcs->render(element);
     render_element_highlight(element);
     render_margin_highlight(element);

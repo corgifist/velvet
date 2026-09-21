@@ -163,6 +163,11 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
             }
         }
     }
+    if (current->type == VL_CSS_TOKEN_TYPE_STRING) {
+        vl_css_value_t result = VL_CSS_VALUE_STRING(VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text + 1, current->text_length - 2));
+        tokenize(parser);
+        return result;
+    }
     if ((current->type == VL_CSS_TOKEN_TYPE_NUMBER && (current + 1)->type == VL_CSS_TOKEN_TYPE_ID)
             || VL_TOKEN_COMPARE(current, "auto")) {
         // single metric: 10px / 5em / 25%
@@ -317,6 +322,13 @@ static vl_result_t parse_class_id(vl_css_parser_t *parser, vl_css_class_id_t *id
     if (VL_TOKEN_COMPARE(current, "*")) {
         id->type = VL_CSS_CLASS_ID_ALL;
         id->name = NULL;
+        if (tokenize(parser)) goto fail;
+        return VL_SUCCESS;
+    }
+    if (VL_TOKEN_COMPARE(current, ":") && VL_TOKEN_COMPARE(current + 1, ":") && (current + 2)->type == VL_CSS_TOKEN_TYPE_ID) {
+        tokenize(parser); tokenize(parser);
+        id->type = VL_CSS_CLASS_ID_PSEUDO_ELEMENT;
+        id->name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
         if (tokenize(parser)) goto fail;
         return VL_SUCCESS;
     }

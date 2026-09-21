@@ -28,6 +28,9 @@ struct vl_css_layout_node {
     struct vl_web *web;
     vl_css_layout_node_owner_t *owner;
     struct vl_css_layout_node *parent;
+    struct vl_css_layout_node *pseudo_before, *pseudo_after;
+    vl_hash_t content_hash;
+    VL_DA(vl_css_class_t*) force_styling;
     VL_DA(struct vl_css_layout_node*) children;
     vl_css_stylesheet_t *stylesheet;
 
