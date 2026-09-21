@@ -31,6 +31,16 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     return VL_SUCCESS;
 }
 
+static vl_css_layout_node_t *new_pseudo_element(vl_css_layout_node_t *node, VL_DA(vl_css_class_t*) force_styles) {
+    vl_css_layout_node_t *pseudo = &vl_dom_element_new("text")->layout;
+    pseudo->web = node->web;
+    pseudo->parent = node;
+    pseudo->force_styling = force_styles;
+    pseudo->is_pseudo = true;
+    ((vl_dom_element_t*) pseudo->owner)->owner = ((vl_dom_element_t*) node->owner)->owner;
+    return pseudo;
+}
+
 vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     vl_css_style_deinit(&node->style);
@@ -51,6 +61,7 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
             vl_css_stylesheet_broad_query(node->stylesheet, node->affecting_selectors + i, &matched_classes);
         }
     }
+    VL_DA(vl_css_class_t*) matched_before_classes = NULL;
     if (matched_classes) {
         for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
             vl_css_class_t *matched_class = matched_classes[i];
@@ -67,21 +78,8 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
             }
             vl_css_style_from_class(&tmp_style, matched_class);
             if (is_before) {
-                if (!node->pseudo_before) {
-                    node->pseudo_before = &vl_dom_element_new("text")->layout;
-                    node->pseudo_before->web = node->web;
-                    node->pseudo_before->parent = node;
-                    node->pseudo_before->force_styling = VL_DA_INIT(vl_css_class_t*);
-                    VL_DA_APPEND(node->pseudo_before->force_styling, matched_class);
-                    ((vl_dom_element_t*) node->pseudo_before->owner)->owner = ((vl_dom_element_t*) node->owner)->owner;
-                }
-                vl_css_value_t content_string = vl_css_style_get_property(&tmp_style, "content", VL_CSS_VALUE_NONE());
-                if (!VL_CSS_VALUE_IS_LITERAL(content_string)) {
-                    node->content_hash = 0;
-                } else {
-                    vl_dom_element_set_string(node->pseudo_before->owner, "innerText", content_string.as.literal);
-                    node->content_hash = vl_hash_string(content_string.as.literal);
-                }
+                if (!matched_before_classes) matched_before_classes = VL_DA_INIT(vl_css_class_t*);
+                VL_DA_APPEND(matched_before_classes, matched_class);
                 goto next;
             }
             vl_css_style_merge(&node->style, &tmp_style);
@@ -90,8 +88,22 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
         }
     }
     VL_DA_FREE(matched_classes);
+    if (node->is_pseudo) {
+        vl_css_value_t content_string = vl_css_style_get_property(&node->style, "content", VL_CSS_VALUE_NONE());
+        if (!VL_CSS_VALUE_IS_LITERAL(content_string)) {
+            node->content_hash = 0;
+        } else {
+            vl_dom_element_set_string(node->owner, "innerText", content_string.as.literal);
+            node->content_hash = vl_hash_string(content_string.as.literal);
+        }
+    }
     vl_css_style_merge_inline(&node->style, &node->inline_style);
     // vl_css_style_print(&node->style);
+    if (matched_before_classes) {
+        if (!node->pseudo_before) {
+            node->pseudo_before = new_pseudo_element(node, matched_before_classes);
+        }
+    }
     return VL_SUCCESS;
 }
 
@@ -875,8 +887,14 @@ vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node) {
         }
         VL_DA_FREE(node->affecting_selectors);
     }
+    if (node->force_styling) {
+        VL_DA_FREE(node->force_styling);
+    }
     vl_css_style_deinit(&node->style);
     vl_css_inline_style_deinit(&node->inline_style);
+    if (node->pseudo_before) {
+        vl_dom_element_free(node->pseudo_before->owner);
+    }
     if (node->children) {
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
             vl_css_layout_node_deinit(node->children[i]);

@@ -31,6 +31,7 @@ struct vl_css_layout_node {
     struct vl_css_layout_node *pseudo_before, *pseudo_after;
     vl_hash_t content_hash;
     VL_DA(vl_css_class_t*) force_styling;
+    bool is_pseudo;
     VL_DA(struct vl_css_layout_node*) children;
     vl_css_stylesheet_t *stylesheet;
 

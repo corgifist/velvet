@@ -1265,65 +1265,76 @@ void styling_test() {
     //     </body>
     //     </html>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         html {
+    //             --velvet-element-highlight: highlight-orange;
+    //         }
+    //         p {
+    //             border-color: red green blue purple;
+    //             // border-style: solid;
+    //             border-style: double;
+    //         }
+
+    //         .even {
+    //             border-width: 8px;
+    //         }
+
+    //         .top-border {
+    //             border-width: 8px;
+    //             border-top-width: 16px;
+    //         }
+
+    //         .right-border {
+    //             border-width: 8px;
+    //             border-right-width: 16px;
+    //         }
+
+    //         .bottom-border {
+    //             border-width: 8px;
+    //             border-bottom-width: 16px;
+    //         }
+
+    //         .left-border {
+    //             border-width: 8px;
+    //             border-left-width: 16px;
+    //         }
+
+    //         .before-test::before {
+    //             content: "testing .before-test::before!";
+    //             --velvet-element-highlight: highlight-red;
+    //         }
+
+    //         .fake-button {
+    //             border: none;
+    //             background-color: blue!important;
+    //             color: white!important;
+    //             width: fit-content;
+    //             margin: 0 auto;
+    //             font-family: sans-serif;
+    //         }
+    //     </style>
+    //     <p>Standard paragraph</p>
+    //     <p class="even">Even borders</p>
+    //     <p class="even">Double borders</p>
+    //     <p class="top-border">Big top border</p>
+    //     <p class="right-border">Big right border</p>
+    //     <p class="bottom-border">Big bottom border</p>
+    //     <p class="left-border">Big left border</p>
+    //     <h1 style="color: red; font-size: 40px;">Hello World</h1>
+    //     <p class="before-test">Hello, World!</p>
+    //     <p class="fake-button">Explore</p>
+    // );
     const char *input = VL_STRINGIFY(
         <style>
-            html {
-                --velvet-element-highlight: highlight-orange;
+            .before1::before {
+                content: "Before! ";
             }
-            p {
-                border-color: red green blue purple;
-                // border-style: solid;
-                border-style: double;
-            }
-
-            .even {
-                border-width: 8px;
-            }
-
-            .top-border {
-                border-width: 8px;
-                border-top-width: 16px;
-            }
-
-            .right-border {
-                border-width: 8px;
-                border-right-width: 16px;
-            }
-
-            .bottom-border {
-                border-width: 8px;
-                border-bottom-width: 16px;
-            }
-
-            .left-border {
-                border-width: 8px;
-                border-left-width: 16px;
-            }
-
-            .before-test::before {
-                content: "testing .before-test::before!";
-                --velvet-element-highlight: highlight-red;
-            }
-
-            .fake-button {
-                border: none;
-                background-color: blue!important;
-                color: white!important;
-                width: fit-content;
-                margin: 0 auto;
-                font-family: sans-serif;
+            .before1::before {
+                color: blue;
             }
         </style>
-        <p>Standard paragraph</p>
-        <p class="even">Even borders</p>
-        <p class="even">Double borders</p>
-        <p class="top-border">Big top border</p>
-        <p class="right-border">Big right border</p>
-        <p class="bottom-border">Big bottom border</p>
-        <p class="left-border">Big left border</p>
-        <h1 style="color: red; font-size: 40px;">Hello World</h1>
-        <p class="before-test">Hello, World!</p>
-        <p class="fake-button">Explore</p>
+        <p class="before1">Hello, World!</p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
