@@ -658,9 +658,14 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     // printf("%s lines: %zu\n", node->tag, VL_DA_LENGTH(lines));
     for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
         vl_css_block_line *line = lines + i;
+        float max_span_offset = 0;
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *child = line->elements[j];
-            child->position.y += line->height - child->size.y;
+            max_span_offset = VL_MAX(max_span_offset, -child->span_y_offset);
+        }
+        for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
+            vl_css_layout_node_t *child = line->elements[j];
+            child->position.y += (line->height - child->size.y) + (max_span_offset - child->span_y_offset);
             // child->bounds_offset = VL_VEC4(0, child->position.y < 0 ? -child->position.y : 0, 0, y_offset);
             if (child->block_first_margin > child->block_applied_margin && child->block_applied_margin != VL_FLOAT_MIN) {
                 for (int k = i; k < VL_DA_LENGTH(lines); k++) {
@@ -762,7 +767,7 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->block_last_margin = 0;
     node->block_applied_margin = VL_FLOAT_MIN;
     node->block_first_margin = 0;
-    // node->span_y_offset = 0;
+    node->span_y_offset = 0;
     node->padding = node->border_size = VL_VEC4(0);
     vl_color_t default_color = VL_COLOR(0, 0, 0, 1);
     if (strcmp(node->tag, "text") == 0) {

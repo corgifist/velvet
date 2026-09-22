@@ -190,7 +190,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             text_glyph.y2 = text_glyph.y1 + atlas_codepoint->h;
             line->width = VL_MAX(line->width, text_glyph.x2 + (text_glyph.codepoint == ' ' ? shaper_glyph.advance_x * layout->blueprint.height : 0));
             line->height = VL_MAX(line->height, line_height);
-            line->span_offset = VL_MAX(line->span_offset, atlas_codepoint->y2 - text_glyph.font->ascent);
+            line->span_offset = VL_MAX(line->span_offset, -sized_font->font->descent - atlas_codepoint->y1);
             base_x += shaper_glyph.advance_x * layout->blueprint.height;
             base_y += shaper_glyph.advance_y * layout->blueprint.height;
             VL_DA_APPEND(line->glyphs, text_glyph);
@@ -295,8 +295,9 @@ vl_vec2_t vl_dom_element_text_get_content_size(vl_dom_element_t *element) {
             vl_dom_element_text_line_t *line = layout->lines + i;
             size.x = VL_MAX(line->width, size.x);
             size.y += line->height;
-            // element->layout.span_y_offset = VL_MAX(element->layout.span_y_offset, line->span_offset);
+            element->layout.span_y_offset = VL_MAX(element->layout.span_y_offset, line->span_offset);
         }
+        // printf("span for %s: %f\n", text->text, element->layout.span_y_offset);
     }
     return size;
 }
