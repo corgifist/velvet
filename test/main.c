@@ -890,51 +890,51 @@ void css_test() {
 #undef I
 void styling_test() {
     vl_platform_context_t *ctx = vl_platform_context_new(VL_PLATFORM_CONTEXT_DEFAULT);
-    // const char *input = VL_STRINGIFY(
-    //     <style>
-    //     body {
-    //         // --velvet-element-highlight: highlight-green;
-    //     }
-    //     p {
-    //         background-color: yellow;
-    //         font-size: 1.5em;
-    //     }
-    //     span {
-    //         background-color: green;
-    //         color: red;
-    //         font-size: 1.5em;
-    //     }
-    //     .reset {
-    //         font-size: unset;
-    //     }
-    //     .initial {
-    //         color: unset;
-    //         font-size: 16px;
-    //     }
-    //     .serif {
-    //         font-family: serif;
-    //     }
-    //     .sans-serif {
-    //         font-family: sans-serif;
-    //     }
-    //     .copperplate {
-    //         font-family: Copperplate;
-    //     }
-    //     .times-new-roman {
-    //         font-family: 'Times New Roman';
-    //     }
-    //     </style>
-    //     <p>Hello, <span>World!</span></p>
-    //     <p>Hello, <span>World,!</span></p>
-    //     <p>Hello, <span class="reset">World!</span></p>
-    //     <p class="initial">
-    //     yes, yielding a margin of <span class="initial">1.2rem</span> in between.
-    //     </p>
-    //     <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-    //     <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
-    //     <p class="copperplate">Copperplate! Hello, World!</p>
-    //     <p class="times-new-roman">Times New Roman! Hello, World!</p>
-    // );
+    const char *input = VL_STRINGIFY(
+        <style>
+        body {
+            // --velvet-element-highlight: highlight-green;
+        }
+        p {
+            background-color: yellow;
+            font-size: 1.5em;
+        }
+        span {
+            background-color: green;
+            color: red;
+            font-size: 1.5em;
+        }
+        .reset {
+            font-size: unset;
+        }
+        .initial {
+            color: unset;
+            font-size: 16px;
+        }
+        .serif {
+            font-family: serif;
+        }
+        .sans-serif {
+            font-family: sans-serif;
+        }
+        .copperplate {
+            font-family: Copperplate;
+        }
+        .times-new-roman {
+            font-family: 'Times New Roman';
+        }
+        </style>
+        <p>Hello, <span>World!</span></p>
+        <p>Hello, <span>World,!</span></p>
+        <p>Hello, <span class="reset">World!</span></p>
+        <p class="initial">
+        yes, yielding a margin of <span class="initial">1.2rem</span> in between.
+        </p>
+        <p class="serif">Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+        <p class="sans-serif">Sans-serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع</p>
+        <p class="copperplate">Copperplate! Hello, World!</p>
+        <p class="times-new-roman">Times New Roman! Hello, World!</p>
+    );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //     html {
@@ -1200,7 +1200,7 @@ void styling_test() {
     //                 background-color: red;
     //             }
     //             .one {
-    //                 // border: 1px solid black;
+    //                 border: 1px solid black;
     //                 background-color: lightblue;
     //                 padding-top: 50px;
     //                 padding-right: 30px;
@@ -1325,47 +1325,47 @@ void styling_test() {
     //     <p class="before-test">Hello, World!</p>
     //     <p class="fake-button">Explore</p>
     // );
-    const char *input = VL_STRINGIFY(
-        <style>
-            .before1::before {
-                content: "Before! ";
-            }
-            .before1::before {
-                color: blue;
-            }
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         .before1::before {
+    //             content: "Before! ";
+    //         }
+    //         .before1::before {
+    //             color: blue;
+    //         }
 
-            .fancy-quote {
-                color: purple;
-            }
-            .fancy-quote::before {
-                content: "« ";
-                color: red;
-            }
-            .fancy-quote::after {
-                content: " »";
-                color: green;
-            }
+    //         .fancy-quote {
+    //             color: purple;
+    //         }
+    //         .fancy-quote::before {
+    //             content: "« ";
+    //             color: red;
+    //         }
+    //         .fancy-quote::after {
+    //             content: " »";
+    //             color: green;
+    //         }
 
-            .quote {
-                font-size: 1.5em;
-                color: DeepPink;
-            }
+    //         .quote {
+    //             font-size: 1.5em;
+    //             color: DeepPink;
+    //         }
 
-            .quote::before {
-                content: "\"";
-                color: red;
-            }
+    //         .quote::before {
+    //             content: "\"";
+    //             color: green;
+    //         }
 
-            .quote::after {
-                content: "\"";
-                color: blue;
-            }
-        </style>
-        <p class="before1">Hello, World!</p>
-        <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
-        <p class="quote">Quotes? Who?</p>
-        <p style="font-size: 1.5em">Hello, <span style="font-size: 1.5em">World!</span></p>
-    );
+    //         .quote::after {
+    //             content: "\"";
+    //             color: blue;
+    //         }
+    //     </style>
+    //     <p class="before1">Hello, World!</p>
+    //     <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
+    //     <p class="quote">Quotes? Who?</p>
+    //     <p style="font-size: 1.5em">Hello, <span style="font-size: 1.5em">World!</span></p>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

@@ -57,12 +57,9 @@ struct vl_css_layout_node {
     vl_vec4_t color;
     vl_vec4_t border_size;
     vl_vec4_t effective_padding;
-    vl_vec4_t bounds_offset;
     float block_last_margin;
     float block_applied_margin;
     float block_first_margin;
-    float span_y_offset;
-    bool block_prefer_top_align;
     bool calculating_layout;
 };
 

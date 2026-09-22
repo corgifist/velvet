@@ -81,10 +81,7 @@ static void render_element_background(vl_dom_element_t *element) {
     if (suitable_as_bg_color && !is_body) {
         vl_color_t raw_color = vl_css_value_to_rgba(background_color);
         if (raw_color.a != 0)
-            vl_graphics_render_batch_rect_colored(web->render, VL_RECT(
-                VL_VEC2(element->layout.bounds_offset.x, element->layout.bounds_offset.y), 
-                VL_POINT_ADD(element->layout.size, VL_VEC2(element->layout.bounds_offset.z, element->layout.bounds_offset.w))), 
-            NULL, VL_QUAD_COLOR(raw_color));
+            vl_graphics_render_batch_rect_colored(web->render, VL_RECT(VL_VEC2(0), element->layout.size), NULL, VL_QUAD_COLOR(raw_color));
     }
 }
 
