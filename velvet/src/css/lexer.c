@@ -121,10 +121,14 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
 
     if (lexer->c == '"' || lexer->c == '\'') {
         bool double_quote = (lexer->c == '"');
-        ADVANCE(); // skip the quote
         const char *str_begin = cursor - U8_LENGTH(lexer->c);
         const char *str_end = cursor;
+        ADVANCE(); // skip the quote
         while ((double_quote && lexer->c != '"') || (!double_quote && lexer->c != '\'')) {
+            if (lexer->c == '\\') {
+                str_end += U8_LENGTH(lexer->c);
+                ADVANCE();
+            }
             str_end += U8_LENGTH(lexer->c);
             ADVANCE();
         }

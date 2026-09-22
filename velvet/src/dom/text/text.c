@@ -295,6 +295,13 @@ vl_vec2_t vl_dom_element_text_get_content_size(vl_dom_element_t *element) {
             element->layout.span_y_offset = VL_MAX(element->layout.span_y_offset, line->span_offset);
         }
     }
+    if (text->text) {
+        if (strlen(text->text) == 1) {
+            if (*text->text == '"' || *text->text == '\'') {
+                element->layout.block_prefer_top_align = true;
+            } 
+        }
+    }
     return size;
 }
 

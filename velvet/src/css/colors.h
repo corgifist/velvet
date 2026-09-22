@@ -37,7 +37,8 @@ static const struct {
     {"azure", VL_CSS_VALUE_RGBA(240, 255, 255, 1)},
     {"blueviolet", VL_CSS_VALUE_RGBA(138, 43, 226, 1)},
     {"chartreuse", VL_CSS_VALUE_RGBA(127, 255, 0, 1)},
-    {"deeppink", VL_CSS_VALUE_RGBA(255, 20, 147, 1)}
+    {"deeppink", VL_CSS_VALUE_RGBA(255, 20, 147, 1)},
+    {"pink", VL_CSS_VALUE_RGBA(255, 192, 203, 1)}
 };
 
 #endif // VELVET_CSS_COLORS_H

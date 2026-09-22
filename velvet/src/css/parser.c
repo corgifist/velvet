@@ -152,6 +152,17 @@ static const char *try_parse_const_literal(vl_css_parser_t *parser, int limit) {
     return NULL;
 }
 
+static VL_DA_STRING process_string(const char *begin, int len) {
+    VL_DA_STRING result = VL_DA_INIT(char);
+    for (int i = 0; i < len; i++) {
+        char c = begin[i];
+        if (c == '\\' && i != len - 1) continue;
+        *VL_DA_PUSH(result, char) = c;
+    }
+    *VL_DA_PUSH(result, char) = '\0';
+    return result;
+}
+
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     vl_css_token_t *current = parser->lookahead;
     if (current->type == VL_CSS_TOKEN_TYPE_ID) {
@@ -164,7 +175,7 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
         }
     }
     if (current->type == VL_CSS_TOKEN_TYPE_STRING) {
-        vl_css_value_t result = VL_CSS_VALUE_STRING(VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text + 1, current->text_length - 2));
+        vl_css_value_t result = VL_CSS_VALUE_STRING(process_string(current->text + 1, current->text_length - 2));
         tokenize(parser);
         return result;
     }

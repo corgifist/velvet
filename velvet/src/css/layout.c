@@ -62,11 +62,13 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
         }
     }
     VL_DA(vl_css_class_t*) matched_before_classes = NULL;
+    VL_DA(vl_css_class_t*) matched_after_classes = NULL;
     if (matched_classes) {
         for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
             vl_css_class_t *matched_class = matched_classes[i];
             vl_css_style_t tmp_style = {0};
             bool is_before = false;
+            bool is_after = false;
             for (int j = 0; j < VL_DA_LENGTH(matched_class->selectors); j++) {
                 vl_css_class_selector_t *selector = matched_class->selectors + j;
                 for (int k = 0; k < VL_DA_LENGTH(selector->id_chain); k++) {
@@ -74,12 +76,16 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
                     if (id->type == VL_CSS_CLASS_ID_PSEUDO_ELEMENT && strcmp(id->name, "before") == 0) {
                         is_before = true;
                     }
+                    if (id->type == VL_CSS_CLASS_ID_PSEUDO_ELEMENT && strcmp(id->name, "after") == 0) {
+                        is_after = true;
+                    }
                 }
             }
             vl_css_style_from_class(&tmp_style, matched_class);
-            if (is_before) {
-                if (!matched_before_classes) matched_before_classes = VL_DA_INIT(vl_css_class_t*);
-                VL_DA_APPEND(matched_before_classes, matched_class);
+            if (is_before || is_after) {
+                VL_DA(vl_css_class_t*) *pseudo_classes = (is_before ? &matched_before_classes : &matched_after_classes);
+                if (!*pseudo_classes) *pseudo_classes = VL_DA_INIT(vl_css_class_t*);
+                VL_DA_APPEND(*pseudo_classes, matched_class);
                 goto next;
             }
             vl_css_style_merge(&node->style, &tmp_style);
@@ -102,6 +108,11 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (matched_before_classes) {
         if (!node->pseudo_before) {
             node->pseudo_before = new_pseudo_element(node, matched_before_classes);
+        }
+    }
+    if (matched_after_classes) {
+        if (!node->pseudo_after) {
+            node->pseudo_after = new_pseudo_element(node, matched_after_classes);
         }
     }
     return VL_SUCCESS;
@@ -537,6 +548,7 @@ static VL_DA(vl_css_layout_node_t*) get_layout_targets(vl_css_layout_node_t *nod
         vl_css_layout_node_t *child = node->children[i];
         try_add_layout_target(&layout_targets, child);
     }
+    if (node->pseudo_after) try_add_layout_target(&layout_targets, node->pseudo_after);
     return layout_targets;
 }
 
@@ -653,7 +665,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *child = line->elements[j];
             float y_offset = max_span_offset - child->span_y_offset;
-            child->position.y += line->height - child->size.y - y_offset;
+            child->position.y += !child->block_prefer_top_align * (line->height - child->size.y) - y_offset;
             child->bounds_offset = VL_VEC4(0, child->position.y < 0 ? -child->position.y : 0, 0, y_offset);
             // printf("%s %p %f %f\n", child->tag, child, child->block_first_margin, child->block_applied_margin);
             if (child->block_first_margin > child->block_applied_margin && child->block_applied_margin != VL_FLOAT_MIN) {

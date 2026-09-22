@@ -62,6 +62,7 @@ struct vl_css_layout_node {
     float block_applied_margin;
     float block_first_margin;
     float span_y_offset;
+    bool block_prefer_top_align;
     bool calculating_layout;
 };
 

@@ -282,6 +282,9 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
         vl_dom_element_render(element->layout.pseudo_before->owner);
     }
     vl_result_t result = funcs->render(element);
+    if (element->layout.pseudo_after) {
+        vl_dom_element_render(element->layout.pseudo_after->owner);
+    }
     render_element_highlight(element);
     render_margin_highlight(element);
     vl_graphics_render_pop_transform(web->render);

@@ -1333,8 +1333,38 @@ void styling_test() {
             .before1::before {
                 color: blue;
             }
+
+            .fancy-quote {
+                color: purple;
+            }
+            .fancy-quote::before {
+                content: "« ";
+                color: red;
+            }
+            .fancy-quote::after {
+                content: " »";
+                color: green;
+            }
+
+            .quote {
+                font-size: 1.5em;
+                color: DeepPink;
+            }
+
+            .quote::before {
+                content: "\"";
+                color: red;
+            }
+
+            .quote::after {
+                content: "\"";
+                color: blue;
+            }
         </style>
         <p class="before1">Hello, World!</p>
+        <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
+        <p class="quote">Quotes? Who?</p>
+        <p style="font-size: 1.5em">Hello, <span style="font-size: 1.5em">World!</span></p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
