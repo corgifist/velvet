@@ -38,12 +38,6 @@ static const vl_html_parser_escape_t s_escapes[] = {
     ESCAPE("nbsp", " ")
 };
 
-static const char *s_short_tags[] = {
-    "meta",
-    "link",
-    "img"
-};
-
 static vl_result_t tokenize(vl_html_parser_t *parser) {
     for (int i = 1; i < VL_HTML_PARSER_LOOKAHEAD; i++) {
         parser->lookahead[i - 1] = parser->lookahead[i];
@@ -268,13 +262,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     VL_DA_HEADER(node->tag)->count = current->text_length;
     memcpy(node->tag, current->text, current->text_length);
     node->tag[current->text_length] = '\0';
-    bool short_tag = false;
-    for (int i = 0; i < sizeof(s_short_tags) / sizeof(*s_short_tags); i++) {
-        if (strcmp(node->tag, s_short_tags[i]) == 0) {
-            short_tag = true;
-            break;
-        }
-    }
+    bool short_tag = vl_html_is_tag_void(node->tag);
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip tag name and spaces
     // parsing node open
     while (!VL_TOKEN_COMPARE(current, ">")) {

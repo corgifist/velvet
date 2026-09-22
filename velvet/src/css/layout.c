@@ -310,6 +310,7 @@ static vl_css_layout_border_type_t get_border_type(const vl_css_value_t *value) 
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "none")) return VL_CSS_LAYOUT_BORDER_NONE;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "solid")) return VL_CSS_LAYOUT_BORDER_SOLID;
     if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "double")) return VL_CSS_LAYOUT_BORDER_DOUBLE;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(*value, "inset")) return VL_CSS_LAYOUT_BORDER_INSET;
     return VL_CSS_LAYOUT_BORDER_NONE;
 }
 
@@ -613,7 +614,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 size.y += child->margin.z;
             }
             cursor.y += child->size.y;
-            node->block_last_margin = child->margin.z;
+            node->block_last_margin = VL_MAX(child->margin.z, child->block_last_margin);
             line->width = VL_MAX(line->width, cursor.x + child->size.x);
             line->height = VL_MAX(line->height, child->size.y);
             VL_DA_APPEND(line->elements, child);
@@ -720,7 +721,7 @@ static float get_first_top_margin(vl_css_layout_node_t *node) {
 
 static vl_result_t layout_body(vl_css_layout_node_t *node) {
     layout_generic_div(node);
-    if (node->children) {
+    if (node->children && !node->web->dom.quirks) {
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
             vl_css_layout_node_t *child = node->children[i];
             vl_css_value_t display = get_display_mode(child);
@@ -751,7 +752,8 @@ static const struct {
     {"h4", layout_generic_div},
     {"h5", layout_generic_div},    
     {"h6", layout_generic_div},
-    {"code", layout_generic_div}
+    {"code", layout_generic_div},
+    {"hr", layout_generic_div}
 };
 
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {

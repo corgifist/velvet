@@ -5,10 +5,18 @@
 #include "support/da.h"
 #include "support/global_error_pool.h"
 #include "support/result.h"
+#include "vendor/utf8.h"
 
 vl_result_t vl_dom_init_with_html_document(vl_dom_t *dom, vl_html_document_t *document) {
     if (!dom || !document) return VL_ERROR;
-    return vl_dom_init_with_html_node(dom, &document->root);
+    vl_result_t result = vl_dom_init_with_html_node(dom, &document->root);
+    if (result) return result;
+    if (document->doctype && VL_DA_LENGTH(document->doctype) >= 1) {
+        if (utf8casecmp(document->doctype[0], "html") == 0) {
+            dom->quirks = false;
+        }
+    }
+    return VL_SUCCESS;
 }
 
 vl_dom_element_t *spawn_element(vl_html_node_t *node) {
@@ -67,6 +75,7 @@ vl_result_t vl_dom_render(vl_dom_t *dom) {
 
 vl_result_t vl_dom_init_with_html_node(vl_dom_t *dom, vl_html_node_t *node) {
     if (!dom || !node) return VL_ERROR;
+    dom->quirks = true;
     dom->root = collect_elements(dom, NULL, node);
     return VL_SUCCESS;
 }

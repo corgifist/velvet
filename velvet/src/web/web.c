@@ -22,7 +22,7 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     if (!web) return VL_ERROR;
     VL_ZERO_OUT(web);
     web->dom.owner = web;
-    vl_dom_init_with_html_node(&web->dom, &document->root);
+    vl_dom_init_with_html_document(&web->dom, document);
     web->dom.root->layout.parent = &web->root_layout_node;
     vl_css_stylesheet_init(&web->default_stylesheet, vl_web_theme_default_stylesheet());
     web->theme = vl_web_theme_default();

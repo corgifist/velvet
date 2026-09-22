@@ -37,7 +37,8 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"h4", vl_dom_element_div_new},
     {"h5", vl_dom_element_div_new},
     {"h6", vl_dom_element_div_new},
-    {"code", vl_dom_element_div_new}
+    {"code", vl_dom_element_div_new},
+    {"hr", vl_dom_element_div_new}
 };
 
 static vl_vec2_t dom_to_css_size(vl_css_layout_node_t *node) {
@@ -97,6 +98,7 @@ static void render_element_border_solid(vl_dom_element_t *element, int side) {
     float b = bottom->type ? bottom->width : 0;
     float l = left->type ? left->width : 0;
     vl_vec2_t size = element->layout.size;
+    vl_quad_colors_t color = VL_QUAD_COLOR(border->color);
 
     switch (side) {
     case 0: {
@@ -104,7 +106,7 @@ static void render_element_border_solid(vl_dom_element_t *element, int side) {
             VL_VEC2(0, 0), VL_VEC2(size.x, 0),
             VL_VEC2(l, t), VL_VEC2(size.x - r, t)
         );
-        vl_graphics_render_batch_quad_colored(web->render, top_quad, NULL, VL_QUAD_COLOR(top->color));
+        vl_graphics_render_batch_quad_colored(web->render, top_quad, NULL, color);
         break;
     }
     case 1: {
@@ -112,7 +114,7 @@ static void render_element_border_solid(vl_dom_element_t *element, int side) {
             VL_VEC2(size.x - r, t), VL_VEC2(size.x, 0),
             VL_VEC2(size.x - r, size.y - b), VL_VEC2(size.x, size.y)
         );
-        vl_graphics_render_batch_quad_colored(web->render, right_quad, NULL, VL_QUAD_COLOR(right->color));
+        vl_graphics_render_batch_quad_colored(web->render, right_quad, NULL, color);
         break;
     }
     case 2: {
@@ -120,7 +122,7 @@ static void render_element_border_solid(vl_dom_element_t *element, int side) {
             VL_VEC2(l, size.y - b), VL_VEC2(size.x - r, size.y - b),
             VL_VEC2(0, size.y), size
         );
-        vl_graphics_render_batch_quad_colored(web->render, bottom_quad, NULL, VL_QUAD_COLOR(bottom->color));
+        vl_graphics_render_batch_quad_colored(web->render, bottom_quad, NULL, color);
         break;
     }
     case 3: {
@@ -128,7 +130,7 @@ static void render_element_border_solid(vl_dom_element_t *element, int side) {
             VL_VEC2(0, 0), VL_VEC2(l, t),
             VL_VEC2(0, size.y), VL_VEC2(l, size.y - b)
         );
-        vl_graphics_render_batch_quad_colored(web->render, left_quad, NULL, VL_QUAD_COLOR(left->color));
+        vl_graphics_render_batch_quad_colored(web->render, left_quad, NULL, color);
         break;
     }
     }
@@ -207,6 +209,7 @@ static void render_element_border(vl_dom_element_t *element, int side) {
     switch (element->layout.border[side].type) {
     case VL_CSS_LAYOUT_BORDER_SOLID: render_element_border_solid(element, side); break;
     case VL_CSS_LAYOUT_BORDER_DOUBLE: render_element_border_double(element, side); break;
+    case VL_CSS_LAYOUT_BORDER_INSET: render_element_border_solid(element, side); break;
     default: break;
     }
 }

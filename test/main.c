@@ -1324,46 +1324,62 @@ void styling_test() {
     //     <p class="before-test">Hello, World!</p>
     //     <p class="fake-button">Explore</p>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         .before1::before {
+    //             content: "Before! ";
+    //         }
+    //         .before1::before {
+    //             color: blue;
+    //         }
+
+    //         .fancy-quote {
+    //             color: purple;
+    //         }
+    //         .fancy-quote::before {
+    //             content: "« ";
+    //             color: red;
+    //         }
+    //         .fancy-quote::after {
+    //             content: " »";
+    //             color: green;
+    //         }
+
+    //         .quote {
+    //             font-size: 1.5em;
+    //             color: DeepPink;
+    //         }
+
+    //         .quote::before {
+    //             content: "\"";
+    //             color: green;
+    //         }
+
+    //         .quote::after {
+    //             content: "\"";
+    //             color: blue;
+    //         }
+    //     </style>
+    //     <p class="before1">Hello, World!</p>
+    //     <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
+    //     <p class="quote">Quotes? Who?</p>
+    //     <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: red">World!</span></p>
+    //     <hr>
+    //     <p>hr tag</p>
+    // );
     const char *input = VL_STRINGIFY(
         <style>
-            .before1::before {
-                content: "Before! ";
-            }
-            .before1::before {
-                color: blue;
-            }
-
-            .fancy-quote {
-                color: purple;
-            }
-            .fancy-quote::before {
-                content: "« ";
-                color: red;
-            }
-            .fancy-quote::after {
-                content: " »";
-                color: green;
-            }
-
-            .quote {
-                font-size: 1.5em;
-                color: DeepPink;
-            }
-
-            .quote::before {
-                content: "\"";
-                color: green;
-            }
-
-            .quote::after {
-                content: "\"";
-                color: blue;
+            h1 {
+                // --velvet-margin-highlight: highlight-orange;
             }
         </style>
-        <p class="before1">Hello, World!</p>
-        <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
-        <p class="quote">Quotes? Who?</p>
-        <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: red">World!</span></p>
+        <body>
+            <center>
+                <h1>404 Not Found</h1>
+            </center>
+            <hr>
+            <center>nginx</center>
+        </body>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
