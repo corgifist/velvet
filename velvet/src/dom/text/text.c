@@ -113,19 +113,26 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
     if (VL_CSS_VALUE_IS_LITERAL(font_family)) {
         if (!hollow) *VL_DA_PUSH(blueprint.font_family, VL_DA(vl_web_sized_font_t*)) = 
             try_get_web_font(&web->fonts, font_family.as.literal, correct_weight(&web->fonts, font_family.as.literal, blueprint.weight), blueprint.height);
-        blueprint.font_family_hash = vl_hash_string(font_family.as.literal);
+        blueprint.compound_hash = vl_hash_string(font_family.as.literal);
     } else if (font_family.type == VL_CSS_VALUE_FONT_LIST && font_family.as.font_list.fonts) {
         VL_DA(VL_DA_STRING) font_families = font_family.as.font_list.fonts;
         for (int i = 0; i < VL_DA_LENGTH(font_families); i++) {
             if (!hollow) *VL_DA_PUSH(blueprint.font_family, VL_DA(vl_web_sized_font_t*)) =
                 try_get_web_font(&web->fonts, font_families[i], correct_weight(&web->fonts, font_families[i], blueprint.weight), blueprint.height);
-            blueprint.font_family_hash = vl_hash_combine(
-                blueprint.font_family_hash,
+            blueprint.compound_hash = vl_hash_combine(
+                blueprint.compound_hash,
                 vl_hash_string(font_families[i])
             );
         }
     }
-    blueprint.text_hash = vl_hash_string(((vl_dom_element_text_t*) element)->text);
+    blueprint.compound_hash = vl_hash_combine(
+        blueprint.compound_hash,
+        vl_hash_string(((vl_dom_element_text_t*) element)->text)
+    );
+    blueprint.compound_hash = vl_hash_combine(
+        blueprint.compound_hash,
+        vl_hash_bytes(&element->layout.parent->size.x, sizeof(float))
+    );
     return blueprint;
 }
 
@@ -234,8 +241,7 @@ static void prepare_layout(vl_dom_element_t *element) {
     vl_dom_element_text_blueprint_t fresh_blueprint = calculate_blueprint(element, true);
     if (blueprint->height != fresh_blueprint.height 
             || blueprint->weight != fresh_blueprint.weight
-            || blueprint->font_family_hash != fresh_blueprint.font_family_hash
-            || blueprint->text_hash != fresh_blueprint.text_hash
+            || blueprint->compound_hash != fresh_blueprint.compound_hash
             || blueprint->alignment != fresh_blueprint.alignment) {
         deinit_layout(&text->layout);
         text->layout.blueprint = calculate_blueprint(element, false);

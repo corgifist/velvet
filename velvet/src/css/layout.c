@@ -158,9 +158,9 @@ static VL_DA(vl_css_layout_node_t*) get_layout_targets(vl_css_layout_node_t *nod
 static void apply_position(vl_css_layout_node_t *node) {
     if (node->position_type == VL_CSS_LAYOUT_POSITION_RELATIVE) {
         if (node->position_metrics.x != VL_FLOAT_MIN) {
-            node->position.y += node->position_metrics.x;
+            node->position.y += node->position_metrics.x - node->margin.x * 2;
         } else if (node->position_metrics.z != VL_FLOAT_MIN) {
-            node->position.y -= node->position_metrics.z;
+            node->position.y -= node->position_metrics.z + node->margin.x * 2;
         }
         if (node->position_metrics.w != VL_FLOAT_MIN) {
             node->position.x += node->position_metrics.w;
@@ -170,10 +170,13 @@ static void apply_position(vl_css_layout_node_t *node) {
     }
     if (node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
         if (node->position_metrics.x != VL_FLOAT_MIN) {
-            node->position.y = node->position_metrics.x;
-        }
-        if (node->position_metrics.w != VL_FLOAT_MIN) {
-            node->position.x = node->position_metrics.w;
+            node->position.y = node->position_metrics.x + node->margin.x;
+        } 
+        if (node->position_metrics.y != VL_FLOAT_MIN && node->position_metrics.w != VL_FLOAT_MIN) {
+            node->position.x = node->position_metrics.w + node->margin.w;
+            node->size.x = node->web->root_layout_node.size.x - (node->position_metrics.y + node->position_metrics.w);
+        } else if (node->position_metrics.w != VL_FLOAT_MIN) {
+            node->position.x = node->position_metrics.w + node->margin.w;
         }
     }
 }

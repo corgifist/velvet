@@ -1370,7 +1370,7 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         h1 {
-    //             // --velvet-margin-highlight: highlight-orange;
+    //             // --velvet-element-highlight: highlight-orange;
     //         }
     //     </style>
     //     <body>
@@ -1382,6 +1382,7 @@ void styling_test() {
     //     </body>
     // );
     const char *input = VL_STRINGIFY(
+        <!DOCTYPE html>
         <style>
             .relative {
                 position: relative;
@@ -1396,11 +1397,21 @@ void styling_test() {
             body {
                 // --velvet-element-highlight: highlight-orange;
             }
+            .banner {
+                position: absolute;
+                top: 300px;
+                left: 20px;
+                right: 20px;
+                background-color: purple;
+                text-align: center;
+            }
         </style>
         <div style="background-color: green; width: 200px; height: 300px">
             <p style="background-color: deeppink">Hello, World</p>
+            <p style="position: absolute; left: 0px; top: 0px; background-color: green">Top</p>
             <p class="relative" style="background-color: red">Relative</p>
             <p class="absolute" style="background-color: yellow">Absolute</p>
+            <p class="banner">Some kind of banner</p>
         </div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
