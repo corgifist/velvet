@@ -78,6 +78,9 @@ static void render_element_background(vl_dom_element_t *element) {
         if (raw_color.a != 0) 
             vl_graphics_render_batch_rect_colored(web->render, VL_RECT_EX(0, 0, web_root->size.x, web_root->size.y), NULL, VL_QUAD_COLOR(raw_color));
     }
+    if (element->layout.position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
+        vl_graphics_render_push_break(web->render);
+    }
     vl_graphics_render_push_translate(web->render, element->layout.position);
     if (suitable_as_bg_color && !is_body) {
         vl_color_t raw_color = vl_css_value_to_rgba(background_color);
@@ -288,6 +291,9 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     render_element_highlight(element);
     render_margin_highlight(element);
     vl_graphics_render_pop_transform(web->render);
+    if (element->layout.position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
+        vl_graphics_render_pop_transform(web->render);
+    }
     return result;
 }
 

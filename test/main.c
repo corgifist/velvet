@@ -1367,19 +1367,41 @@ void styling_test() {
     //     <hr>
     //     <p>hr tag</p>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         h1 {
+    //             // --velvet-margin-highlight: highlight-orange;
+    //         }
+    //     </style>
+    //     <body>
+    //         <center>
+    //             <h1>404 Not Found</h1>
+    //         </center>
+    //         <hr>
+    //         <center>nginx</center>
+    //     </body>
+    // );
     const char *input = VL_STRINGIFY(
         <style>
-            h1 {
-                // --velvet-margin-highlight: highlight-orange;
+            .relative {
+                position: relative;
+                top: 16px;
+                left: 20px;
+            }
+            .absolute {
+                position: absolute;
+                top: 200px;
+                left: 400px;
+            }
+            body {
+                // --velvet-element-highlight: highlight-orange;
             }
         </style>
-        <body>
-            <center>
-                <h1>404 Not Found</h1>
-            </center>
-            <hr>
-            <center>nginx</center>
-        </body>
+        <div style="background-color: green; width: 200px; height: 300px">
+            <p style="background-color: deeppink">Hello, World</p>
+            <p class="relative" style="background-color: red">Relative</p>
+            <p class="absolute" style="background-color: yellow">Absolute</p>
+        </div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

@@ -22,7 +22,12 @@ static const char *s_const_literals[] = {
     "dashed",
     "hidden",
     "double",
-    "inset"
+    "inset",
+    "static",
+    "absolute",
+    "relative",
+    "sticky",
+    "natural"
 };
 
 #endif // VELVET_CSS_CONSTANTS_H

@@ -250,8 +250,10 @@ union vl_mat4 {
 };
 typedef union vl_mat4 vl_mat4_t;
 
-#define VL_MAT44(A, B, C, D) \
-    ((vl_mat4_t) {.m1 = A, .m2 = B, .m3 = C, .m4 = D})
+#define VL_MAT44(...) \
+    ((vl_mat4_t) {__VA_ARGS__})
+#define VL_MAT41(X) \
+    VL_MAT44({{X, X, X, X}, {X, X, X, X}, {X, X, X, X}, {X, X, X, X}})
 #define VL_MAT40() \
     ((vl_mat4_t) {.m1 = {1, 0, 0, 0}, .m2 = {0, 1, 0, 0}, .m3 = {0, 0, 1, 0}, .m4 = {0, 0, 0, 1}})
 #define VL_MAT4(...) \

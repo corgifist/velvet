@@ -55,6 +55,12 @@ vl_result_t vl_graphics_render_push_scale(vl_graphics_render_t *render, vl_vec2_
     return VL_SUCCESS;
 }
 
+vl_result_t vl_graphics_render_push_break(vl_graphics_render_t *render) {
+    if (!render) return VL_ERROR;
+    vl_graphics_render_push_transform(render, VL_MAT4(0));
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_begin) return VL_ERROR;
     return render->context->graphics_render_batch_begin(render);
@@ -63,7 +69,13 @@ vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
 vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_vertex) return VL_ERROR;
     if (render->transform) {
+        vl_vec2_t orig_point = point;
+        static vl_mat4_t break_mat = VL_MAT4(0);
         for (int i = 0; i < VL_DA_LENGTH(render->transform); i++) {
+            if (memcmp(render->transform + i, &break_mat, sizeof(vl_mat4_t)) == 0) {
+                point = orig_point;
+                continue;
+            }
             vl_vec4_t src = {point.x, point.y, 0, 1};
             vl_vec4_t dst;
             vl_mat4_mul_vec4(&dst, render->transform[i], src);

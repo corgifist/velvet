@@ -25,6 +25,7 @@ VL_API vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *rende
 VL_API vl_result_t vl_graphics_render_push_translate(vl_graphics_render_t *render, vl_vec2_t translation);
 VL_API vl_result_t vl_graphics_render_push_rotate(vl_graphics_render_t *render, float degrees);
 VL_API vl_result_t vl_graphics_render_push_scale(vl_graphics_render_t *render, vl_vec2_t scale);
+VL_API vl_result_t vl_graphics_render_push_break(vl_graphics_render_t *render);
 VL_API vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render);
 VL_API vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv);
 VL_API vl_result_t vl_graphics_render_batch_quad(vl_graphics_render_t *render, vl_quad_t quad, vl_graphics_brush_t *brush);

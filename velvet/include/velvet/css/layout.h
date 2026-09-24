@@ -20,6 +20,13 @@ struct vl_css_layout_border {
 };
 typedef struct vl_css_layout_border vl_css_layout_border_t;
 
+enum vl_css_layout_position_type {
+    VL_CSS_LAYOUT_POSITION_STATIC = 0,
+    VL_CSS_LAYOUT_POSITION_ABSOLUTE,
+    VL_CSS_LAYOUT_POSITION_RELATIVE
+};
+typedef enum vl_css_layout_position_type vl_css_layout_position_type_t;
+
 typedef void vl_css_layout_node_owner_t;
 
 struct vl_css_layout_node;
@@ -45,18 +52,19 @@ struct vl_css_layout_node {
     vl_css_inline_style_t inline_style;
 
     vl_css_value_t display;
+    vl_css_layout_position_type_t position_type;
     vl_vec2_t raw_dimensions;
     bool lock_dimensions[2];
     bool allow_width_growth;
     vl_vec2_t size;
     vl_vec2_t content_size;
+    vl_vec4_t position_metrics;
     vl_vec2_t position;
     vl_vec4_t margin;
     bool auto_margin[4];
     vl_vec4_t padding;
     vl_css_layout_border_t border[4];
     vl_vec4_t color;
-    vl_vec4_t border_size;
     vl_vec4_t effective_padding;
     float block_last_margin;
     float block_applied_margin;
