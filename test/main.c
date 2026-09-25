@@ -1405,6 +1405,13 @@ void styling_test() {
                 background-color: purple;
                 text-align: center;
             }
+            .vertical {
+                position: absolute;
+                top: 50px;
+                bottom: 50px;
+                left: 500px;
+                background-color: yellow;
+            }
         </style>
         <div style="background-color: green; width: 200px; height: 300px">
             <p style="background-color: deeppink">Hello, World</p>
@@ -1412,6 +1419,7 @@ void styling_test() {
             <p class="relative" style="background-color: red">Relative</p>
             <p class="absolute" style="background-color: yellow">Absolute</p>
             <p class="banner">Some kind of banner</p>
+            <p class="vertical">Vertical banner</p>
         </div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);

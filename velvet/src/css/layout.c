@@ -169,7 +169,12 @@ static void apply_position(vl_css_layout_node_t *node) {
         }
     }
     if (node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
-        if (node->position_metrics.x != VL_FLOAT_MIN) {
+        if (node->position_metrics.x != VL_FLOAT_MIN && node->position_metrics.z != VL_FLOAT_MIN) {
+            node->position.y = node->position_metrics.x + node->margin.x;
+            float size_change = node->web->root_layout_node.size.y - node->size.y - node->position_metrics.x - node->position_metrics.z - node->margin.x - node->margin.z;
+            node->size.y += size_change;
+            node->position.y += size_change;
+        } else if (node->position_metrics.x != VL_FLOAT_MIN) {
             node->position.y = node->position_metrics.x + node->margin.x;
         } 
         if (node->position_metrics.y != VL_FLOAT_MIN && node->position_metrics.w != VL_FLOAT_MIN) {
@@ -796,16 +801,16 @@ static vl_vec4_t construct_position_metrics(vl_css_layout_node_t *node) {
     vl_css_value_t bottom_value = vl_css_layout_node_get_property(node, "bottom", VL_CSS_VALUE_CONST_LITERAL("natural"));
     vl_css_value_t left_value = vl_css_layout_node_get_property(node, "left", VL_CSS_VALUE_CONST_LITERAL("natural"));
     if (VL_CSS_VALUE_IS_METRIC(top_value)) {
-        metric.x = vl_css_layout_node_process_metric(node, NULL, top_value.as.metric1, 0).value;
+        metric.x = vl_css_layout_node_process_metric(node, NULL, top_value.as.metric1, node->parent->size.y).value;
     }
     if (VL_CSS_VALUE_IS_METRIC(right_value)) {
-        metric.y = vl_css_layout_node_process_metric(node, NULL, right_value.as.metric1, 0).value;
+        metric.y = vl_css_layout_node_process_metric(node, NULL, right_value.as.metric1, node->parent->size.x).value;
     }
     if (VL_CSS_VALUE_IS_METRIC(bottom_value)) {
-        metric.z = vl_css_layout_node_process_metric(node, NULL, bottom_value.as.metric1, 0).value;
+        metric.z = vl_css_layout_node_process_metric(node, NULL, bottom_value.as.metric1, node->parent->size.y).value;
     }
     if (VL_CSS_VALUE_IS_METRIC(left_value)) {
-        metric.w = vl_css_layout_node_process_metric(node, NULL, left_value.as.metric1, 0).value;
+        metric.w = vl_css_layout_node_process_metric(node, NULL, left_value.as.metric1, node->parent->size.x).value;
     }
     return metric;
 }
