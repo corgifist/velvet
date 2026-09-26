@@ -228,7 +228,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 size.y += child->margin.x;
             } else if (prev) {
                 if (VL_CSS_VALUE_COMPARE_LITERALS(prev->display, "inline")) {
-                    cursor.y += prev->size.y;
+                    // cursor.y += prev->size.y;
                     line = PUSH_NEW_BLOCK_LINE(lines);
                 }
                 if (margins_can_collapse(prev, child))  {
@@ -402,7 +402,8 @@ static const struct {
     {"h5", layout_generic_div},    
     {"h6", layout_generic_div},
     {"code", layout_generic_div},
-    {"hr", layout_generic_div}
+    {"hr", layout_generic_div},
+    {"article", layout_generic_div}
 };
 
 static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *node, bool *auto_metric, vl_css_value_t value) {

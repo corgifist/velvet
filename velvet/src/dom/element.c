@@ -38,7 +38,8 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"h5", vl_dom_element_div_new},
     {"h6", vl_dom_element_div_new},
     {"code", vl_dom_element_div_new},
-    {"hr", vl_dom_element_div_new}
+    {"hr", vl_dom_element_div_new},
+    {"article", vl_dom_element_div_new}
 };
 
 static vl_vec2_t dom_to_css_size(vl_css_layout_node_t *node) {

@@ -1437,8 +1437,9 @@ void styling_test() {
         <style>
             body {
                 font-family: sans-serif;
+                // --velvet-margin-highlight: highlight-green;
             }
-            p::before {
+            p {
                 content: "§";
             }
             hr {
@@ -1461,6 +1462,14 @@ void styling_test() {
         <p>1: The first rule of Fight Club is: You do not talk about Fight Club.</p>
         <hr/>
         <p>2: The second rule of Fight Club is: Always bring cupcakes.</p>
+
+        <article>
+            This is the first paragraph of text. This is the first paragraph of text.
+            This is the first paragraph of text. This is the first paragraph of text.
+            <hr />
+            This is the second paragraph of text. This is the second paragraph of text.
+            This is the second paragraph of text. This is the second paragraph of text.
+        </article>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
