@@ -202,14 +202,15 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     } else {
         node->size.y = node->raw_dimensions.y;
     }
-    node->size.x = VL_MAX(node->size.x, node->effective_padding.w + node->effective_padding.y);
-    node->size.y = VL_MAX(node->size.y, node->effective_padding.x + node->effective_padding.z);
+    node->size.x = VL_MAX(node->size.x, node->effective_padding.w + node->effective_padding.y + lock_width * node->raw_dimensions.x);
+    node->size.y = VL_MAX(node->size.y, node->effective_padding.x + node->effective_padding.z + lock_height * node->raw_dimensions.y);
     vl_vec2_t size = node->size;
     node->size.x -= (node->effective_padding.w + node->effective_padding.y);
     node->size.y -= (node->effective_padding.x + node->effective_padding.z);
     VL_DA(vl_css_layout_node_t*) layout_targets = get_layout_targets(node);
     node->size.x += (node->effective_padding.w + node->effective_padding.y);
     node->size.y += (node->effective_padding.x + node->effective_padding.z);
+    bool is_void_tag = vl_html_is_tag_void(node->tag);
     int len = VL_DA_LENGTH(layout_targets);
     VL_DA(vl_css_block_line) lines = VL_DA_INIT(vl_css_block_line);
     PUSH_NEW_BLOCK_LINE(lines);
@@ -273,12 +274,12 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             float old_line_height = line->height;
             line->height = VL_MAX(line->height, child->size.y);
             size.x = VL_MAX(size.x, cursor.x);
-            if (!node->allow_width_growth && !node->parent->allow_width_growth) size.x = VL_MIN(size.x, node->parent->size.x);
+            if (!node->allow_width_growth && !node->parent->allow_width_growth) size.x = VL_MIN(size.x, node->parent->size.x - node->margin.y - node->margin.w);
             if (!lock_height && old_line_height < line->height) size.y += line->height - old_line_height;
-            if (cursor.y + line->height + node->effective_padding.z > size.y) {
+            if (!lock_height && cursor.y + line->height + node->effective_padding.z > size.y) {
                 size.y += cursor.y + line->height + node->effective_padding.z - size.y;
             }
-            // node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
+            node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
             VL_DA_APPEND(line->elements, child);
             if (cursor.x > node->size.x && next) {
                 cursor.x = 0;
@@ -296,12 +297,11 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         float max_span_offset = 0;
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *child = line->elements[j];
-            max_span_offset = VL_MAX(max_span_offset, -child->span_y_offset);
+            max_span_offset = VL_MAX(max_span_offset, child->span_y_offset);
         }
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *child = line->elements[j];
-            child->position.y += (line->height - child->size.y) + (max_span_offset - child->span_y_offset);
-            // child->bounds_offset = VL_VEC4(0, child->position.y < 0 ? -child->position.y : 0, 0, y_offset);
+            child->position.y += line->height - child->size.y - (max_span_offset - child->span_y_offset);
             if (child->block_first_margin > child->block_applied_margin && child->block_applied_margin != VL_FLOAT_MIN) {
                 for (int k = i; k < VL_DA_LENGTH(lines); k++) {
                     vl_css_block_line *line = lines + k;
@@ -875,7 +875,6 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
         }
     }
     node->size = vl_css_layout_node_get_raw_content_size(node);
-    apply_position(node);
 
     final:
     if (node->auto_margin[1] && node->auto_margin[3]) {

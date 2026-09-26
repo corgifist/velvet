@@ -100,7 +100,9 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         return VL_SUCCESS;
     }
 
-    if (lexer->c >= '0' && lexer->c <= '9') {
+    if (lexer->c >= '0' && lexer->c <= '9' || (lexer->c == '-' && vl_isnumeric(*cursor))) {
+        bool is_negative = (lexer->c == '-');
+        if (is_negative) ADVANCE();
         const char *num_begin = cursor - U8_LENGTH(lexer->c);
         const char *num_end = cursor;
         ADVANCE();
@@ -142,7 +144,7 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         ADVANCE();
         const char *begin = cursor + 1 - U8_LENGTH(lexer->c);
         const char *end = cursor;
-        while (lexer->c != ' ' && lexer->c != 0) {
+        while (lexer->c != ' ' && vl_isalphanum(lexer->c) && lexer->c != 0) {
             end += U8_LENGTH(lexer->c);
             ADVANCE();
         }

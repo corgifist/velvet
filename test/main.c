@@ -1363,7 +1363,7 @@ void styling_test() {
     //     <p class="before1">Hello, World!</p>
     //     <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
     //     <p class="quote">Quotes? Who?</p>
-    //     <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: red">World!</span></p>
+    //     <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: green">World!</span></p>
     //     <hr>
     //     <p>hr tag</p>
     // );
@@ -1381,56 +1381,86 @@ void styling_test() {
     //         <center>nginx</center>
     //     </body>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <!DOCTYPE html>
+    //     <style>
+    //         .relative {
+    //             position: relative;
+    //             top: 16px;
+    //             left: 20px;
+    //         }
+    //         .absolute {
+    //             position: absolute;
+    //             top: 200px;
+    //             left: 400px;
+    //         }
+    //         body {
+    //             // --velvet-element-highlight: highlight-orange;
+    //         }
+    //         .banner {
+    //             position: absolute;
+    //             top: 300px;
+    //             left: 20px;
+    //             right: 20px;
+    //             background-color: purple;
+    //             text-align: center;
+    //         }
+    //         .vertical {
+    //             position: absolute;
+    //             top: 50px;
+    //             bottom: 50px;
+    //             left: 500px;
+    //             background-color: yellow;
+    //         }
+    //         .lower-banner {
+    //             position: absolute;
+    //             top: 400px;
+    //             bottom: 20px;
+    //             left: 10px;
+    //             right: 10px;
+    //             background-color: lavender;
+    //         }
+    //     </style>
+    //     <div style="background-color: green; width: 200px; height: 300px">
+    //         <p style="background-color: deeppink">Hello, World</p>
+    //         <p style="position: absolute; left: 0px; top: 0px; background-color: green">Top</p>
+    //         <p class="relative" style="background-color: red">Relative</p>
+    //         <p class="absolute" style="background-color: yellow">Absolute</p>
+    //         <p class="banner">Some kind of banner</p>
+    //         <p class="vertical">Vertical banner</p>
+    //         <p class="lower-banner">Lower banner</p>
+    //         <p style="color: #fff">Hex colors</p>
+    //     </div>
+    // );
     const char *input = VL_STRINGIFY(
         <!DOCTYPE html>
         <style>
-            .relative {
-                position: relative;
-                top: 16px;
-                left: 20px;
-            }
-            .absolute {
-                position: absolute;
-                top: 200px;
-                left: 400px;
-            }
             body {
-                // --velvet-element-highlight: highlight-orange;
+                font-family: sans-serif;
             }
-            .banner {
-                position: absolute;
-                top: 300px;
-                left: 20px;
-                right: 20px;
-                background-color: purple;
+            p::before {
+                content: "§";
+            }
+            hr {
+                border: none;
+                border-top: 3px double #333333;
+                color: #333333;
+                overflow: visible;
                 text-align: center;
+                height: 5px;
             }
-            .vertical {
-                position: absolute;
-                top: 50px;
-                bottom: 50px;
-                left: 500px;
-                background-color: yellow;
-            }
-            .lower-banner {
-                position: absolute;
-                top: 400px;
-                bottom: 20px;
-                left: 10px;
-                right: 10px;
-                background-color: lavender;
+
+            hr::after {
+                background: white;
+                content: "§";
+                padding: 0 4px;
+                position: relative;
+                top: -13px;
             }
         </style>
-        <div style="background-color: green; width: 200px; height: 300px">
-            <p style="background-color: deeppink">Hello, World</p>
-            <p style="position: absolute; left: 0px; top: 0px; background-color: green">Top</p>
-            <p class="relative" style="background-color: red">Relative</p>
-            <p class="absolute" style="background-color: yellow">Absolute</p>
-            <p class="banner">Some kind of banner</p>
-            <p class="vertical">Vertical banner</p>
-            <p class="lower-banner">Lower banner</p>
-            <p style="color: #fff">Hex colors</p>
-        </div>
+        <p>1: The first rule of Fight Club is: You do not talk about Fight Club.</p>
+        <hr/>
+        <p>2: The second rule of Fight Club is: Always bring cupcakes.</p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
