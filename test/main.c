@@ -1412,6 +1412,14 @@ void styling_test() {
                 left: 500px;
                 background-color: yellow;
             }
+            .lower-banner {
+                position: absolute;
+                top: 400px;
+                bottom: 20px;
+                left: 10px;
+                right: 10px;
+                background-color: lavender;
+            }
         </style>
         <div style="background-color: green; width: 200px; height: 300px">
             <p style="background-color: deeppink">Hello, World</p>
@@ -1420,6 +1428,8 @@ void styling_test() {
             <p class="absolute" style="background-color: yellow">Absolute</p>
             <p class="banner">Some kind of banner</p>
             <p class="vertical">Vertical banner</p>
+            <p class="lower-banner">Lower banner</p>
+            <p style="color: #fff">Hex colors</p>
         </div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);

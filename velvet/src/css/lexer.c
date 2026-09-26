@@ -92,7 +92,7 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         const char *word_begin = cursor - U8_LENGTH(lexer->c);
         const char *word_end = cursor;
         ADVANCE();
-        while (vl_isalphanum(lexer->c) || lexer->c == '-') {
+        while ((vl_isalphanum(lexer->c) || lexer->c == '-') && lexer->c != 0) {
             word_end += U8_LENGTH(lexer->c);
             ADVANCE();
         }
@@ -105,7 +105,7 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         const char *num_end = cursor;
         ADVANCE();
         bool dot_found = false;
-        while ((lexer->c >= '0' && lexer->c <= '9') || (!dot_found && lexer->c == '.')) {
+        while (((lexer->c >= '0' && lexer->c <= '9') || (!dot_found && lexer->c == '.')) && lexer->c != 0) {
             if (lexer->c == '.') dot_found = true;
             num_end += U8_LENGTH(lexer->c);
             ADVANCE();
@@ -124,7 +124,7 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         const char *str_begin = cursor - U8_LENGTH(lexer->c);
         const char *str_end = cursor;
         ADVANCE(); // skip the quote
-        while ((double_quote && lexer->c != '"') || (!double_quote && lexer->c != '\'')) {
+        while (((double_quote && lexer->c != '"') || (!double_quote && lexer->c != '\'')) && lexer->c != 0) {
             if (lexer->c == '\\') {
                 str_end += U8_LENGTH(lexer->c);
                 ADVANCE();
@@ -135,6 +135,18 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         str_end += U8_LENGTH(lexer->c);
         ADVANCE(); // skip the quote
         SET_TOKEN(VL_CSS_TOKEN_TYPE_STRING, str_begin, str_end);
+        return VL_SUCCESS;
+    }
+
+    if (lexer->c == '#') {
+        ADVANCE();
+        const char *begin = cursor + 1 - U8_LENGTH(lexer->c);
+        const char *end = cursor;
+        while (lexer->c != ' ' && lexer->c != 0) {
+            end += U8_LENGTH(lexer->c);
+            ADVANCE();
+        }
+        SET_TOKEN(VL_CSS_TOKEN_TYPE_HEX_COLOR, begin, end);
         return VL_SUCCESS;
     }
 

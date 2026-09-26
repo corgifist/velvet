@@ -174,6 +174,40 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
             }
         }
     }
+    if (current->type == VL_CSS_TOKEN_TYPE_HEX_COLOR) {
+        vl_css_value_t result = VL_CSS_VALUE_NONE();
+        // printf("current: '%.*s', %i\n", current->text_length, current->text, current->text_length);
+        switch (current->text_length) {
+        case 3: {
+            unsigned int r, g, b;
+            if (sscanf(current->text, "%1x%1x%1x", &r, &g, &b) != 3) result = VL_CSS_VALUE_NONE();
+            else result = VL_CSS_VALUE_RGBA(r * 17, g * 17, b * 17, 1);
+            break;
+        }
+        case 4: {
+            unsigned int r, g, b, a;
+            if (sscanf(current->text, "%1x%1x%1x%1x", &r, &g, &b, &a) != 4) result = VL_CSS_VALUE_NONE();
+            else result = VL_CSS_VALUE_RGBA(r * 17, g * 17, b * 17, a * 17);
+            break;
+        }
+        case 6: {
+            unsigned int r, g, b;
+            if (sscanf(current->text, "%02x%02x%02x", &r, &g, &b) != 3) result = VL_CSS_VALUE_NONE();
+            else result = VL_CSS_VALUE_RGBA(r, g, b, 1);
+            break;
+        }
+        case 8: {
+            unsigned int r, g, b, a;
+            if (sscanf(current->text, "%02x%02x%02x%02x", &r, &g, &b, &a) != 4) result = VL_CSS_VALUE_NONE();
+            else result = VL_CSS_VALUE_RGBA(r, g, b, a);
+            break;
+        }
+        default: result = VL_CSS_VALUE_NONE(); break;
+        }
+        // printf("hex color\n");
+        tokenize(parser);
+        return result;
+    }
     if (current->type == VL_CSS_TOKEN_TYPE_STRING) {
         vl_css_value_t result = VL_CSS_VALUE_STRING(process_string(current->text + 1, current->text_length - 2));
         tokenize(parser);
@@ -184,7 +218,6 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
         // single metric: 10px / 5em / 25%
         return parse_single_metric(parser, rule);
     }
-
     if (current->type == VL_CSS_TOKEN_TYPE_NUMBER && VL_TOKEN_COMPARE(current + 1, ";")) {
         bool dot_found = false;
         for (int i = 0; i < current->text_length; i++) {
@@ -200,7 +233,6 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
             return VL_CSS_VALUE_INTEGER(integer);
         }
     }
-
     if (VL_TOKEN_COMPARE(current, "rgba") && VL_TOKEN_COMPARE(current + 1, "(")) {
         return parse_generic_color(parser, rule, 4);
     }

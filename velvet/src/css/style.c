@@ -21,6 +21,7 @@ vl_result_t vl_css_inline_style_init_(vl_css_inline_style_t *style, const char *
         if ((result = vl_css_parser_get_rule(&parser, &tmp)) != VL_SUCCESS) {
             goto zero;
         }
+        if (tmp.value.type == VL_CSS_VALUE_NONE) goto zero;
         VL_DA_APPEND(style->rules, tmp);
         zero:
         VL_ZERO_OUT(&tmp);
