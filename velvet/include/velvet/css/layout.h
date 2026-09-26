@@ -27,6 +27,11 @@ enum vl_css_layout_position_type {
 };
 typedef enum vl_css_layout_position_type vl_css_layout_position_type_t;
 
+struct vl_css_layout_background {
+    vl_color_t color;
+};
+typedef struct vl_css_layout_background vl_css_layout_background_t;
+
 typedef void vl_css_layout_node_owner_t;
 
 struct vl_css_layout_node;
@@ -64,6 +69,7 @@ struct vl_css_layout_node {
     bool auto_margin[4];
     vl_vec4_t padding;
     vl_css_layout_border_t border[4];
+    vl_css_layout_background_t background;
     vl_vec4_t color;
     vl_vec4_t effective_padding;
     float block_last_margin;

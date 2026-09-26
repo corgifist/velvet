@@ -815,6 +815,28 @@ static vl_vec4_t construct_position_metrics(vl_css_layout_node_t *node) {
     return metric;
 }
 
+static void construct_background(vl_css_layout_node_t *node) {
+    VL_ZERO_OUT(&node->background);
+    for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
+        const vl_css_rule_t *rule = node->style.applied_rules[i];
+        if (strcmp(rule->property, "background") == 0) {
+            if (rule->value.type == VL_CSS_VALUE_LIST) {
+                for (int j = 0; j < VL_DA_LENGTH(rule->value.as.list); j++) {
+                    vl_css_value_t *value = rule->value.as.list + j;
+                    if (VL_CSS_VALUE_COLOR_COMPATIBLE(*value)) {
+                        node->background.color = vl_css_value_to_rgba(*value);
+                    }
+                }
+            }
+        }
+        if (strcmp(rule->property, "background-color") == 0) {
+            if (VL_CSS_VALUE_COLOR_COMPATIBLE(rule->value)) {
+                node->background.color = vl_css_value_to_rgba(rule->value);
+            }
+        }
+    }
+}
+
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     if (node->calculating_layout) return VL_SUCCESS;
@@ -844,6 +866,7 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     construct_complex_metric("margin", &node->margin, node->auto_margin, node);
     construct_complex_metric("padding", &node->padding, NULL, node);
     construct_borders(node);
+    construct_background(node);
     node->effective_padding = VL_VEC4_ADD(node->padding, VL_VEC4(node->border[0].width, node->border[1].width, node->border[2].width, node->border[3].width));
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
