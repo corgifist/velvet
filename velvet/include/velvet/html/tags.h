@@ -7,7 +7,8 @@
 static const char *s_html_inline_tags[] = {
     "span",
     "code",
-    "text"
+    "text",
+    "strong"
 };
 
 static const char *s_html_void_tags[] = {

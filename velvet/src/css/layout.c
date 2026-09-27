@@ -437,7 +437,8 @@ static const struct {
     {"h6", layout_generic_div},
     {"code", layout_generic_div},
     {"hr", layout_generic_div},
-    {"article", layout_generic_div}
+    {"article", layout_generic_div},
+    {"strong", layout_generic_div}
 };
 
 static vl_vec4_t generic_metric_to_metric4(vl_css_layout_node_t *node, bool *auto_metric, vl_css_value_t value) {

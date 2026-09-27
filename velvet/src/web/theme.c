@@ -128,6 +128,10 @@ static const char *s_default_stylesheet = VL_STRINGIFY(
         margin-inline-end: auto;
         overflow: hidden;
     }
+
+    strong {
+        font-weight: bolder;
+    }
 );
 
 const char *vl_web_theme_default_stylesheet() {

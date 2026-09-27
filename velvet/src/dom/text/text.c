@@ -77,10 +77,31 @@ static const char *family_name_by_unit_font(vl_web_fonts_t *fonts, vl_font_t *un
     return NULL;
 }
 
-static int calculate_weight(vl_css_value_t weight) {
+static int calculate_weight(vl_dom_element_t *element, vl_css_value_t weight) {
+    if (!element) return 400;
     if (VL_CSS_VALUE_IS_LITERAL(weight)) {
         if (VL_CSS_VALUE_COMPARE_LITERALS(weight, "normal")) return 400;
         if (VL_CSS_VALUE_COMPARE_LITERALS(weight, "bold")) return 700;
+        if (VL_CSS_VALUE_COMPARE_LITERALS(weight, "bolder") || VL_CSS_VALUE_COMPARE_LITERALS(weight, "lighter")) {
+            vl_css_value_t parent_weight_value = vl_css_layout_node_get_property(element->layout.parent, "font-weight", VL_CSS_VALUE_INTEGER(400));
+            int parent_weight = calculate_weight(element->parent, parent_weight_value);
+            bool bolder = VL_CSS_VALUE_COMPARE_LITERALS(weight, "bolder");
+            if (bolder) {
+                if (parent_weight < 100) return 100;
+                if (parent_weight >= 100 && parent_weight <= 300) return 400;
+                if (parent_weight >= 400 && parent_weight <= 500) return 700;
+                if (parent_weight >= 600 && parent_weight <= 700) return 900;
+                if (parent_weight >= 800 && parent_weight <= 900) return 900;
+                if (parent_weight > 900) return 900;
+            } else {
+                if (parent_weight < 100) return 100;
+                if (parent_weight >= 100 && parent_weight <= 300) return 100;
+                if (parent_weight >= 400 && parent_weight <= 500) return 100;
+                if (parent_weight >= 600 && parent_weight <= 700) return 400;
+                if (parent_weight >= 800 && parent_weight <= 900) return 400;
+                if (parent_weight > 900) return 400;
+            }
+        }
     }
     if (weight.type == VL_CSS_VALUE_INTEGER) {
         return weight.as.integer;
@@ -95,7 +116,7 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
     vl_css_value_t font_weight_css = vl_css_layout_node_get_property(element->layout.parent, "font-weight", VL_CSS_VALUE_INTEGER(400));
     font_size_css.as.metric1 = vl_css_layout_node_process_metric(element->layout.parent ? element->layout.parent : &element->layout, "font-size", font_size_css.as.metric1, 0);
     blueprint.height = font_size_css.as.metric1.value;
-    blueprint.weight = calculate_weight(font_weight_css);
+    blueprint.weight = calculate_weight(element, font_weight_css);
 
     vl_css_value_t text_align_css = vl_css_layout_node_get_property(&element->layout, "text-align", VL_CSS_VALUE_CONST_LITERAL("start"));
     if (VL_CSS_VALUE_COMPARE_LITERALS(text_align_css, "start")) {

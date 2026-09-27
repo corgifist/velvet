@@ -1488,6 +1488,7 @@ void styling_test() {
         </style>
         <div>
             <span class="exampleText">Example text</span>
+            Hello, <strong>World!</strong>
         </div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
