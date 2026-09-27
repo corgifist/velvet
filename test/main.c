@@ -1048,11 +1048,11 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         body {
-    //             --velvet-element-highlight: highlight-green;
+    //             // --velvet-element-highlight: highlight-green;
     //         }
     //         h1 {
     //             // --velvet-element-highlight: unset;
-    //             --velvet-element-highlight: highlight-red;
+    //             // --velvet-element-highlight: highlight-red;
     //         }
     //     </style>
     //     <center>
@@ -1267,7 +1267,7 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         html {
-    //             --velvet-element-highlight: highlight-orange;
+    //             // --velvet-element-highlight: highlight-orange;
     //         }
     //         p {
     //             border-color: red green blue purple;
@@ -1364,8 +1364,6 @@ void styling_test() {
     //     <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
     //     <p class="quote">Quotes? Who?</p>
     //     <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: green">World!</span></p>
-    //     <hr>
-    //     <p>hr tag</p>
     // );
     // const char *input = VL_STRINGIFY(
     //     <style>
@@ -1497,7 +1495,7 @@ void styling_test() {
     vl_web_t web = {0};
     vl_web_init(ctx, &web, doc);
 
-    vl_os_window_t *win = vl_os_window_new(ctx, "Web test", 640, 480);
+    vl_os_window_t *win = vl_os_window_new(ctx, "Velvet", 640, 480);
     vl_graphics_render_t *render = vl_graphics_render_new(win);
     vl_graphics_presentation_t *present = vl_graphics_presentation_new(win, render);
     web.render = render;
