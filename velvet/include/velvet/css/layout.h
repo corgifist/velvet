@@ -5,6 +5,13 @@
 #include "velvet/css/stylesheet.h"
 #include "velvet/support/math.h"
 
+enum vl_css_layout_display {
+    VL_CSS_LAYOUT_DISPLAY_NONE = 0,
+    VL_CSS_LAYOUT_DISPLAY_BLOCK,
+    VL_CSS_LAYOUT_DISPLAY_INLINE
+};
+typedef enum vl_css_layout_display vl_css_layout_display_t;
+
 enum vl_css_layout_border_type {
     VL_CSS_LAYOUT_BORDER_NONE = 0,
     VL_CSS_LAYOUT_BORDER_SOLID,
@@ -56,7 +63,7 @@ struct vl_css_layout_node {
     vl_css_style_t style;
     vl_css_inline_style_t inline_style;
 
-    vl_css_value_t display;
+    vl_css_layout_display_t display;
     vl_css_layout_position_type_t position_type;
     vl_vec2_t raw_dimensions;
     bool lock_dimensions[2];

@@ -40,7 +40,7 @@ static bool margins_can_collapse(vl_css_layout_node_t *prev, vl_css_layout_node_
 static void try_add_layout_target(VL_DA(vl_css_layout_node_t*) *targets, vl_css_layout_node_t *node) {
     vl_css_layout_node_process(node);
     apply_position(node);
-    if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "none") || node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
+    if (node->display == VL_CSS_LAYOUT_DISPLAY_NONE || node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
         return;
     }
     VL_DA_APPEND(*targets, node);
@@ -63,7 +63,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     bool lock_height = node->lock_dimensions[1];
     // printf("%s locks: %i (%f) %i (%f)\n", node->tag, lock_width, node->raw_dimensions.x, lock_height, node->raw_dimensions.y);
     if (node->raw_dimensions.x == VL_FLOAT_MIN) {
-        if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "block"))
+        if (node->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)
             node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
     } else {
         node->size.x = node->raw_dimensions.x;
@@ -93,7 +93,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         if (node->block_first_margin == VL_FLOAT_MIN) {
             node->block_first_margin = VL_MAX(child->margin.x, child->block_first_margin);
         }
-        if (VL_CSS_VALUE_COMPARE_LITERALS(child->display, "block") || !child->display.as.literal) {
+        if (child->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) {
             if (!prev && (node->padding.x != 0)) {
                 cursor.y += child->margin.x;
                 size.y += child->margin.x;
@@ -123,11 +123,11 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             line->width = VL_MAX(line->width, cursor.x + child->size.x);
             line->height = VL_MAX(line->height, child->size.y);
             VL_DA_APPEND(line->elements, child);
-            if (next && !VL_CSS_VALUE_COMPARE_LITERALS(next->display, "inline")) {
+            if (next && next->display != VL_CSS_LAYOUT_DISPLAY_INLINE) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
         } else {
-            if (prev && VL_CSS_VALUE_COMPARE_LITERALS(prev->display, "block")) {
+            if (prev && prev->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
                 if (margins_can_collapse(prev, child))  {
                     child->block_applied_margin = VL_MAX(child->margin.x, node->block_last_margin);
@@ -154,7 +154,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             }
             node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
             VL_DA_APPEND(line->elements, child);
-            if ((cursor.x > node->size.x && next) || (next && VL_CSS_VALUE_COMPARE_LITERALS(next->display, "block"))) {
+            if ((cursor.x > node->size.x && next) || (next && next->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)) {
                 cursor.x = 0;
                 cursor.y += line->height;
                 line = PUSH_NEW_BLOCK_LINE(lines);

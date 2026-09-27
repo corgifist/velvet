@@ -11,7 +11,7 @@ static void construct_dimensions(vl_css_layout_node_t *node) {
     bool fit_width = (node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE);
     node->allow_width_growth = vl_html_is_tag_inline(node->tag) && !fit_width;
     VL_ZERO_OUT(node->lock_dimensions, sizeof(node->lock_dimensions));
-    if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "block")) {
+    if (node->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) {
         vl_css_value_t width_value = vl_css_layout_node_get_property(node, "width", VL_CSS_VALUE_NONE());
         if (VL_CSS_VALUE_IS_METRIC(width_value)) {
             vl_css_size_metric_t width_metric = vl_css_layout_node_process_metric(node, "width", width_value.as.metric1, node->parent->size.x);

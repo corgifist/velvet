@@ -154,7 +154,7 @@ static float get_first_top_margin(vl_css_layout_node_t *node) {
     if (!node->children || VL_DA_EMPTY(node->children)) return node->margin.x;
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
-        if (VL_CSS_VALUE_COMPARE_LITERALS(child->display, "none")) continue;
+        if (child->display == VL_CSS_LAYOUT_DISPLAY_NONE) continue;
         float child_margin_x = get_first_top_margin(child);
         return VL_MAX(node->margin.x, child_margin_x);
     }
@@ -166,7 +166,7 @@ static vl_result_t layout_body(vl_css_layout_node_t *node) {
     if (node->children && !node->web->dom.quirks) {
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
             vl_css_layout_node_t *child = node->children[i];
-            if (VL_CSS_VALUE_COMPARE_LITERALS(child->display, "none")) continue;
+            if (child->display == VL_CSS_LAYOUT_DISPLAY_NONE) continue;
             float max_top_margin = get_first_top_margin(child);
             if (max_top_margin > node->margin.y) {
                 node->position.y += max_top_margin - node->margin.y;
@@ -209,10 +209,14 @@ static const struct {
 
 #include "bits/construct_position_metrics.c"
 
-static vl_css_value_t get_display_mode(vl_css_layout_node_t *node) {
-    if (!node) return VL_CSS_VALUE_CONST_LITERAL(NULL);
+static vl_css_layout_display_t get_display_mode(vl_css_layout_node_t *node) {
+    if (!node) return VL_CSS_LAYOUT_DISPLAY_NONE;
     bool is_inline = vl_html_is_tag_inline(node->tag);
-    return vl_css_layout_node_get_property(node, "display", VL_CSS_VALUE_CONST_LITERAL(is_inline ? "inline" : "block"));
+    vl_css_value_t display_value = vl_css_layout_node_get_property(node, "display", VL_CSS_VALUE_CONST_LITERAL(is_inline ? "inline" : "block"));
+    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "none")) return VL_CSS_LAYOUT_DISPLAY_NONE;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "block")) return VL_CSS_LAYOUT_DISPLAY_BLOCK;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "inline")) return VL_CSS_LAYOUT_DISPLAY_INLINE;
+    return VL_CSS_LAYOUT_DISPLAY_BLOCK;
 }
 
 static vl_css_layout_position_type_t get_position_type(vl_css_value_t value) {
