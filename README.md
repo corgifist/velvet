@@ -1,6 +1,6 @@
-# Velvet - Tiny yet Powerful Embeddable Web Rendering Library
+# Velvet - Tiny yet Powerful Embeddable Web Renderer
 
-Velvet is a tiny **cross-platform** web renderer written in C aiming for being as efficient as possible.
+Velvet is a tiny **cross-platform** embeddable web renderer written in C aiming for being as efficient as possible.
 At this moment, Velvet supports only a limited subset of HTML and CSS, meaning Google or your favorite adult site will not work under Velvet, but this can change at any time! Every day Velvet gets support of a new tag or a new CSS property, so one day, you'll be able to use a Velvet-based web browser like any other one.
 
 ## Getting Started
