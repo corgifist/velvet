@@ -482,7 +482,6 @@ vl_result_t vl_graphics_render_universal_batch_end(vl_graphics_render_t *render)
     GL_CALL(r->ctx, BindVertexArray(r->batch_vao));
     GL_CALL(r->ctx, BindBufferBase(GL_UNIFORM_BUFFER, 0, r->brush_vbo));
     GL_CALL(r->ctx, DrawArrays(GL_TRIANGLES, 0, r->batch_offset));
-
     for (int i = 0; i < VL_DA_LENGTH(r->owned_brushes); i++) {
         // reset brush's saved brush index
         *((int*) (((vl_byte_t*) r->owned_brushes[i]) - sizeof(int))) = -1;

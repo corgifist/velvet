@@ -179,15 +179,16 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
     if (x2 > x1 && y2 > y1) {
         vl_graphics_render_batch_quad_colored(
             render,
-            VL_QUAD(P(p1, a2), P(p1, a1), P(p2, a1), P(p2, a2)),
+            VL_QUAD(P(p1, a2), P(p1, a1), P(p2, a2), P(p2, a1)),
             brush,
             VL_QUAD_COLORS(color, color, color, color)
         );
     }
+    if (strength == 0.0f) return VL_SUCCESS;
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p1, a3), P(p1, a2), P(p2, a2), P(p2, a3)),
+        VL_QUAD(P(p1, a3), P(p1, a2), P(p2, a3), P(p2, a2)),
         brush,
         VL_QUAD_COLORS(
             VL_ALPHA(color, 0.0f),
@@ -199,7 +200,7 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p1, a1), P(p1, a0), P(p2, a0), P(p2, a1)),
+        VL_QUAD(P(p1, a1), P(p1, a0), P(p2, a1), P(p2, a0)),
         brush,
         VL_QUAD_COLORS(
             color,
@@ -211,7 +212,7 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p0, a2), P(p0, a1), P(p1, a1), P(p1, a2)),
+        VL_QUAD(P(p0, a2), P(p0, a1), P(p1, a2), P(p1, a1)),
         brush,
         VL_QUAD_COLORS(
             VL_ALPHA(color, 0.0f),
@@ -223,7 +224,7 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p0, a2), P(p1, a2), P(p1, a3), P(p0, a3)),
+        VL_QUAD(P(p0, a2), P(p1, a2), P(p0, a3), P(p1, a3)),
         brush,
         VL_QUAD_COLORS(
             VL_ALPHA(color, 0.0f),
@@ -235,7 +236,7 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p0, a1), P(p0, a0), P(p1, a0), P(p1, a1)),
+        VL_QUAD(P(p0, a1), P(p0, a0), P(p1, a1), P(p1, a0)),
         brush,
         VL_QUAD_COLORS(
             VL_ALPHA(color, 0.0f),
@@ -247,7 +248,7 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p2, a2), P(p2, a1), P(p3, a1), P(p3, a2)),
+        VL_QUAD(P(p2, a2), P(p2, a1), P(p3, a2), P(p3, a1)),
         brush,
         VL_QUAD_COLORS(
             color,
@@ -259,7 +260,7 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p2, a3), P(p2, a2), P(p3, a2), P(p3, a3)),
+        VL_QUAD(P(p2, a3), P(p2, a2), P(p3, a3), P(p3, a2)),
         brush,
         VL_QUAD_COLORS(
             VL_ALPHA(color, 0.0f),
@@ -271,7 +272,7 @@ vl_result_t vl_graphics_render_batch_line_colored_antialiased(
 
     vl_graphics_render_batch_quad_colored(
         render,
-        VL_QUAD(P(p2, a0), P(p3, a0), P(p3, a1), P(p2, a1)),
+        VL_QUAD(P(p2, a0), P(p3, a0), P(p2, a1), P(p3, a1)),
         brush,
         VL_QUAD_COLORS(
             VL_ALPHA(color, 0.0f),
