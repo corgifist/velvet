@@ -1432,44 +1432,63 @@ void styling_test() {
     //         <p style="color: #fff">Hex colors</p>
     //     </div>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <!DOCTYPE html>
+    //     <style>
+    //         body {
+    //             font-family: sans-serif;
+    //             // --velvet-margin-highlight: highlight-green;
+    //         }
+    //         p {
+    //             content: "§";
+    //         }
+    //         hr {
+    //             border: none;
+    //             border-top: 3px double #333333;
+    //             color: #333333;
+    //             overflow: visible;
+    //             text-align: center;
+    //             height: 5px;
+    //         }
+
+    //         hr::after {
+    //             background: white;
+    //             content: "§";
+    //             padding: 0 4px;
+    //             position: relative;
+    //             top: -13px;
+    //         }
+    //     </style>
+    //     <p>1: The first rule of Fight Club is: You do not talk about Fight Club.</p>
+    //     <hr/>
+    //     <p>2: The second rule of Fight Club is: Always bring cupcakes.</p>
+
+    //     <article>
+    //         This is the first paragraph of text. This is the first paragraph of text.
+    //         This is the first paragraph of text. This is the first paragraph of text.
+    //         <hr />
+    //         This is the second paragraph of text. This is the second paragraph of text.
+    //         This is the second paragraph of text. This is the second paragraph of text.
+    //     </article>
+    // );
     const char *input = VL_STRINGIFY(
-        <!DOCTYPE html>
         <style>
-            body {
-                font-family: sans-serif;
-                // --velvet-margin-highlight: highlight-green;
-            }
-            p {
-                content: "§";
-            }
-            hr {
-                border: none;
-                border-top: 3px double #333333;
-                color: #333333;
-                overflow: visible;
-                text-align: center;
-                height: 5px;
+            div {
+                background-color: yellow;
+                width: 150px;
+                height: 120px;
+                position: relative;
             }
 
-            hr::after {
-                background: white;
-                content: "§";
-                padding: 0 4px;
-                position: relative;
-                top: -13px;
+            .exampleText {
+                position: absolute;
+                inset: 20px 40px 30px 10px;
+                background-color: #c8c800;
             }
         </style>
-        <p>1: The first rule of Fight Club is: You do not talk about Fight Club.</p>
-        <hr/>
-        <p>2: The second rule of Fight Club is: Always bring cupcakes.</p>
-
-        <article>
-            This is the first paragraph of text. This is the first paragraph of text.
-            This is the first paragraph of text. This is the first paragraph of text.
-            <hr />
-            This is the second paragraph of text. This is the second paragraph of text.
-            This is the second paragraph of text. This is the second paragraph of text.
-        </article>
+        <div>
+            <span class="exampleText">Example text</span>
+        </div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

@@ -11,8 +11,10 @@
 #include "web/theme.h"
 #include "web/web.h"
 #include "support/math.h"
-#include <float.h>
-#include <stdlib.h>
+
+static const char *sides[] = {
+    "top", "right", "bottom", "left"
+};
 
 vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag) {
     if (!node || !tag) return VL_ERROR;
@@ -138,9 +140,70 @@ static bool margins_can_collapse(vl_css_layout_node_t *prev, vl_css_layout_node_
     return prev->padding.z == 0 && child->padding.x == 0;
 }
 
+static void apply_position(vl_css_layout_node_t *node) {
+    vl_css_layout_node_t *parent = node->parent;
+    vl_vec2_t parent_size = VL_VEC2();
+    vl_vec4_t parent_margin = VL_VEC4();
+    if (parent) {
+        vl_css_layout_node_t *end = &node->web->root_layout_node;
+        while (parent != end) {
+            if (!parent->parent) {
+                parent = end;
+                break;
+            }
+            if (strcmp(parent->tag, "body") == 0) {
+                break;
+            }
+            if (parent->position_type != VL_CSS_LAYOUT_POSITION_STATIC) {
+                break;
+            }
+            parent = parent->parent;
+        }
+        if (strcmp(parent->tag, "body") != 0) {
+            parent_size = parent->size;
+        } else {
+            parent_size = node->web->root_layout_node.size;
+        }
+        parent_margin = parent->margin;
+    } else {
+        parent = node;
+        parent_size = parent->size;
+    }
+    // printf("%s -> %s (%f %f %f %f)\n", node->tag, parent->tag, node->position.x, node->position.y, parent->position.x, parent->position.y);
+    if (node->position_type == VL_CSS_LAYOUT_POSITION_RELATIVE) {
+        if (node->position_metrics.x != VL_FLOAT_MIN) {
+            node->position.y += node->position_metrics.x;
+        } else if (node->position_metrics.z != VL_FLOAT_MIN) {
+            node->position.y -= node->position_metrics.z;
+        }
+        if (node->position_metrics.w != VL_FLOAT_MIN) {
+            node->position.x += node->position_metrics.w;
+        } else if (node->position_metrics.y != VL_FLOAT_MIN) {
+            node->position.x -= node->position_metrics.y;
+        }
+    }
+    if (node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
+        if (node->position_metrics.x != VL_FLOAT_MIN && node->position_metrics.z != VL_FLOAT_MIN) {
+            node->position.y = node->position_metrics.x + node->margin.x - parent_margin.x - parent_margin.z;
+            node->size.y = parent_size.y - (node->position_metrics.x + node->position_metrics.z + node->margin.x + node->margin.z);;
+        } else if (node->position_metrics.x != VL_FLOAT_MIN) {
+            node->position.y = node->position_metrics.x + node->margin.x - parent_margin.x - parent_margin.z;
+        } 
+        if (node->position_metrics.y != VL_FLOAT_MIN && node->position_metrics.w != VL_FLOAT_MIN) {
+            node->position.x = node->position_metrics.w + node->margin.w - parent_margin.w;
+            node->size.x = parent_size.x - (node->position_metrics.y + node->position_metrics.w + node->margin.w + node->margin.y);
+        } else if (node->position_metrics.w != VL_FLOAT_MIN) {
+            node->position.x = node->position_metrics.w + node->margin.w - parent_margin.w;
+        }
+    }
+}
+
 static void try_add_layout_target(VL_DA(vl_css_layout_node_t*) *targets, vl_css_layout_node_t *node) {
     vl_css_layout_node_process(node);
-    if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "none")) return;
+    apply_position(node);
+    if (VL_CSS_VALUE_COMPARE_LITERALS(node->display, "none") || node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
+        return;
+    }
     VL_DA_APPEND(*targets, node);
 }
 
@@ -153,37 +216,6 @@ static VL_DA(vl_css_layout_node_t*) get_layout_targets(vl_css_layout_node_t *nod
     }
     if (node->pseudo_after) try_add_layout_target(&layout_targets, node->pseudo_after);
     return layout_targets;
-}
-
-static void apply_position(vl_css_layout_node_t *node) {
-    if (node->position_type == VL_CSS_LAYOUT_POSITION_RELATIVE) {
-        if (node->position_metrics.x != VL_FLOAT_MIN) {
-            node->position.y += node->position_metrics.x - node->margin.x * 2;
-        } else if (node->position_metrics.z != VL_FLOAT_MIN) {
-            node->position.y -= node->position_metrics.z + node->margin.x * 2;
-        }
-        if (node->position_metrics.w != VL_FLOAT_MIN) {
-            node->position.x += node->position_metrics.w;
-        } else if (node->position_metrics.y != VL_FLOAT_MIN) {
-            node->position.x -= node->position_metrics.y;
-        }
-    }
-    if (node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
-        if (node->position_metrics.x != VL_FLOAT_MIN && node->position_metrics.z != VL_FLOAT_MIN) {
-            node->position.y = node->position_metrics.x + node->margin.x;
-            float size_change = node->web->root_layout_node.size.y - node->size.y - node->position_metrics.x - node->position_metrics.z - node->margin.x - node->margin.z;
-            node->size.y += size_change;
-            node->position.y += size_change;
-        } else if (node->position_metrics.x != VL_FLOAT_MIN) {
-            node->position.y = node->position_metrics.x + node->margin.x;
-        } 
-        if (node->position_metrics.y != VL_FLOAT_MIN && node->position_metrics.w != VL_FLOAT_MIN) {
-            node->position.x = node->position_metrics.w + node->margin.w;
-            node->size.x = node->web->root_layout_node.size.x - (node->position_metrics.y + node->position_metrics.w);
-        } else if (node->position_metrics.w != VL_FLOAT_MIN) {
-            node->position.x = node->position_metrics.w + node->margin.w;
-        }
-    }
 }
 
 static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node) {
@@ -219,18 +251,19 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         vl_css_layout_node_t *child = layout_targets[i];
         vl_css_layout_node_t *next = i < len - 1 ? layout_targets[i + 1] : NULL;
         vl_css_block_line *line = lines + VL_DA_LENGTH(lines) - 1;
-        if (!prev) {
+        if (node->block_first_margin == VL_FLOAT_MIN) {
             node->block_first_margin = VL_MAX(child->margin.x, child->block_first_margin);
         }
         if (VL_CSS_VALUE_COMPARE_LITERALS(child->display, "block") || !child->display.as.literal) {
             if (!prev && (node->padding.x != 0)) {
                 cursor.y += child->margin.x;
                 size.y += child->margin.x;
+                child->block_applied_margin = child->margin.x;
             } else if (prev) {
-                if (VL_CSS_VALUE_COMPARE_LITERALS(prev->display, "inline")) {
-                    // cursor.y += prev->size.y;
-                    line = PUSH_NEW_BLOCK_LINE(lines);
-                }
+                // if (VL_CSS_VALUE_COMPARE_LITERALS(prev->display, "inline")) {
+                //     cursor.y += prev->size.y;
+                //     line = PUSH_NEW_BLOCK_LINE(lines);
+                // }
                 if (margins_can_collapse(prev, child))  {
                     child->block_applied_margin = VL_MAX(child->margin.x, node->block_last_margin);
                     cursor.y += child->block_applied_margin;
@@ -264,6 +297,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                     cursor.y += prev->margin.z;
                 }
             } else if (!prev && (node->padding.x != 0)) {
+                child->block_applied_margin = child->margin.x;
                 cursor.y += child->margin.x;
                 size.y += child->margin.x;
             }
@@ -281,7 +315,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             }
             node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
             VL_DA_APPEND(line->elements, child);
-            if (cursor.x > node->size.x && next) {
+            if ((cursor.x > node->size.x && next) || (next && VL_CSS_VALUE_COMPARE_LITERALS(next->display, "block"))) {
                 cursor.x = 0;
                 cursor.y += line->height;
                 line = PUSH_NEW_BLOCK_LINE(lines);
@@ -289,7 +323,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         }
         node->block_last_margin = VL_MAX(child->margin.z, child->block_last_margin);
         node->size = size;
-        apply_position(child);
+        // apply_position(child);
     }
     // printf("%s lines: %zu\n", node->tag, VL_DA_LENGTH(lines));
     for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
@@ -302,7 +336,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *child = line->elements[j];
             child->position.y += line->height - child->size.y - (max_span_offset - child->span_y_offset);
-            if (child->block_first_margin > child->block_applied_margin && child->block_applied_margin != VL_FLOAT_MIN) {
+            if (child->block_first_margin > child->block_applied_margin && child->block_applied_margin != VL_FLOAT_MIN && child->block_first_margin != VL_FLOAT_MIN) {
                 for (int k = i; k < VL_DA_LENGTH(lines); k++) {
                     vl_css_block_line *line = lines + k;
                     for (int l = j; l < VL_DA_LENGTH(line->elements); l++) {
@@ -628,9 +662,6 @@ static void construct_borders(vl_css_layout_node_t *node) {
     }
     for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
         const vl_css_rule_t *rule = node->style.applied_rules[i];
-        static const char *sides[] = {
-            "top", "right", "bottom", "left"
-        };
         for (int j = 0; j < VL_ARR_LEN(sides); j++) {
             if (strcmp(rule->property, "border") == 0) {
                 vl_css_layout_border_t border = construct_border(node, &rule->value);
@@ -797,22 +828,27 @@ static vl_css_layout_position_type_t get_position_type(vl_css_value_t value) {
 
 static vl_vec4_t construct_position_metrics(vl_css_layout_node_t *node) {
     vl_vec4_t metric = VL_VEC4(VL_FLOAT_MIN);
-    vl_css_value_t top_value = vl_css_layout_node_get_property(node, "top", VL_CSS_VALUE_CONST_LITERAL("natural"));
-    vl_css_value_t right_value = vl_css_layout_node_get_property(node, "right", VL_CSS_VALUE_CONST_LITERAL("natural"));
-    vl_css_value_t bottom_value = vl_css_layout_node_get_property(node, "bottom", VL_CSS_VALUE_CONST_LITERAL("natural"));
-    vl_css_value_t left_value = vl_css_layout_node_get_property(node, "left", VL_CSS_VALUE_CONST_LITERAL("natural"));
-    if (VL_CSS_VALUE_IS_METRIC(top_value)) {
-        metric.x = vl_css_layout_node_process_metric(node, NULL, top_value.as.metric1, node->parent->size.y).value;
+    for (int i = 0; i < VL_DA_LENGTH(node->style.applied_rules); i++) {
+        const vl_css_rule_t *rule = node->style.applied_rules[i];
+        if (strcmp(rule->property, "inset") == 0) {
+            metric = generic_metric_to_metric4(node, NULL, rule->value);
+            continue;
+        }
+        for (int j = 0; j < VL_ARR_LEN(sides); j++) {
+            if (strcmp(rule->property, vl_sprintf_tmp("%s", sides[j])) == 0) {
+                if (VL_CSS_VALUE_IS_METRIC(rule->value)) {
+                    metric.m[j] = vl_css_layout_node_process_metric(
+                        node, NULL, rule->value.as.metric1, 
+                        (j % 2 == 0) ? node->parent->size.y : node->parent->size.x
+                    ).value;
+                    goto next;
+                }
+            }
+        }
+        next:
+        continue;
     }
-    if (VL_CSS_VALUE_IS_METRIC(right_value)) {
-        metric.y = vl_css_layout_node_process_metric(node, NULL, right_value.as.metric1, node->parent->size.x).value;
-    }
-    if (VL_CSS_VALUE_IS_METRIC(bottom_value)) {
-        metric.z = vl_css_layout_node_process_metric(node, NULL, bottom_value.as.metric1, node->parent->size.y).value;
-    }
-    if (VL_CSS_VALUE_IS_METRIC(left_value)) {
-        metric.w = vl_css_layout_node_process_metric(node, NULL, left_value.as.metric1, node->parent->size.x).value;
-    }
+    // printf("inset: %f %f %f %f\n", metric.x, metric.y, metric.z, metric.w);
     return metric;
 }
 
@@ -850,7 +886,7 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
     node->display = get_display_mode(node);
     node->block_last_margin = 0;
     node->block_applied_margin = VL_FLOAT_MIN;
-    node->block_first_margin = 0;
+    node->block_first_margin = VL_FLOAT_MIN;
     node->span_y_offset = 0;
     vl_color_t default_color = (node->parent ? node->parent->color : VL_BLACK);
     if (strcmp(node->tag, "text") == 0) {
