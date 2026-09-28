@@ -61,7 +61,6 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     vl_vec2_t cursor = {node->effective_padding.w, node->effective_padding.x};
     bool lock_width = node->lock_dimensions[0];
     bool lock_height = node->lock_dimensions[1];
-    // printf("%s locks: %i (%f) %i (%f)\n", node->tag, lock_width, node->raw_dimensions.x, lock_height, node->raw_dimensions.y);
     if (node->raw_dimensions.x == VL_FLOAT_MIN) {
         if (node->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)
             node->size.x = node->parent->size.x - node->margin.y - node->margin.w;
@@ -76,12 +75,12 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     node->size.x = VL_MAX(node->size.x, node->effective_padding.w + node->effective_padding.y + lock_width * node->raw_dimensions.x);
     node->size.y = VL_MAX(node->size.y, node->effective_padding.x + node->effective_padding.z + lock_height * node->raw_dimensions.y);
     vl_vec2_t size = node->size;
+    vl_vec2_t orig_size = size;
     node->size.x -= (node->effective_padding.w + node->effective_padding.y);
     node->size.y -= (node->effective_padding.x + node->effective_padding.z);
     VL_DA(vl_css_layout_node_t*) layout_targets = get_layout_targets(node);
     node->size.x += (node->effective_padding.w + node->effective_padding.y);
     node->size.y += (node->effective_padding.x + node->effective_padding.z);
-    bool is_void_tag = vl_html_is_tag_void(node->tag);
     int len = VL_DA_LENGTH(layout_targets);
     VL_DA(vl_css_block_line) lines = VL_DA_INIT(vl_css_block_line);
     PUSH_NEW_BLOCK_LINE(lines);
@@ -92,10 +91,14 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         vl_css_block_line *line = lines + VL_DA_LENGTH(lines) - 1;
         if (node->block_first_margin == VL_FLOAT_MIN) {
             node->block_first_margin = VL_MAX(child->margin.x, child->block_first_margin);
+            if (strcmp(node->tag, "html") == 0) {
+                size.y += child->margin.x;
+            }
         }
+        printf("%s %f %f\n", child->tag, child->padding.x, child->padding.z);
         if (child->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) {
             if (!prev && (node->padding.x != 0)) {
-                cursor.y += child->margin.x;
+                if (strcmp(node->tag, "html") != 0) cursor.y += child->margin.x;
                 size.y += child->margin.x;
                 child->block_applied_margin = child->margin.x;
             } else if (prev) {
@@ -112,11 +115,11 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             }
             cursor.x = node->effective_padding.w;
             child->position.x += cursor.x;
-            child->position.y += cursor.y - child->margin.x;
+            child->position.y += cursor.y - child->margin.x + (strcmp(node->tag, "html") == 0) * child->margin.x;
             if (node->allow_width_growth) size.x = VL_MAX(size.x, child->size.x + child->position.x + child->margin.y);
             size.x = VL_MIN(size.x, node->parent->size.x);
             if (!lock_height) size.y += (prev ? 1 : 0) * (VL_MAX(node->block_last_margin, child->margin.x)) + child->size.y;
-            if (!next && node->padding.z != 0) {
+            if (!next && (node->padding.z != 0 || strcmp(node->tag, "html") == 0)) {
                 size.y += child->margin.z;
             }
             cursor.y += child->size.y;
@@ -147,7 +150,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             float old_line_height = line->height;
             line->height = VL_MAX(line->height, child->size.y);
             size.x = VL_MAX(size.x, cursor.x);
-            if (!node->allow_width_growth && !node->parent->allow_width_growth) size.x = VL_MIN(size.x, node->parent->size.x - node->margin.y - node->margin.w);
+            if (!node->allow_width_growth && !node->parent->allow_width_growth) size.x = VL_MIN(size.x, orig_size.x);
             if (!lock_height && old_line_height < line->height) size.y += line->height - old_line_height;
             if (!lock_height && cursor.y + line->height + node->effective_padding.z > size.y) {
                 size.y += cursor.y + line->height + node->effective_padding.z - size.y;
@@ -162,7 +165,6 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         }
         node->block_last_margin = VL_MAX(child->margin.z, child->block_last_margin);
         node->size = size;
-        // apply_position(child);
     }
     // printf("%s lines: %zu\n", node->tag, VL_DA_LENGTH(lines));
     for (int i = 0; i < VL_DA_LENGTH(lines); i++) {

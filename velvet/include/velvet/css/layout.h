@@ -59,6 +59,7 @@ struct vl_css_layout_node {
     const char *tag;
 
     vl_css_class_selector_t tag_selector;
+    VL_DA_STRING unique_id;
     VL_DA(vl_css_class_selector_t) affecting_selectors;
     vl_css_style_t style;
     vl_css_inline_style_t inline_style;

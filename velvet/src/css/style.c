@@ -356,6 +356,10 @@ static void print_class_id(vl_css_class_id_t *id) {
         printf("::");
         break;
     }
+    case VL_CSS_CLASS_ID_UNIQUE_ID: {
+        printf("#");
+        break;
+    }
     }
     printf("%s", id->name);
 }

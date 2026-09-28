@@ -143,7 +143,8 @@ enum vl_css_class_id_type {
     VL_CSS_CLASS_ID_ELEMENT = 1,
     VL_CSS_CLASS_ID_CLASS,
     VL_CSS_CLASS_ID_ALL,
-    VL_CSS_CLASS_ID_PSEUDO_ELEMENT
+    VL_CSS_CLASS_ID_PSEUDO_ELEMENT,
+    VL_CSS_CLASS_ID_UNIQUE_ID
 };
 typedef enum vl_css_class_id_type vl_css_class_id_type_t;
 

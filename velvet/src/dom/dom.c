@@ -53,6 +53,10 @@ vl_dom_element_t *collect_elements(vl_dom_t *owner, vl_dom_element_t *parent, vl
     if (style_attribute && style_attribute->value) {
         vl_dom_element_set_string(element, "style", style_attribute->value);
     }
+    vl_html_attribute_t *id_attribute = vl_html_node_find_attribute(node, "id");
+    if (id_attribute && id_attribute->value) {
+        vl_dom_element_set_string(element, "id", id_attribute->value);
+    }
     if (!node->text && node->children && VL_DA_LENGTH(node->children) != 0) {
         if (!element->children)
             element->children = VL_DA_INIT(vl_dom_element_t*);

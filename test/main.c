@@ -1431,11 +1431,10 @@ void styling_test() {
     //     </div>
     // );
     // const char *input = VL_STRINGIFY(
-    //     <!DOCTYPE html>
     //     <style>
-    //         body {
+    //         html {
     //             font-family: sans-serif;
-    //             // --velvet-margin-highlight: highlight-green;
+    //             // --velvet-element-highlight: highlight-green;
     //         }
     //         p {
     //             content: "§";
@@ -1469,24 +1468,85 @@ void styling_test() {
     //         This is the second paragraph of text. This is the second paragraph of text.
     //     </article>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <!DOCTYPE html>
+    //     <style>
+    //         html {
+    //             --velvet-element-highlight: highlight-orange
+    //         }
+    //     </style>
+    //     <body style="">
+    //         <p>Hello, World!</p>
+    //     </body>
+    // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         div {
+    //             background-color: yellow;
+    //             width: 150px;
+    //             height: 120px;
+    //             position: relative;
+    //         }
+
+    //         .exampleText {
+    //             position: absolute;
+    //             inset: 20px 40px 30px 10px;
+    //             background-color: #c8c800;
+    //         }
+    //     </style>
+    //     <div>
+    //         <span class="exampleText">Example text</span>
+    //         Hello, <strong>World!</strong>
+    //     </div>
+    // );
     const char *input = VL_STRINGIFY(
         <style>
-            div {
-                background-color: yellow;
-                width: 150px;
-                height: 120px;
-                position: relative;
+            html {
+                width: 600px;
+                padding: 10px;
+                border-width: 1px;
+                border-color: #000000;
+                border-style: solid;
+                margin: auto;
+                background: #ffffff;
+                // --velvet-element-highlight: highlight-orange;
             }
 
-            .exampleText {
-                position: absolute;
-                inset: 20px 40px 30px 10px;
-                background-color: #c8c800;
+            .outer {
+                background: #00ccff;
+                border-color: #666666;
+                border-width: 2px;
+                border-style: solid;
+                margin: 50px;
+                padding: 50px;
+            }
+
+            .inner {
+                border-color: #cc0000;
+                border-width: 4px;
+                border-style: solid;
+                height: 100px;
+                margin-bottom: 20px;
+                width: 500px;
+            }
+
+            .inner#bye {
+                background: #ffff00;
+            }
+
+            span#name {
+                background: #cc0000;
+                color: #ffffff;
+                font-size: 30px;
             }
         </style>
-        <div>
-            <span class="exampleText">Example text</span>
-            Hello, <strong>World!</strong>
+        <div class="outer">
+            <p class="inner">
+                简单<span id="name">浏览器</span> 演示
+            </p>
+            <p class="inner" id="bye">
+                Hello, World!
+            </p>
         </div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);

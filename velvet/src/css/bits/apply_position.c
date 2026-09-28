@@ -7,34 +7,6 @@ static void apply_position(vl_css_layout_node_t *node);
 #define VELVET_CSS_BITS_APPLY_POSITION_C
 
 static void apply_position(vl_css_layout_node_t *node) {
-    vl_css_layout_node_t *parent = node->parent;
-    vl_vec2_t parent_size = VL_VEC2();
-    vl_vec4_t parent_margin = VL_VEC4();
-    if (parent) {
-        vl_css_layout_node_t *end = &node->web->root_layout_node;
-        while (parent != end) {
-            if (!parent->parent) {
-                parent = end;
-                break;
-            }
-            if (strcmp(parent->tag, "body") == 0) {
-                break;
-            }
-            if (parent->position_type != VL_CSS_LAYOUT_POSITION_STATIC) {
-                break;
-            }
-            parent = parent->parent;
-        }
-        if (strcmp(parent->tag, "body") != 0) {
-            parent_size = parent->size;
-        } else {
-            parent_size = node->web->root_layout_node.size;
-        }
-        parent_margin = parent->margin;
-    } else {
-        parent = node;
-        parent_size = parent->size;
-    }
     // printf("%s -> %s (%f %f %f %f)\n", node->tag, parent->tag, node->position.x, node->position.y, parent->position.x, parent->position.y);
     if (node->position_type == VL_CSS_LAYOUT_POSITION_RELATIVE) {
         if (node->position_metrics.x != VL_FLOAT_MIN) {
@@ -49,6 +21,34 @@ static void apply_position(vl_css_layout_node_t *node) {
         }
     }
     if (node->position_type == VL_CSS_LAYOUT_POSITION_ABSOLUTE) {
+        vl_css_layout_node_t *parent = node->parent;
+        vl_vec2_t parent_size = VL_VEC2();
+        vl_vec4_t parent_margin = VL_VEC4();
+        if (parent) {
+            vl_css_layout_node_t *end = &node->web->root_layout_node;
+            while (parent != end) {
+                if (!parent->parent) {
+                    parent = end;
+                    break;
+                }
+                if (strcmp(parent->tag, "body") == 0) {
+                    break;
+                }
+                if (parent->position_type != VL_CSS_LAYOUT_POSITION_STATIC) {
+                    break;
+                }
+                parent = parent->parent;
+            }
+            if (strcmp(parent->tag, "body") != 0) {
+                parent_size = parent->size;
+            } else {
+                parent_size = node->web->root_layout_node.size;
+            }
+            parent_margin = parent->margin;
+        } else {
+            parent = node;
+            parent_size = parent->size;
+        }
         if (node->position_metrics.x != VL_FLOAT_MIN && node->position_metrics.z != VL_FLOAT_MIN) {
             node->position.y = node->position_metrics.x + node->margin.x - parent_margin.x - parent_margin.z;
             node->size.y = parent_size.y - (node->position_metrics.x + node->position_metrics.z + node->margin.x + node->margin.z);;

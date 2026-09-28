@@ -3,6 +3,7 @@
 #include "css/style.h"
 #include "support/color.h"
 #include "graphics/render.h"
+#include "support/da.h"
 #include "support/math.h"
 #include "support/memory.h"
 #include "support/result.h"
@@ -331,6 +332,12 @@ static vl_result_t element_set_style(vl_dom_element_t *element, const char *css)
     return VL_SUCCESS;
 }
 
+static vl_result_t element_set_id(vl_dom_element_t *element, const char *id) {
+    VL_DA_FREE(element->layout.unique_id);
+    element->layout.unique_id = VL_DA_INIT_FROM_STRING(id);
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *property, vl_dom_element_property_type_t type, const void *value) {
     if (!element || !property) return VL_ERROR;
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
@@ -345,6 +352,12 @@ vl_result_t vl_dom_element_set_property(vl_dom_element_t *element, const char *p
             return VL_ERROR;
         }
         return element_set_style(element, value);
+    }
+    if (strcmp(property, "id") == 0) {
+        if (type != VL_DOM_ELEMENT_PROPERTY_STRING) {
+            return VL_ERROR;
+        }
+        return element_set_id(element, value);
     }
     if (!funcs->set_property) return VL_ERROR;
     return funcs->set_property(element, property, type, value);

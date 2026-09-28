@@ -1,5 +1,6 @@
 #include "velvet/css/layout.h"
 #include "css/style.h"
+#include "css/stylesheet.h"
 #include "dom/element.h"
 #include "html/tags.h"
 #include "support/base_math.h"
@@ -11,6 +12,7 @@
 #include "web/theme.h"
 #include "web/web.h"
 #include "support/math.h"
+#include <assert.h>
 
 vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag) {
     if (!node || !tag) return VL_ERROR;
@@ -39,6 +41,69 @@ static vl_css_layout_node_t *new_pseudo_element(vl_css_layout_node_t *node, VL_D
     return pseudo;
 }
 
+static vl_result_t stylesheet_broad_query(vl_css_layout_node_t *node, VL_DA(vl_css_class_t*) *result) {
+    vl_css_stylesheet_t *stylesheet = &node->web->stylesheet;
+    for (int i = 0; i < VL_DA_LENGTH(stylesheet->classes); i++) {
+        const vl_css_class_t *class = stylesheet->classes + i;
+        bool match = false;
+        for (int j = 0; j < VL_DA_LENGTH(class->selectors); j++) {
+            vl_css_class_selector_t *selector = class->selectors + j;
+            vl_css_layout_node_t *ancestor = node;
+            for (int k = VL_DA_LENGTH(selector->id_chain); k --> 0;) {
+                vl_css_class_id_t *id = selector->id_chain + k;
+                switch (id->type) {
+                case VL_CSS_CLASS_ID_ALL: {
+                    match = true;
+                    goto next_class;
+                    break;
+                }
+                case VL_CSS_CLASS_ID_ELEMENT: {
+                    if (ancestor && ancestor->tag && strcmp(ancestor->tag, id->name) != 0) {
+                        goto next_selector;
+                    } else {
+                        if (ancestor && ancestor->parent) ancestor = ancestor->parent;
+                        goto next_id;
+                    }
+                    break;
+                }
+                case VL_CSS_CLASS_ID_CLASS: {
+                    for (int l = 0; l < VL_DA_LENGTH(ancestor->affecting_selectors); l++) {
+                        if (strcmp(ancestor->affecting_selectors[l].id_chain->name, id->name) == 0) {
+                            goto next_id;
+                        }
+                    }
+                    goto next_selector;
+                    break;
+                }
+                case VL_CSS_CLASS_ID_UNIQUE_ID: {
+                    if (ancestor->unique_id && strcmp(ancestor->unique_id, id->name) == 0) {
+                        goto next_id;
+                    }
+                    goto next_selector;
+                    break;
+                }
+                case VL_CSS_CLASS_ID_PSEUDO_ELEMENT: {
+                    // TODO?
+                    break;
+                }
+                }
+                next_id:
+                continue;
+            }
+            match = true;
+            next_selector:
+            if (match) break;
+            continue;
+        }
+        next_class:
+        if (match) {
+            if (!*result) *result = VL_DA_INIT(vl_css_class_t*);
+            VL_DA_APPEND(*result, class);
+        }
+    }
+    return VL_SUCCESS;
+}
+
 vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     vl_css_style_deinit(&node->style);
@@ -53,12 +118,14 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     }
 
     VL_DA(vl_css_class_t*) matched_classes = NULL;
-    vl_css_stylesheet_broad_query(node->stylesheet, &node->tag_selector, &matched_classes);
-    if (node->affecting_selectors) {
-        for (int i = 0; i < VL_DA_LENGTH(node->affecting_selectors); i++) {
-            vl_css_stylesheet_broad_query(node->stylesheet, node->affecting_selectors + i, &matched_classes);
-        }
-    }
+    // vl_css_stylesheet_broad_query(node->stylesheet, &node->tag_selector, &matched_classes);
+    // vl_css_stylesheet_broad_query(node->stylesheet, &node->unique_id_selector, &matched_classes);
+    // if (node->affecting_selectors) {
+    //     for (int i = 0; i < VL_DA_LENGTH(node->affecting_selectors); i++) {
+    //         vl_css_stylesheet_broad_query(node->stylesheet, node->affecting_selectors + i, &matched_classes);
+    //     }
+    // }
+    stylesheet_broad_query(node, &matched_classes);
     VL_DA(vl_css_class_t*) matched_before_classes = NULL;
     VL_DA(vl_css_class_t*) matched_after_classes = NULL;
     if (matched_classes) {
@@ -135,21 +202,6 @@ static vl_result_t layout_center(vl_css_layout_node_t *node) {
     return VL_SUCCESS;
 }
 
-static vl_result_t layout_html(vl_css_layout_node_t *node) {
-    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
-        vl_css_layout_node_t *child = node->children[i];
-        if (strcmp(child->tag, "body") == 0) {
-            node->position = VL_VEC2(0, 0);
-            node->size.x = node->parent->size.x;
-            vl_css_layout_node_process(child);
-            node->size = child->size;
-            node->size.y += child->position.y;
-            node->size.x += child->margin.y + child->margin.w;
-        }
-    }
-    return VL_SUCCESS;
-}
-
 static float get_first_top_margin(vl_css_layout_node_t *node) {
     if (!node->children || VL_DA_EMPTY(node->children)) return node->margin.x;
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
@@ -161,18 +213,22 @@ static float get_first_top_margin(vl_css_layout_node_t *node) {
     return node->margin.x;
 }
 
+static vl_result_t layout_html(vl_css_layout_node_t *node) {
+    layout_generic_div(node);
+    float y_offset = 0;
+    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
+        vl_css_layout_node_t *child = node->children[i];
+        y_offset = VL_MAX(y_offset, child->position.y + child->size.y + VL_MAX(child->margin.z, child->block_last_margin) + node->padding.z);
+    }
+    node->size.y = VL_MAX(node->size.y, y_offset);
+    return VL_SUCCESS;
+}
+
 static vl_result_t layout_body(vl_css_layout_node_t *node) {
     layout_generic_div(node);
-    if (node->children && !node->web->dom.quirks) {
-        for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
-            vl_css_layout_node_t *child = node->children[i];
-            if (child->display == VL_CSS_LAYOUT_DISPLAY_NONE) continue;
-            float max_top_margin = get_first_top_margin(child);
-            if (max_top_margin > node->margin.y) {
-                node->position.y += max_top_margin - node->margin.y;
-            }
-            break;
-        }
+    float first_children_y = node->position.y + (*node->children)->position.y;
+    if (!node->web->dom.quirks && first_children_y - node->block_first_margin - node->margin.x < 0) {
+        node->position.y += node->block_first_margin - first_children_y - node->margin.x;
     }
     return VL_SUCCESS;
 }

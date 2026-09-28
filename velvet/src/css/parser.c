@@ -363,7 +363,6 @@ static vl_result_t parse_rule(vl_css_parser_t *parser, vl_css_rule_t *rule) {
 
 static vl_result_t parse_class_id(vl_css_parser_t *parser, vl_css_class_id_t *id) {
     vl_css_token_t *current = parser->lookahead;
-
     if (VL_TOKEN_COMPARE(current, "*")) {
         id->type = VL_CSS_CLASS_ID_ALL;
         id->name = NULL;
@@ -375,6 +374,12 @@ static vl_result_t parse_class_id(vl_css_parser_t *parser, vl_css_class_id_t *id
         id->type = VL_CSS_CLASS_ID_PSEUDO_ELEMENT;
         id->name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
         if (tokenize(parser)) goto fail;
+        return VL_SUCCESS;
+    }
+    if (current->type == VL_CSS_TOKEN_TYPE_HEX_COLOR) {
+        id->type = VL_CSS_CLASS_ID_UNIQUE_ID;
+        id->name = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+        tokenize(parser); // skip id
         return VL_SUCCESS;
     }
     if (current->type == VL_CSS_TOKEN_TYPE_ID) {

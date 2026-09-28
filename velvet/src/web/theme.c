@@ -132,6 +132,10 @@ static const char *s_default_stylesheet = VL_STRINGIFY(
     strong {
         font-weight: bolder;
     }
+
+    head {
+        display: none;
+    }
 );
 
 const char *vl_web_theme_default_stylesheet() {

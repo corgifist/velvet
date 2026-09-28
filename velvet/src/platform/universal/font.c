@@ -3,7 +3,6 @@
 #include "support/da.h"
 #include "support/math.h"
 #include <stddef.h>
-#include "font_classifier.c"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "velvet/platform/universal/font.h"
 #include "font/font.h"
@@ -31,7 +30,7 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     font->base.descent *= font->slim_scale;
     font->base.line_gap *= font->slim_scale;
     font->base.newline_advance = font->base.ascent - font->base.descent + font->base.line_gap;
-    font->base.kind = classify_font(data, stbtt_GetFontOffsetForIndex(data, 0), &font->font);
+    // font->base.kind = classify_font(data, stbtt_GetFontOffsetForIndex(data, 0), &font->font);
     return (vl_font_t*) font;
     err:
     vl_free(font);

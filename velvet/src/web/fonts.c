@@ -173,6 +173,7 @@ VL_DA(vl_web_sized_font_t*) vl_web_fonts_get_font(vl_web_fonts_t *fonts, const c
         prepare_part(fonts, part);
         vl_web_sized_font_t *sized_font = NULL;
         for (int j = 0; j < VL_DA_LENGTH(part->sized_fonts); j++) {
+            if (!part->sized_fonts[j].font) continue;
             if (part->sized_fonts[j].font->height == height) {
                 sized_font = part->sized_fonts + j;
                 break;
