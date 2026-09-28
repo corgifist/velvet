@@ -1500,6 +1500,7 @@ void styling_test() {
     //     </div>
     // );
     const char *input = VL_STRINGIFY(
+        <!DOCTYPE html>
         <style>
             html {
                 width: 600px;
@@ -1510,6 +1511,10 @@ void styling_test() {
                 margin: auto;
                 background: #ffffff;
                 // --velvet-element-highlight: highlight-orange;
+            }
+
+            body {
+                --velvet-element-highlight: highlight-orange;
             }
 
             .outer {

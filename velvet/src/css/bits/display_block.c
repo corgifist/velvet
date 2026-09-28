@@ -95,7 +95,6 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 size.y += child->margin.x;
             }
         }
-        printf("%s %f %f\n", child->tag, child->padding.x, child->padding.z);
         if (child->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) {
             if (!prev && (node->padding.x != 0)) {
                 if (strcmp(node->tag, "html") != 0) cursor.y += child->margin.x;

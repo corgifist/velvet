@@ -226,9 +226,15 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 
 static vl_result_t layout_body(vl_css_layout_node_t *node) {
     layout_generic_div(node);
-    float first_children_y = node->position.y + (*node->children)->position.y;
-    if (!node->web->dom.quirks && first_children_y - node->block_first_margin - node->margin.x < 0) {
-        node->position.y += node->block_first_margin - first_children_y - node->margin.x;
+    if (node->web->dom.quirks) return VL_SUCCESS;
+    float first_offset = 0;
+    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
+        vl_css_layout_node_t *child = node->children[i];
+        if (child->position_type != VL_CSS_LAYOUT_POSITION_STATIC || child->display == VL_CSS_LAYOUT_DISPLAY_NONE) continue;
+        first_offset = child->padding.x + node->padding.x + node->parent->padding.x;
+    }
+    if (first_offset - node->margin.x < 0) {
+        node->position.y += node->margin.x - first_offset;
     }
     return VL_SUCCESS;
 }
