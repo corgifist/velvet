@@ -1436,7 +1436,7 @@ void styling_test() {
     //             font-family: sans-serif;
     //             // --velvet-element-highlight: highlight-green;
     //         }
-    //         p {
+    //         p::before {
     //             content: "§";
     //         }
     //         hr {
@@ -1481,6 +1481,9 @@ void styling_test() {
     // );
     // const char *input = VL_STRINGIFY(
     //     <style>
+    //         html {
+    //            //  --velvet-element-highlight: highlight-green;
+    //         }
     //         div {
     //             background-color: yellow;
     //             width: 150px;

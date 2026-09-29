@@ -218,7 +218,7 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
     float y_offset = 0;
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];
-        y_offset = VL_MAX(y_offset, child->position.y + child->size.y + VL_MAX(child->margin.z, child->block_last_margin) + node->padding.z);
+        y_offset = VL_MAX(y_offset, child->position.y + child->size.y + VL_MAX(child->margin.z, child->block_last_margin) + node->effective_padding.z);
     }
     node->size.y = VL_MAX(node->size.y, y_offset);
     return VL_SUCCESS;
@@ -227,12 +227,7 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 static vl_result_t layout_body(vl_css_layout_node_t *node) {
     layout_generic_div(node);
     if (node->web->dom.quirks) return VL_SUCCESS;
-    float first_offset = 0;
-    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
-        vl_css_layout_node_t *child = node->children[i];
-        if (child->position_type != VL_CSS_LAYOUT_POSITION_STATIC || child->display == VL_CSS_LAYOUT_DISPLAY_NONE) continue;
-        first_offset = child->padding.x + node->padding.x + node->parent->padding.x;
-    }
+    float first_offset = node->block_first_offset;
     if (first_offset - node->margin.x < 0) {
         node->position.y += node->margin.x - first_offset;
     }

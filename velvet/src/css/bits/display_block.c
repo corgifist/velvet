@@ -162,6 +162,9 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
         }
+        if (!prev) {
+            node->block_first_offset = child->padding.x + node->padding.x + node->parent->padding.x;
+        }
         node->block_last_margin = VL_MAX(child->margin.z, child->block_last_margin);
         node->size = size;
     }
