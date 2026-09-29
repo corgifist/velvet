@@ -3,7 +3,7 @@
 #include "support/error_pool.h"
 #include "support/memory.h"
 #include "support/result.h"
-#include "support/str.h"
+#include "support/string.h"
 #include "support/alphanum.h"
 
 vl_result_t vl_html_lexer_init(vl_html_lexer_t *lexer, const char *text) {

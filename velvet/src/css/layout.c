@@ -8,7 +8,7 @@
 #include "support/da.h"
 #include "support/hash.h"
 #include "support/result.h"
-#include "support/str.h"
+#include "support/string.h"
 #include "web/theme.h"
 #include "web/web.h"
 #include "support/math.h"
@@ -18,13 +18,6 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     if (!node || !tag) return VL_ERROR;
     VL_ZERO_OUT(node);
     node->tag = tag;
-    if (strcmp(tag, "text") != 0) {
-        node->tag_selector.id_chain = VL_DA_INIT(vl_css_class_id_t);
-        *VL_DA_PUSH(node->tag_selector.id_chain, vl_css_class_id_t) = (vl_css_class_id_t) {
-            .type = VL_CSS_CLASS_ID_ELEMENT,
-            .name = VL_DA_INIT_FROM_STRING(tag)
-        };
-    }
     node->affecting_selectors = VL_DA_INIT(vl_css_class_selector_t);
     node->children = VL_DA_INIT(vl_css_layout_node_t*);
     vl_css_style_init(&node->style);
@@ -202,17 +195,6 @@ static vl_result_t layout_center(vl_css_layout_node_t *node) {
     return VL_SUCCESS;
 }
 
-static float get_first_top_margin(vl_css_layout_node_t *node) {
-    if (!node->children || VL_DA_EMPTY(node->children)) return node->margin.x;
-    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
-        vl_css_layout_node_t *child = node->children[i];
-        if (child->display == VL_CSS_LAYOUT_DISPLAY_NONE) continue;
-        float child_margin_x = get_first_top_margin(child);
-        return VL_MAX(node->margin.x, child_margin_x);
-    }
-    return node->margin.x;
-}
-
 static vl_result_t layout_html(vl_css_layout_node_t *node) {
     layout_generic_div(node);
     float y_offset = 0;
@@ -227,9 +209,8 @@ static vl_result_t layout_html(vl_css_layout_node_t *node) {
 static vl_result_t layout_body(vl_css_layout_node_t *node) {
     layout_generic_div(node);
     if (node->web->dom.quirks) return VL_SUCCESS;
-    float first_offset = node->block_first_offset;
-    if (first_offset - node->margin.x < 0) {
-        node->position.y += node->margin.x - first_offset;
+    if (node->block_first_offset - node->margin.x < 0) {
+        node->position.y += node->margin.x - node->block_first_offset;
     }
     return VL_SUCCESS;
 }
@@ -421,8 +402,7 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
 
 vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
-    vl_css_class_selector_deinit(&node->tag_selector);
-    vl_css_class_selector_deinit(&node->tag_selector);
+    VL_STRING_FREE(node->unique_id);
     if (node->affecting_selectors) {
         for (int i = 0; i < VL_DA_LENGTH(node->affecting_selectors); i++) {
             vl_css_class_selector_deinit(node->affecting_selectors + i);

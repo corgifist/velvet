@@ -26,7 +26,7 @@
 #include "velvet/support/memory.h"
 #include "velvet/support/result.h"
 #include "velvet/support/managed_assert.h"
-#include "velvet/support/str.h"
+#include "velvet/support/string.h"
 
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
@@ -1517,7 +1517,7 @@ void styling_test() {
             }
 
             body {
-                --velvet-element-highlight: highlight-orange;
+                // --velvet-element-highlight: highlight-orange;
             }
 
             .outer {
@@ -1575,6 +1575,8 @@ void styling_test() {
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_WHITE);
         vl_graphics_render_batch_begin(render);
+            // web.refresh_styles = true;
+            // web.root_layout_node.size = win->io.window_size;
             vl_web_render(&web);
          vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);

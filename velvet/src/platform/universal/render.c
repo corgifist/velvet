@@ -11,7 +11,7 @@
 #include "support/memory.h"
 #include "os/window.h"
 #include "support/result.h"
-#include "support/str.h"
+#include "support/string.h"
 #include "gl_check.h"
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>

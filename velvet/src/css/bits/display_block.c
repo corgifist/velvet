@@ -47,7 +47,7 @@ static void try_add_layout_target(VL_DA(vl_css_layout_node_t*) *targets, vl_css_
 }
 
 static VL_DA(vl_css_layout_node_t*) get_layout_targets(vl_css_layout_node_t *node) {
-    VL_DA(vl_css_layout_node_t*) layout_targets = VL_DA_INIT(vl_css_layout_node_t*);
+    VL_DA(vl_css_layout_node_t*) layout_targets = VL_DA_INIT_WITH_CAPACITY(vl_css_layout_node_t*, VL_DA_LENGTH(node->children));
     if (node->pseudo_before) try_add_layout_target(&layout_targets, node->pseudo_before);
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         vl_css_layout_node_t *child = node->children[i];

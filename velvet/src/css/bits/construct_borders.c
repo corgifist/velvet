@@ -1,5 +1,5 @@
 #include "velvet/css/layout.h"
-#include "velvet/support/str.h"
+#include "velvet/support/string.h"
 #include "sides.h"
 
 static vl_css_layout_border_type_t get_border_type(const vl_css_value_t *value);

@@ -3,7 +3,7 @@
 #include "support/error_pool.h"
 #include "support/memory.h"
 #include "support/result.h"
-#include "support/str.h"
+#include "support/string.h"
 #include "vendor/utf8.h"
 
 vl_result_t vl_css_lexer_init_(vl_css_lexer_t *lexer, const char *text, vl_source_location_t loc, vl_error_pool_t *ep) {

@@ -5,7 +5,7 @@
 #include "support/da.h"
 #include "support/error_pool.h"
 #include "support/result.h"
-#include "support/str.h"
+#include "support/string.h"
 
 #include <stdbool.h>
 #include <stdint.h>

@@ -5,7 +5,7 @@ set(Velvet_Sources
     src/support/ht.c
     src/support/hash.c
     src/support/error_pool.c
-    src/support/str.c
+    src/support/string.c
     src/support/allocator.c
     src/support/global_error_pool.c
     src/support/alphanum.c

@@ -4,7 +4,7 @@
 #include "support/da.h"
 #include "support/memory.h"
 #include "support/result.h"
-#include "support/str.h"
+#include "support/string.h"
 #include <iso646.h>
 #include <stdlib.h>
 

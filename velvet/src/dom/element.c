@@ -334,7 +334,7 @@ static vl_result_t element_set_style(vl_dom_element_t *element, const char *css)
 
 static vl_result_t element_set_id(vl_dom_element_t *element, const char *id) {
     VL_DA_FREE(element->layout.unique_id);
-    element->layout.unique_id = VL_DA_INIT_FROM_STRING(id);
+    element->layout.unique_id = VL_STRING_INIT(id);
     return VL_SUCCESS;
 }
 

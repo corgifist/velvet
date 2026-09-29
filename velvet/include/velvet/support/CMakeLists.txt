@@ -12,7 +12,7 @@ set(Velvet_Headers
     include/velvet/support/ht.h
     include/velvet/support/hash.h
     include/velvet/support/error_pool.h
-    include/velvet/support/str.h
+    include/velvet/support/string.h
     include/velvet/support/allocator.h
     include/velvet/support/variadic.h
     include/velvet/support/color.h

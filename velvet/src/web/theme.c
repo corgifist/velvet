@@ -1,6 +1,6 @@
 #include "velvet/web/theme.h"
 #include "css/stylesheet.h"
-#include "support/str.h"
+#include "support/string.h"
 
 static const char *s_web_theme_properties[] = {
     "canvastext"

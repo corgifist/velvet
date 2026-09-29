@@ -1,6 +1,6 @@
 #include "support/math.h"
 #include "velvet/css/layout.h"
-#include "velvet/support/str.h"
+#include "velvet/support/string.h"
 
 #include "generic_metric_to_metric4.c"
 
