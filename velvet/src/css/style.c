@@ -415,6 +415,7 @@ static void print_class_selector(const vl_css_class_selector_t *selector) {
     for (int i = 0; i < len; i++) {
         vl_css_class_id_t *id = selector->hierarchy + i;
         print_class_id(id);
+        if (i != len - 1) printf(" ");
     }
 }
 

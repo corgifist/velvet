@@ -1490,60 +1490,112 @@ void styling_test() {
     //         Hello, <strong>World!</strong>
     //     </div>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <!DOCTYPE html>
+    //     <style>
+    //         html {
+    //             width: 600px;
+    //             padding: 10px;
+    //             border-width: 1px;
+    //             border-color: #000000;
+    //             border-style: solid;
+    //             margin: auto;
+    //             background: #ffffff;
+    //             // --velvet-element-highlight: highlight-orange;
+    //         }
+
+    //         body {
+    //             // --velvet-element-highlight: highlight-orange;
+    //         }
+
+    //         .outer {
+    //             background: #00ccff;
+    //             border-color: #666666;
+    //             border-width: 2px;
+    //             border-style: solid;
+    //             margin: 50px;
+    //             padding: 50px;
+    //         }
+
+    //         .inner {
+    //             border-color: #cc0000;
+    //             border-width: 4px;
+    //             border-style: solid;
+    //             height: 100px;
+    //             margin-bottom: 20px;
+    //             width: 500px;
+    //         }
+
+    //         .inner#bye {
+    //             background: #ffff00;
+    //         }
+
+    //         span#name {
+    //             background: #cc0000;
+    //             color: #ffffff;
+    //             font-size: 30px;
+    //         }
+    //     </style>
+    //     <div class="outer">
+    //         <p class="inner">
+    //             简单<span id="name">浏览器</span> 演示
+    //         </p>
+    //         <p class="inner" id="bye">
+    //             Hello, World!
+    //         </p>
+    //     </div>
+    // );
     const char *input = VL_STRINGIFY(
-        <!DOCTYPE html>
+        <!doctype html>
+        <html lang="en">
+        <head>
+        <meta charset="utf-8" />
+        <title>CSS selector difference</title>
         <style>
-            html {
-                width: 600px;
-                padding: 10px;
-                border-width: 1px;
-                border-color: #000000;
-                border-style: solid;
-                margin: auto;
-                background: #ffffff;
-                // --velvet-element-highlight: highlight-orange;
-            }
-
             body {
-                // --velvet-element-highlight: highlight-orange;
+                // --velvet-element-highlight: highlight-green;
+            }
+            .a.b.c {
+            background: #c8f7c5;
+            border: 2px solid #2d8a34;
             }
 
-            .outer {
-                background: #00ccff;
-                border-color: #666666;
-                border-width: 2px;
-                border-style: solid;
-                margin: 50px;
-                padding: 50px;
+            .a .b .c {
+            background: #c5dcf7;
+            border: 2px solid #2d5f8a;
             }
 
-            .inner {
-                border-color: #cc0000;
-                border-width: 4px;
-                border-style: solid;
-                height: 100px;
-                margin-bottom: 20px;
-                width: 500px;
-            }
-
-            .inner#bye {
-                background: #ffff00;
-            }
-
-            span#name {
-                background: #cc0000;
-                color: #ffffff;
-                font-size: 30px;
+            .box {
+            padding: 12px;
+            margin: 10px 0;
+            color: #111;
+            font-family: sans-serif;
             }
         </style>
-        <div class="outer">
-            <p class="inner">
-                简单<span id="name">浏览器</span> 演示
-            </p>
-            <p class="inner" id="bye">
-                Hello, World!
-            </p>
+        </head>
+        <body>
+        <h2>.a.b.c</h2>
+        <div class="box a b c">
+            This matches <code>.a.b.c</code> because one element has all three classes.
         </div>
+
+        <h2>.a .b .c</h2>
+        <div class="a">
+            <div class="b">
+            <div class="box c">
+                This matches <code>.a .b .c</code> because <code>.c</code> is inside <code>.b</code>, which is inside <code>.a</code>.
+            </div>
+            </div>
+        </div>
+
+        <h2>Does not match both</h2>
+        <div class="box a">
+            <div class="box b c">
+            This does <strong>not</strong> match <code>.a.b.c</code>, and it also does <strong>not</strong> match <code>.a .b .c</code> because <code>.c</code> is not a descendant of <code>.b</code> here.
+            </div>
+        </div>
+        </body>
+        </html>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

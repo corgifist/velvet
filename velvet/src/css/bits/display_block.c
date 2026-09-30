@@ -110,7 +110,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                     child->block_applied_margin = VL_MAX(child->margin.x, node->block_last_margin);
                     cursor.y += child->block_applied_margin;
                 } else {
-                    cursor.y += prev->margin.z;
+                    cursor.y += VL_MAX(VL_MAX(prev->block_last_margin, node->block_last_margin), child->margin.x);
                 }
             }
             cursor.x = node->effective_padding.w;
@@ -136,7 +136,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                     child->block_applied_margin = VL_MAX(child->margin.x, node->block_last_margin);
                     cursor.y += child->block_applied_margin;
                 } else {
-                    cursor.y += prev->margin.z;
+                    cursor.y += VL_MAX(VL_MAX(prev->block_last_margin, node->block_last_margin), child->margin.x);
                 }
             } else if (!prev && (node->padding.x != 0)) {
                 child->block_applied_margin = child->margin.x;
@@ -158,7 +158,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
             VL_DA_APPEND(line->elements, child);
             if ((cursor.x > node->size.x && next) || (next && next->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)) {
-                cursor.x = 0;
+                cursor.x = node->effective_padding.w;
                 cursor.y += line->height;
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }

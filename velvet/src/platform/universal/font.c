@@ -75,8 +75,8 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     result.h = h / font->density;
     result.glyph_id = glyph_id;
     
-    float lb = left_bearing * f->slim_scale;
-    float ax = advance_x * f->slim_scale;
+    float lb = left_bearing * f->scale / font->density;
+    float ax = advance_x * f->scale / font->density;
     result.advance_x = ax;
     result.x1 = lb;
     result.y1 = font->ascent + ((float) y1) / font->density;
