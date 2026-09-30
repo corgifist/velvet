@@ -55,7 +55,7 @@ typedef vl_color_t vl_css_color_rgba_t;
     ((vl_css_color_rgba_t) {.r = (float) (R), .g = (float) (G), .b = (float) (B), .a = (float) (A)})
 
 struct vl_css_font_list {
-    VL_DA(VL_DA_STRING) fonts;
+    VL_DA(VL_STRING) fonts;
 };
 typedef struct vl_css_font_list vl_css_font_list_t;
 
@@ -133,7 +133,7 @@ typedef struct vl_css_value vl_css_value_t;
     )
 
 struct vl_css_rule {
-    VL_DA(char) property;
+    VL_STRING property;
     vl_css_value_t value;
     bool important;
     int priority;

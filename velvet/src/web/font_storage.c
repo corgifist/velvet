@@ -18,7 +18,7 @@ vl_web_font_storage_record_t *vl_web_font_storage_query(vl_web_font_storage_t *s
         }
     }
     vl_web_font_storage_record_t record = {0};
-    record.path = VL_DA_INIT_FROM_STRING(path);
+    record.path = VL_STRING_INIT(path);
     record.data = vl_io_read_file(path);
     if (record.data) record.len = VL_DA_LENGTH(record.data);
     return VL_DA_APPEND(storage->records, record);
@@ -29,7 +29,7 @@ vl_result_t vl_web_font_storage_deinit(vl_web_font_storage_t *storage) {
     for (int i = 0; i < VL_DA_LENGTH(storage->records); i++) {
         vl_web_font_storage_record_t *record = storage->records + i;
         VL_DA_FREE(record->data);
-        VL_DA_FREE(record->path);
+        VL_STRING_FREE(record->path);
     }
     VL_DA_FREE(storage->records);
     return VL_SUCCESS;

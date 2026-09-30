@@ -5,10 +5,11 @@
 #include "velvet/support/da.h"
 #include "velvet/support/result.h"
 #include "velvet/font/font.h"
+#include "velvet/support/string.h"
 
 struct vl_font_search_description {
-    VL_DA_STRING name;
-    VL_DA_STRING path;
+    VL_STRING name;
+    VL_STRING path;
 };
 
 typedef struct vl_font_search_description vl_font_search_description_t;

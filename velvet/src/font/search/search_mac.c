@@ -2,13 +2,14 @@
 #include "velvet/support/da.h"
 #include "velvet/font/search.h"
 #include "velvet/support/platform.h"
+#include "velvet/support/string.h"
 
 #if VL_PLATFORM(MAC)
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreText/CoreText.h>
 
-static VL_DA_STRING cf_string_to_da_string(CFStringRef cf_string) {
+static VL_STRING cf_string_to_da_string(CFStringRef cf_string) {
     size_t cf_length = CFStringGetLength(cf_string);
     CFIndex buffer_length = 0;
     CFStringGetBytes(
@@ -17,8 +18,10 @@ static VL_DA_STRING cf_string_to_da_string(CFStringRef cf_string) {
         NULL, 0, &buffer_length);
     VL_DA_STRING result = VL_DA_INIT_WITH_CAPACITY(char, buffer_length + 1);
     CFStringGetCString(cf_string, result, buffer_length + 1, kCFStringEncodingUTF8);
-    result[buffer_length] = '\0';
-    return result;
+    VL_DA_HEADER(result)->count = buffer_length;
+    VL_STRING compact = VL_STRING_FROM_DA(result);
+    VL_DA_FREE(result);
+    return compact;
 }
 
 vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, const char *name) {
@@ -46,7 +49,7 @@ vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, c
         if (font_name) {
             desc.name = cf_string_to_da_string(font_name);
             if ((name && !vl_font_search_compare_family_names(desc.name, name))) {
-                VL_DA_FREE(desc.name);
+                VL_STRING_FREE(desc.name);
                 goto release;
             }
         }

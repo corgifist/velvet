@@ -11,19 +11,11 @@
 
 vl_result_t vl_html_attribute_deinit(vl_html_attribute_t *attribute) {
     if (!attribute) return VL_ERROR;
-    VL_DA_FREE(attribute->name);
-    VL_DA_FREE(attribute->value);
+    VL_STRING_FREE(attribute->name);
+    VL_STRING_FREE(attribute->value);
     return VL_SUCCESS;
 }
 
-vl_result_t vl_html_node_init(vl_html_node_t *node) {
-    if (!node) return VL_ERROR;
-    node->tag = NULL;
-    node->attributes = VL_DA_INIT(vl_html_attribute_t);
-    node->children = VL_DA_INIT(vl_html_node_t);
-    node->text = NULL;
-    return VL_SUCCESS;
-}
 
 vl_result_t vl_html_node_print(vl_html_node_t *node) {
     return vl_html_node_print_with_indent(node, 0);
@@ -81,7 +73,7 @@ vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
         }
         for (int i = 0; i < attributes_count; i++) {
             printf("%s", node->attributes[i].name);
-            if (VL_DA_LENGTH(node->attributes[i].value) > 1) {
+            if (node->attributes[i].value && VL_STRING_LEN(node->attributes[i].value) != 0) {
                 printf("=\"%s\"", node->attributes[i].value);
             }
             if (i != attributes_count - 1) {
@@ -89,7 +81,7 @@ vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
             }
         }
     }
-    size_t children_count = VL_DA_LENGTH(node->children);
+    int children_count = (node->children ? VL_DA_LENGTH(node->children) : 0);
     if (children_count == 0) {
         printf("/");
     }
@@ -114,8 +106,7 @@ vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
 
 vl_result_t vl_html_node_deinit(vl_html_node_t *node) {
     if (!node) return VL_ERROR;
-    if (node->tag) VL_DA_FREE(node->tag);
-    node->tag = NULL;
+    VL_STRING_FREE(node->tag);
     if (node->attributes) {
         for (int i = 0; i < VL_DA_LENGTH(node->attributes); i++) {
             vl_html_attribute_deinit(node->attributes + i);
@@ -128,8 +119,7 @@ vl_result_t vl_html_node_deinit(vl_html_node_t *node) {
         }
         VL_DA_FREE(node->children);
     }
-    if (node->text) VL_DA_FREE(node->text);
-    node->text = NULL;
+    VL_STRING_FREE(node->text);
     return VL_SUCCESS;
 }
 
@@ -149,10 +139,9 @@ vl_html_document_t *vl_html_document_new_with_ep(const char *input, vl_error_poo
 
 vl_result_t vl_html_document_init_with_ep(vl_html_document_t *document, const char *input, vl_error_pool_t *ep) {
     if (!document || !input) return VL_ERROR;
-    document->doctype = VL_DA_INIT(VL_DA_STRING);
+    document->doctype = VL_DA_INIT(VL_STRING);
     vl_html_node_t root_node = {0};
     vl_html_node_t tmp_node = {0};
-    if (vl_html_node_init(&tmp_node)) return VL_ERROR;
     vl_html_parser_t parser = {0};
     parser.ep = ep;
     if (vl_html_parser_init(&parser, input)) {
@@ -170,34 +159,19 @@ vl_result_t vl_html_document_init_with_ep(vl_html_document_t *document, const ch
                 VL_DA_APPEND(document->doctype, tmp_node.attributes[i].value);
             }
             VL_DA_FREE(tmp_node.attributes);
-            tmp_node.attributes = NULL;
-            if (vl_html_node_deinit(&tmp_node)) {
-                goto failure;
-            }
-            if (vl_html_node_init(&tmp_node)) {
-                goto failure;
-            }
             continue;
         }
         if (collector_state == 0) {
             prev_node = tmp_node;
-            if (vl_html_node_init(&tmp_node)) {
-                goto failure;
-            }
             collector_state = 1;
             continue;
         }
         if (collector_state == 1 || collector_state == 2) {
-            if (collector_state == 1 && vl_html_node_init(&root_node)) {
-                goto failure;
-            }
             if (collector_state == 1) {
+                if (!root_node.children) root_node.children = VL_DA_INIT(vl_html_node_t);
                 VL_DA_APPEND(root_node.children, prev_node);
             }
             VL_DA_APPEND(root_node.children, tmp_node);
-            if (vl_html_node_init(&tmp_node)) {
-                goto failure;
-            }
             collector_state = 2;
         }
     }
@@ -206,7 +180,6 @@ vl_result_t vl_html_document_init_with_ep(vl_html_document_t *document, const ch
     } else {
         document->root = root_node;
     }
-    if (vl_html_node_deinit(&tmp_node)) goto failure;
     if (vl_html_tidy_node(&document->root)) {
         goto failure;
     }
@@ -242,7 +215,7 @@ vl_result_t vl_html_document_deinit(vl_html_document_t *document) {
     vl_html_node_deinit(&document->root);
     if (document->doctype) {
         for (int i = 0; i < VL_DA_LENGTH(document->doctype); i++) {
-            VL_DA_FREE(document->doctype[i]);
+            VL_STRING_FREE(document->doctype[i]);
         }
         VL_DA_FREE(document->doctype);
     }

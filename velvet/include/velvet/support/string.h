@@ -52,7 +52,7 @@ typedef struct vl_string vl_string_t;
     VL_STRING_INIT(SRC, VL_STRING_LEN(SRC))
 
 #define VL_STRING_FREE(STRING) \
-    (vl_string_free(&(STRING)))
+    (vl_string_free((char**) &(STRING)))
 
 VL_API char *vl_string_init(const char *source, int len, vl_source_location_t loc, vl_allocator_t allocator);
 VL_API void vl_string_free(char **string);

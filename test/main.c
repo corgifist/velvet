@@ -134,10 +134,6 @@ void parser_test() {
     }
     
     vl_html_node_t root = {0};
-    if (vl_html_node_init(&root)) {
-        printf("failed to initialize html root\n");
-        return;
-    }
     if (vl_html_parser_get(&parser, &root) != VL_SUCCESS) {
         printf("failed to parse root\n");
         return;
@@ -154,10 +150,6 @@ void empty_parser_test() {
         return;
     }
     vl_html_node_t node = {0};
-    if (vl_html_node_init(&node)) {
-        printf("failed to initialize node\n");
-        return;
-    }
     if (vl_html_parser_get(&parser, &node)) {
         printf("failed to parse root\n");
         return;
@@ -180,10 +172,6 @@ void tidy_test() {
         return;
     }
     vl_html_node_t node = {0};
-    if (vl_html_node_init(&node)) {
-        printf("failed to initialize node\n");
-        return;
-    }
     if (vl_html_parser_get(&parser, &node)) {
         printf("failed to parse root\n");
         return;
@@ -1594,7 +1582,7 @@ void styling_test() {
 
 void font_search() {
     VL_DA(vl_font_search_description_t) results = NULL;
-    vl_font_search_query(&results, "Arial");
+    vl_font_search_query(&results, NULL);
     for (int i = 0; i < VL_DA_LENGTH(results); i++) {
         printf("%i %i %s %s\n", i, (int) VL_DA_LENGTH(results), results[i].name, results[i].path);
     }

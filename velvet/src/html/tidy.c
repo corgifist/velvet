@@ -4,11 +4,11 @@
 #include "support/result.h"
 #include <string.h>
 
-static vl_html_node_t create_minimal_node(const char *tag) {
-    vl_html_node_t html_node = {0};
-    html_node.tag = VL_DA_INIT_FROM_STRING(tag);
-    html_node.children = VL_DA_INIT(vl_html_node_t);
-    return html_node;
+static vl_html_node_t create_minimal_node(const char *tag, bool create_children) {
+    vl_html_node_t node = {0};
+    node.tag = VL_STRING_INIT(tag);
+    if (create_children) node.children = VL_DA_INIT(vl_html_node_t);
+    return node;
 }
 
 vl_result_t vl_html_tidy_document(vl_html_document_t *document) {
@@ -16,9 +16,9 @@ vl_result_t vl_html_tidy_document(vl_html_document_t *document) {
     if (vl_html_tidy_node(&document->root)) return VL_ERROR;
     if (!document->doctype || (document->doctype && VL_DA_LENGTH(document->doctype) == 0)) {
         if (!document->doctype) {
-            document->doctype = VL_DA_INIT_WITH_CAPACITY(VL_DA_STRING, 1);
+            document->doctype = VL_DA_INIT_WITH_CAPACITY(VL_STRING, 1);
         }
-        *VL_DA_PUSH(document->doctype, VL_DA_STRING) = VL_DA_INIT_FROM_STRING("html");
+        *VL_DA_PUSH(document->doctype, VL_STRING) = VL_STRING_INIT("html");
     }
     return VL_SUCCESS;
 }
@@ -41,7 +41,7 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
         }
     }
     if (!node->tag && !node->text && node->children) {
-        vl_html_node_t html_node = create_minimal_node("html");
+        vl_html_node_t html_node = create_minimal_node("html", true);
         vl_html_node_t *head_node = NULL;
         vl_html_node_t *body_node = NULL;
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
@@ -57,11 +57,11 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
             }
         }
         if (!head_node) {
-            vl_html_node_t empty_head_node = create_minimal_node("head");
+            vl_html_node_t empty_head_node = create_minimal_node("head", true);
             head_node = VL_DA_APPEND(html_node.children, empty_head_node);
         }
         if (!body_node) {
-            vl_html_node_t empty_body_node = create_minimal_node("body");
+            vl_html_node_t empty_body_node = create_minimal_node("body", true);
             body_node = VL_DA_APPEND(html_node.children, empty_body_node);
         }
         for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
@@ -78,8 +78,8 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
         return VL_SUCCESS;
     }
     if (node->tag && strcmp(node->tag, "head") == 0) {
-        vl_html_node_t html_node = create_minimal_node("html");
-        vl_html_node_t body_node = create_minimal_node("body");
+        vl_html_node_t html_node = create_minimal_node("html", true);
+        vl_html_node_t body_node = create_minimal_node("body", false);
 
         VL_DA_APPEND(html_node.children, *node);
         VL_DA_APPEND(html_node.children, body_node);
@@ -89,8 +89,8 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
     }
 
     if (node->tag && strcmp(node->tag, "body") == 0) {
-        vl_html_node_t html_node = create_minimal_node("html");
-        vl_html_node_t head_node = create_minimal_node("head");
+        vl_html_node_t html_node = create_minimal_node("html", true);
+        vl_html_node_t head_node = create_minimal_node("head", false);
 
         VL_DA_APPEND(html_node.children, head_node);
         VL_DA_APPEND(html_node.children, *node);
@@ -99,10 +99,10 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
         return VL_SUCCESS;
     }
 
-    vl_html_node_t html_node = create_minimal_node("html");
+    vl_html_node_t html_node = create_minimal_node("html", true);
 
-    vl_html_node_t head_node = create_minimal_node("head");
-    vl_html_node_t body_node = create_minimal_node("body");
+    vl_html_node_t head_node = create_minimal_node("head", false);
+    vl_html_node_t body_node = create_minimal_node("body", false);
 
     VL_DA_APPEND(body_node.children, *node);
 

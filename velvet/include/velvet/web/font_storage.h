@@ -3,9 +3,10 @@
 
 #include "velvet/support/da.h"
 #include "velvet/support/result.h"
+#include "velvet/support/string.h"
 
 struct vl_web_font_storage_record {
-    VL_DA_STRING path;
+    VL_STRING path;
     vl_byte_t *data;
     size_t len;
 };

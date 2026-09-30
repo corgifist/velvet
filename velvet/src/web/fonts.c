@@ -311,8 +311,8 @@ vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
     vl_font_shaper_free(fonts->shaper);
     for (int i = 0; i < VL_DA_LENGTH(fonts->system_fonts); i++) {
         vl_font_search_description_t *desc = fonts->system_fonts + i;
-        VL_DA_FREE(desc->name);
-        VL_DA_FREE(desc->path);
+        VL_STRING_FREE(desc->name);
+        VL_STRING_FREE(desc->path);
     }
     VL_DA_FREE(fonts->system_fonts);
     return VL_SUCCESS;

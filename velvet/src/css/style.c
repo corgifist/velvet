@@ -116,7 +116,7 @@ vl_result_t vl_css_style_merge_inline(vl_css_style_t *dst, const vl_css_inline_s
 
 vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
     if (!dst || !rule) return VL_ERROR;
-    dst->property = VL_DA_COPY(rule->property);
+    dst->property = VL_STRING_COPY(rule->property);
     vl_css_value_copy(&dst->value, &rule->value);
     dst->priority = rule->priority;
     dst->important = rule->important;
@@ -192,14 +192,14 @@ vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) 
         if (value->as.font_list.fonts) {
             dst->as.font_list.fonts = VL_DA_COPY(value->as.font_list.fonts);
             for (int i = 0; i < VL_DA_LENGTH(dst->as.font_list.fonts); i++) {
-                dst->as.font_list.fonts[i] = VL_DA_COPY(value->as.font_list.fonts[i]);
+                dst->as.font_list.fonts[i] = VL_STRING_INIT(value->as.font_list.fonts[i]);
             }
         }
         break;
     }
     case VL_CSS_VALUE_DYNAMIC_LITERAL: 
     case VL_CSS_VALUE_STRING: {
-        dst->as.literal = VL_DA_COPY(value->as.literal);
+        dst->as.literal = VL_STRING_INIT(value->as.literal);
         break;
     }
     case VL_CSS_VALUE_LIST: {
@@ -450,6 +450,7 @@ vl_result_t vl_css_class_selector_print(const vl_css_class_selector_t *selector)
 vl_result_t vl_css_class_atom_print(const vl_css_class_atom_t *atom) {
     if (!atom) return VL_ERROR;
     print_class_atom(atom);
+    printf("\n");
     return VL_SUCCESS;
 }
 
@@ -472,7 +473,7 @@ vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
         vl_css_font_list_t *font_list = &value->as.font_list;
         if (font_list->fonts) {
             for (int i = 0; i < VL_DA_LENGTH(font_list->fonts); i++) {
-                VL_DA_FREE(font_list->fonts[i]);
+                VL_STRING_FREE(font_list->fonts[i]);
             }
             VL_DA_FREE(font_list->fonts);
         }
@@ -480,7 +481,7 @@ vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
     }
     case VL_CSS_VALUE_DYNAMIC_LITERAL:
     case VL_CSS_VALUE_STRING: {
-        VL_DA_FREE(value->as.literal);
+        VL_STRING_FREE(value->as.literal);
         break;
     }
     case VL_CSS_VALUE_LIST: {
@@ -558,7 +559,7 @@ vl_result_t vl_css_inline_style_deinit(vl_css_inline_style_t *style) {
 
 vl_result_t vl_css_rule_deinit(vl_css_rule_t *rule) {
     if (!rule) return VL_SUCCESS;
-    VL_DA_FREE(rule->property);
+    VL_STRING_FREE(rule->property);
     vl_css_value_deinit(&rule->value);
     return VL_SUCCESS;
 }

@@ -5,16 +5,18 @@
 #include "velvet/support/win32.h"
 #include "velvet/support/platform.h"
 #include "vendor/utf8.h"
-#include <minwindef.h>
+#include "velvet/support/string.h"
 
 #if VL_PLATFORM(WINDOWS)
 
-VL_DA_STRING wstring_to_string(const wchar_t* wstring) {
+VL_STRING wstring_to_string(const wchar_t* wstring) {
     int count = WideCharToMultiByte(CP_UTF8, 0, wstring, -1, NULL, 0, NULL, NULL);
     VL_DA_STRING result = VL_DA_INIT_WITH_CAPACITY(char, count);
     WideCharToMultiByte(CP_UTF8, 0, wstring, -1, result, count, NULL, NULL);
-    VL_DA_HEADER(result)->count = count;
-    return result;
+    VL_DA_HEADER(result)->count = count - 1;
+    VL_STRING compact = VL_STRING_FROM_DA(result);
+    VL_DA_FREE(result);
+    return compact;
 }
 
 vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, const char *name) {
@@ -43,9 +45,9 @@ vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, c
                     DWORD value_size = max_value_len + 1;
                     DWORD type = 0;
                     if (RegEnumValueW(hKey, i, name_arr, &name_size, NULL, &type, value_arr, &value_size) == ERROR_SUCCESS) {
-                        VL_DA_STRING reg_name = wstring_to_string(name_arr);
+                        VL_STRING reg_name = wstring_to_string(name_arr);
                         if (name && !vl_font_search_compare_family_names(reg_name, name)) {
-                            VL_DA_FREE(reg_name);
+                            VL_STRING_FREE(reg_name);
                             continue;
                         }
                         *VL_DA_PUSH(*results, vl_font_search_description_t) = (vl_font_search_description_t) {

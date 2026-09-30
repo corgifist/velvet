@@ -226,6 +226,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             return VL_ERROR;
         }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip doctype
+        if (!node->attributes) node->attributes = VL_DA_INIT(vl_html_attribute_t);
         while (!VL_TOKEN_COMPARE(current, ">")) {
             if (current->type != VL_HTML_TOKEN_TYPE_WORD && !(VL_TOKEN_COMPARE(current, "\"") || VL_TOKEN_COMPARE(current, "'"))) {
                 vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected word or string while parsing doctype");
@@ -233,9 +234,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             }
             if (current->type == VL_HTML_TOKEN_TYPE_WORD) {
                 vl_html_attribute_t attribute = {0};
-                attribute.value = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
-                memcpy(attribute.value, current->text, current->text_length);
-                attribute.value[current->text_length] = '\0';
+                attribute.value = VL_STRING_INIT(current->text, current->text_length);
                 if (tokenize(parser) || skip_spaces(parser)) {
                     VL_DA_FREE(attribute.value);
                     return VL_ERROR;
@@ -245,7 +244,8 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
                 VL_DA(char) doctype_string = VL_DA_INIT(char);
                 collect_escaped_string(parser, &doctype_string, true);
                 vl_html_attribute_t attribute = {0};
-                attribute.value = doctype_string;
+                attribute.value = VL_STRING_FROM_DA(doctype_string);
+                VL_DA_FREE(doctype_string);
                 VL_DA_APPEND(node->attributes, attribute);
             }
 
@@ -258,10 +258,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected word while parsing node");
         return VL_ERROR;
     }
-    node->tag = VL_DA_INIT_WITH_CAPACITY(char, current->text_length + 1);
-    VL_DA_HEADER(node->tag)->count = current->text_length;
-    memcpy(node->tag, current->text, current->text_length);
-    node->tag[current->text_length] = '\0';
+    node->tag = VL_STRING_INIT(current->text, current->text_length);
     bool short_tag = vl_html_is_tag_void(node->tag);
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip tag name and spaces
     // parsing node open
@@ -285,16 +282,12 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
             continue;
         }
-        attribute.name = VL_DA_INIT_WITH_CAPACITY(char, current->text_length +1);
-        VL_DA_HEADER(attribute.name)->count = current->text_length + 1;
-        memcpy(attribute.name, current->text, current->text_length);
-        attribute.name[current->text_length] = '\0';
+        attribute.name = VL_STRING_INIT(current->text, current->text_length);
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
         if (!VL_TOKEN_COMPARE(current, "=")) {
             // parsing empty attribute
             // e.g. <checkbox selected> or <script async>
-            attribute.value = VL_DA_INIT_WITH_CAPACITY(char, 1);
-            attribute.value[0] = '\0';
+            attribute.value = NULL;
             goto append_attribute;
         }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR;
@@ -308,16 +301,18 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             vl_error_pool_append(parser->ep, current->line, current->inline_pos, "failed to parse node attribute value");
             return VL_ERROR;
         }
-        *VL_DA_PUSH(attribute.value, char) = '\0';
+        VL_STRING compact_string = VL_STRING_FROM_DA(attribute.value);
+        VL_DA_FREE(attribute.value);
+        attribute.value = compact_string;
 
         append_attribute:
+        if (!node->attributes) node->attributes = VL_DA_INIT(vl_html_attribute_t);
         VL_DA_APPEND(node->attributes, attribute);
     }
 
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
     vl_html_node_t tmp_node = {0};
     while (true && !short_tag) {
-        if (vl_html_node_init(&tmp_node)) return VL_ERROR;
         vl_result_t parse_result = vl_html_parser_get_ex(parser, &tmp_node);
         if (parse_result == VL_HTML_PARSER_STOP) {
             if (vl_html_node_deinit(&tmp_node)) return VL_ERROR;
@@ -329,18 +324,19 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         }
         if (parse_result == VL_HTML_PARSER_CLOSE_NODE) {
             if (vl_html_node_deinit(&tmp_node)) return VL_ERROR;
-            if (VL_DA_LENGTH(node->tag) != close_tag_end - close_tag_begin) {
+            if (VL_STRING_LEN(node->tag) != close_tag_end - close_tag_begin) {
                 vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismatch (%s and %.*s)", 
                     node->tag, close_tag_end - close_tag_begin, close_tag_begin);
                 return VL_ERROR;
             }
-            if (memcmp(node->tag, close_tag_begin, VL_DA_LENGTH(node->tag) - 1) != 0) {
+            if (memcmp(node->tag, close_tag_begin, VL_STRING_LEN(node->tag)) != 0) {
                 vl_error_pool_append(parser->ep, current->line, current->inline_pos, "begin/close node tag mismath (%s and %.*s)", 
                     node->tag, close_tag_end - close_tag_begin, close_tag_begin);
                 return VL_ERROR;
             }
             return VL_SUCCESS;
         }
+        if (!node->children) node->children = VL_DA_INIT(vl_html_node_t);
         VL_DA_APPEND(node->children, tmp_node);
     }
 
@@ -351,6 +347,7 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
     if (!parser || !node) return VL_ERROR;
     vl_html_token_t *current = parser->lookahead;
     node->text = VL_DA_INIT(char);
+    VL_STRING compact_string = NULL;
     if (current->line >= 1 && current->inline_pos > 1) {
         if (*(current->text - 1) == ' ' && vl_html_is_tag_inline_ex(close_tag_begin, close_tag_end)) {
             *VL_DA_PUSH(node->text, char) = ' ';
@@ -431,7 +428,9 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
     }
 
     success:
-    *VL_DA_PUSH(node->text, char) = '\0';
+    compact_string = VL_STRING_FROM_DA(node->text);
+    VL_DA_FREE(node->text);
+    node->text = compact_string;
     return VL_SUCCESS;
 }
 
@@ -441,6 +440,7 @@ vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node
     if (current->type == VL_HTML_TOKEN_TYPE_STOP) {
         return VL_HTML_PARSER_STOP;
     }
+    VL_ZERO_OUT(node);
     if (skip_spaces(parser)) return VL_ERROR;
     if (VL_TOKEN_COMPARE(current, "<") && (current + 1)->type == VL_HTML_TOKEN_TYPE_WORD 
             || VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "/")

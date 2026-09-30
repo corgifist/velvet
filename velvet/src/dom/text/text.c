@@ -141,7 +141,7 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
             try_get_web_font(&web->fonts, font_family.as.literal, correct_weight(&web->fonts, font_family.as.literal, blueprint.weight), blueprint.height);
         blueprint.compound_hash = vl_hash_string(font_family.as.literal);
     } else if (font_family.type == VL_CSS_VALUE_FONT_LIST && font_family.as.font_list.fonts) {
-        VL_DA(VL_DA_STRING) font_families = font_family.as.font_list.fonts;
+        VL_DA(VL_STRING) font_families = font_family.as.font_list.fonts;
         for (int i = 0; i < VL_DA_LENGTH(font_families); i++) {
             if (!hollow) *VL_DA_PUSH(blueprint.font_family, VL_DA(vl_web_sized_font_t*)) =
                 try_get_web_font(&web->fonts, font_families[i], correct_weight(&web->fonts, font_families[i], blueprint.weight), blueprint.height);
@@ -191,8 +191,8 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             vl_font_shaper_push_font(fonts->shaper, parts[j]->shaper_ref);
         }
     }
-    printf("text layout: %s -> %i %s / %s %p\n", element->tag, element->layout.pseudo_type, element->layout.parent->tag, element->parent->tag, element->layout.content_string);
-    vl_css_style_print(&element->layout.style);
+    // printf("text layout: %s -> %i %s / %s %p\n", element->tag, element->layout.pseudo_type, element->layout.parent->tag, element->parent->tag, element->layout.content_string);
+    // vl_css_style_print(&element->layout.style);
     vl_font_shaper_process(fonts->shaper, layout->blueprint.text, VL_STRING_LEN(layout->blueprint.text));
     // printf("shaped '%s'\n", text->text);
     vl_dom_element_text_line_t *line = push_new_line(&layout->lines);

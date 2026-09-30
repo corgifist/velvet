@@ -91,8 +91,8 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     result.uv.bl = VL_POINT(bx1 / aw, by2 / ah);
     atlas->cursor_x += w + 2;
     atlas->largest_glyph_on_line = VL_MAX(h, atlas->largest_glyph_on_line);
-    if (atlas->cursor_x + font->height * font->density >= atlas->width
-            && atlas->cursor_y + font->height * font->density >= atlas->height) {
+    if (atlas->cursor_x + font->height * font->density >= atlas->width - 2
+            && atlas->cursor_y + font->height * font->density >= atlas->height - 2) {
         atlas->full = true;
     }
     result.index = VL_DA_LENGTH(atlas->codepoints);

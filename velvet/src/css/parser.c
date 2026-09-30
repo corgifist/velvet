@@ -103,7 +103,7 @@ static vl_css_value_t parse_single_metric(vl_css_parser_t *parser, vl_css_rule_t
     );
 }
 
-static VL_DA_STRING parse_id_or_string(vl_css_parser_t *parser) {
+static VL_STRING parse_id_or_string(vl_css_parser_t *parser) {
     vl_css_token_t *current = parser->lookahead;
     if (current->type == VL_CSS_TOKEN_TYPE_ID || current->type == VL_CSS_TOKEN_TYPE_STRING) {
         const char *begin = current->text;
@@ -112,7 +112,7 @@ static VL_DA_STRING parse_id_or_string(vl_css_parser_t *parser) {
             begin++;
             len -= 2;
         }
-        VL_DA_STRING result = VL_DA_INIT_FROM_STRING_WITH_SIZE(begin, len);
+        VL_STRING result = VL_STRING_INIT(begin, len);
         tokenize(parser); skip_spaces(parser);
         return result;
     }
@@ -164,15 +164,17 @@ static const char *try_parse_const_literal(vl_css_parser_t *parser, int limit) {
     return NULL;
 }
 
-static VL_DA_STRING process_string(const char *begin, int len) {
-    VL_DA_STRING result = VL_DA_INIT(char);
+static VL_STRING process_string(const char *begin, int len) {
+    VL_STRING result = VL_DA_INIT(char);
     for (int i = 0; i < len; i++) {
         char c = begin[i];
         if (c == '\\' && i != len - 1) continue;
         *VL_DA_PUSH(result, char) = c;
     }
     *VL_DA_PUSH(result, char) = '\0';
-    return result;
+    VL_STRING compact = VL_STRING_INIT(result);
+    VL_DA_FREE(result);
+    return compact;
 }
 
 static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t *rule) {
@@ -288,16 +290,16 @@ static vl_css_value_t parse_font_list(vl_css_parser_t *parser, vl_css_rule_t *ru
     vl_css_token_t *current = parser->lookahead;
     if ((current->type == VL_CSS_TOKEN_TYPE_ID || current->type == VL_CSS_TOKEN_TYPE_STRING) && VL_TOKEN_COMPARE(current + 1, ";")) {
         bool is_string = (current->type == VL_CSS_TOKEN_TYPE_STRING);
-        const char *literal = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text + is_string, current->text_length - is_string - is_string);
+        const char *literal = VL_STRING_INIT(current->text + is_string, current->text_length - is_string - is_string);
         tokenize(parser); skip_spaces(parser);
         return VL_CSS_VALUE_DYNAMIC_LITERAL(literal);
     }
     vl_css_value_t result = {.type = VL_CSS_VALUE_FONT_LIST, .as = {0}};
     vl_css_font_list_t *font_list = &result.as.font_list;
-    font_list->fonts = VL_DA_INIT(VL_DA_STRING);
+    font_list->fonts = VL_DA_INIT(VL_STRING);
     while (!VL_TOKEN_COMPARE(current, ";")) {
-        VL_DA_STRING id = parse_id_or_string(parser);
-        if (id) *VL_DA_PUSH(font_list->fonts, VL_DA_STRING) = id;
+        VL_STRING id = parse_id_or_string(parser);
+        if (id) *VL_DA_PUSH(font_list->fonts, VL_STRING) = id;
         else if (tokenize(parser) || skip_spaces(parser)) break;
         goto next;
         next:
@@ -358,7 +360,7 @@ static vl_css_value_t dispatch_parse_value(vl_css_parser_t *parser, vl_css_rule_
 static vl_result_t parse_rule(vl_css_parser_t *parser, vl_css_rule_t *rule) {
     vl_css_token_t *current = parser->lookahead;
     if (current->type != VL_CSS_TOKEN_TYPE_ID) return VL_ERROR;
-    rule->property = VL_DA_INIT_FROM_STRING_WITH_SIZE(current->text, current->text_length);
+    rule->property = VL_STRING_INIT(current->text, current->text_length);
     if (tokenize(parser) || skip_spaces(parser)) goto fail;
     VL_TOKEN_CONSUME(parser, ":", goto fail);
     rule->value = dispatch_parse_value(parser, rule);
@@ -429,7 +431,6 @@ static vl_result_t parse_class_selector(vl_css_parser_t *parser, vl_css_class_se
         while (!VL_TOKEN_COMPARE(current, " ") && !VL_TOKEN_COMPARE(current, ",") && !VL_TOKEN_COMPARE(current, "{")) {
             vl_css_class_atom_t atom = {0};
             if (parse_class_atom(parser, &atom) || atom.type == VL_CSS_CLASS_ATOM_NONE) goto fail;
-            vl_css_class_atom_print(&atom);
             VL_DA_APPEND(id.atoms, atom);
         }
         skip_spaces(parser);
