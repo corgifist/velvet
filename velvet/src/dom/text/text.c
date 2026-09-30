@@ -117,6 +117,11 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
     font_size_css.as.metric1 = vl_css_layout_node_process_metric(element->layout.parent ? element->layout.parent : &element->layout, "font-size", font_size_css.as.metric1, 0);
     blueprint.height = font_size_css.as.metric1.value;
     blueprint.weight = calculate_weight(element, font_weight_css);
+    if (!VL_CSS_LAYOUT_NODE_IS_PSEUDO(element->layout)) {
+        blueprint.text = ((vl_dom_element_text_t*) element)->text;
+    } else {
+        blueprint.text = element->layout.content_string;
+    }
 
     vl_css_value_t text_align_css = vl_css_layout_node_get_property(&element->layout, "text-align", VL_CSS_VALUE_CONST_LITERAL("start"));
     if (VL_CSS_VALUE_COMPARE_LITERALS(text_align_css, "start")) {
@@ -148,7 +153,7 @@ static vl_dom_element_text_blueprint_t calculate_blueprint(vl_dom_element_t *ele
     }
     blueprint.compound_hash = vl_hash_combine(
         blueprint.compound_hash,
-        vl_hash_string(((vl_dom_element_text_t*) element)->text)
+        vl_hash_string(blueprint.text)
     );
     blueprint.compound_hash = vl_hash_combine(
         blueprint.compound_hash,
@@ -186,7 +191,9 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             vl_font_shaper_push_font(fonts->shaper, parts[j]->shaper_ref);
         }
     }
-    vl_font_shaper_process(fonts->shaper, text->text, VL_DA_LENGTH(text->text) - 1);
+    printf("text layout: %s -> %i %s / %s %p\n", element->tag, element->layout.pseudo_type, element->layout.parent->tag, element->parent->tag, element->layout.content_string);
+    vl_css_style_print(&element->layout.style);
+    vl_font_shaper_process(fonts->shaper, layout->blueprint.text, VL_STRING_LEN(layout->blueprint.text));
     // printf("shaped '%s'\n", text->text);
     vl_dom_element_text_line_t *line = push_new_line(&layout->lines);
     float base_x = element->layout.padding.w;
@@ -199,8 +206,6 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
         int corrected_weight = correct_weight(fonts, family_name_by_unit_font(fonts, run->font), layout->blueprint.weight);
         vl_web_sized_font_t *sized_font = vl_web_fonts_get_font_by_unit_font(fonts, run->font, corrected_weight, layout->blueprint.height);
         if (!sized_font) continue;
-        // adding additional 1px to the line_height because without it
-        // some letters escape the boundaries exactly by this 1 pixel
         float line_height = sized_font->font->ascent - sized_font->font->descent + 2;
         while (vl_font_shaper_iterate(run, &shaper_glyph)) {
             vl_dom_element_text_glyph_t text_glyph = {0};
@@ -264,7 +269,8 @@ static void prepare_layout(vl_dom_element_t *element) {
     if (blueprint->height != fresh_blueprint.height 
             || blueprint->weight != fresh_blueprint.weight
             || blueprint->compound_hash != fresh_blueprint.compound_hash
-            || blueprint->alignment != fresh_blueprint.alignment) {
+            || blueprint->alignment != fresh_blueprint.alignment
+            || blueprint->text != fresh_blueprint.text) {
         deinit_layout(&text->layout);
         text->layout.blueprint = calculate_blueprint(element, false);
         calculate_layout(element, &text->layout);
@@ -273,7 +279,7 @@ static void prepare_layout(vl_dom_element_t *element) {
 
 vl_result_t vl_dom_element_text_render(vl_dom_element_t *element) {
     vl_dom_element_text_t *text = (vl_dom_element_text_t*) element;
-    if (!text->text) return VL_ERROR;
+    if (!text->layout.blueprint.text) return VL_ERROR;
     vl_dom_t *owner = element->owner;
     vl_web_t *web = owner->owner;
     prepare_layout(element);
@@ -305,8 +311,8 @@ vl_result_t vl_dom_element_text_set_property(vl_dom_element_t *element, const ch
     vl_dom_element_text_t *text = (vl_dom_element_text_t*) element;
     if (strcmp(property, "innerText") == 0) {
         if (type != VL_DOM_ELEMENT_PROPERTY_STRING) VL_ASSERT(0 && "innerText property requires a STRING");
-        if (text->text) VL_DA_FREE(text->text);
-        text->text = VL_DA_INIT_FROM_STRING(value);
+        VL_STRING_FREE(text->text);
+        text->text = VL_STRING_INIT(value);
         return VL_SUCCESS;
     }
     return VL_ERROR;
@@ -334,7 +340,7 @@ vl_vec2_t vl_dom_element_text_get_content_size(vl_dom_element_t *element) {
 
 vl_result_t vl_dom_element_text_free(vl_dom_element_t *element) {
     vl_dom_element_text_t *text = (vl_dom_element_text_t*) element;
-    VL_DA_FREE(text->text);
+    VL_STRING_FREE(text->text);
     deinit_layout(&text->layout);
     vl_free(VL_DOM_ELEMENT_FUNCS(element));
     return VL_SUCCESS;

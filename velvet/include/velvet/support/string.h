@@ -46,7 +46,10 @@ typedef struct vl_string vl_string_t;
     VL_STRING_INIT(DA, VL_DA_LENGTH(DA))
 
 #define VL_STRING_LEN(STRING) \
-    ((vl_string_t*) VL_PTR_BACKWARD(STRING, sizeof(vl_string_t))->len)
+    (((vl_string_t*) VL_PTR_BACKWARD(STRING, sizeof(vl_string_t)))->len)
+
+#define VL_STRING_COPY(SRC) \
+    VL_STRING_INIT(SRC, VL_STRING_LEN(SRC))
 
 #define VL_STRING_FREE(STRING) \
     (vl_string_free(&(STRING)))

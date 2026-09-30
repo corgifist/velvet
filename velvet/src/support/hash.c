@@ -46,6 +46,7 @@ static vl_hash_t vl_hash_string32(const char *mem) {
 }
 
 vl_hash_t vl_hash_string(const char *mem) {
+    if (!mem) return 0;
     if (sizeof(vl_hash_t) >= 8) {
         return vl_hash_string64(mem);
     } else {
@@ -80,6 +81,7 @@ static vl_hash_t vl_hash_bytes32(void *mem, size_t mem_length) {
 }
 
 vl_hash_t vl_hash_bytes(void *mem, size_t mem_length) {
+    if (!mem || mem_length == 0) return 0;
     if (sizeof(vl_hash_t) >= 8) {
         return vl_hash_bytes64(mem, mem_length);
     } else {

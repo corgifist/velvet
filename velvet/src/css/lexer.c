@@ -66,11 +66,6 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
         return vl_css_lexer_get(lexer, token);
     }
 
-    if (lexer->c == ' ' || lexer->c == '\t') {
-        ADVANCE();
-        return vl_css_lexer_get(lexer, token);
-    }
-
     if (lexer->raw_pos + 2 >= lexer->raw_length && *cursor == '/' && *(cursor + 1) == '*') {
         // skip comments
         ADVANCE(); // skip /
@@ -148,7 +143,7 @@ vl_result_t vl_css_lexer_get(vl_css_lexer_t *lexer, vl_css_token_t *token) {
             end += U8_LENGTH(lexer->c);
             ADVANCE();
         }
-        SET_TOKEN(VL_CSS_TOKEN_TYPE_HEX_COLOR, begin, end);
+        SET_TOKEN(VL_CSS_TOKEN_TYPE_HEX_ID, begin, end);
         return VL_SUCCESS;
     }
 

@@ -28,6 +28,16 @@ struct vl_css_layout_border {
 };
 typedef struct vl_css_layout_border vl_css_layout_border_t;
 
+enum vl_css_layout_pseudo_element_type {
+    VL_CSS_LAYOUT_PSEUDO_ELEMENT_NONE = 0,
+    VL_CSS_LAYOUT_PSEUDO_ELEMENT_BEFORE,
+    VL_CSS_LAYOUT_PSEUDO_ELEMENT_AFTER
+};
+typedef enum vl_css_layout_pseudo_element_type vl_css_layout_pseudo_element_type_t;
+
+#define VL_CSS_LAYOUT_NODE_IS_PSEUDO(NODE) \
+    ((NODE).pseudo_type != VL_CSS_LAYOUT_PSEUDO_ELEMENT_NONE)
+
 enum vl_css_layout_position_type {
     VL_CSS_LAYOUT_POSITION_STATIC = 0,
     VL_CSS_LAYOUT_POSITION_ABSOLUTE,
@@ -50,17 +60,16 @@ struct vl_css_layout_node {
     vl_css_layout_node_owner_t *owner;
     struct vl_css_layout_node *parent;
     struct vl_css_layout_node *pseudo_before, *pseudo_after;
-    vl_hash_t content_hash;
-    VL_DA(vl_css_class_t*) force_styling;
-    bool is_pseudo;
     VL_DA(struct vl_css_layout_node*) children;
-    vl_css_stylesheet_t *stylesheet;
+
+    vl_css_layout_pseudo_element_type_t pseudo_type;
+    VL_STRING content_string;
 
     vl_css_layout_node_get_content_size get_content_size;
     const char *tag;
 
     VL_STRING unique_id;
-    VL_DA(vl_css_class_selector_t) affecting_selectors;
+    VL_DA(VL_STRING) class_names;
     vl_css_style_t style;
     vl_css_inline_style_t inline_style;
 

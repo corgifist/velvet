@@ -52,6 +52,7 @@ VL_DA(char) vl_da_init_from_string_with_size(const char *string, size_t string_l
 
 VL_DA vl_da_copy(VL_DA da, vl_source_location_t loc, vl_allocator_t allocator) {
     if (!da) return NULL;
+    VL_ASSERT(VL_DA_MAGIC_MATCHES(da));
     vl_da_header_t *src_header = VL_DA_HEADER(da);
     VL_DA new_da = vl_da_init(src_header->element_size, src_header->capacity, loc, allocator);
     memcpy(VL_DA_HEADER(new_da), src_header, sizeof(vl_da_header_t) + src_header->element_size * src_header->capacity);
@@ -60,6 +61,7 @@ VL_DA vl_da_copy(VL_DA da, vl_source_location_t loc, vl_allocator_t allocator) {
 
 void vl_da_clear(VL_DA *da) {
     if (!da || !*da) return;
+    VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));
     vl_da_header_t orig_header = *VL_DA_HEADER(*da);
     vl_allocator_t allocator = orig_header.allocator;
     vl_da_header_t *new_header = vl_arealloc(allocator, VL_DA_HEADER(*da), sizeof(vl_da_header_t) + orig_header.element_size * VL_DA_DEFAULT_CAPACITY);

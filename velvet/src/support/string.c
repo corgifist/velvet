@@ -9,7 +9,7 @@
 
 char *vl_string_init(const char *source, int len, vl_source_location_t loc, vl_allocator_t allocator) {
     if (!source) return NULL;
-    vl_string_t *string = vl_amalloc(allocator, sizeof(vl_string_t) + len + 1);
+    vl_string_t *string = vl_amalloc(allocator, sizeof(vl_string_t) + len + 1, loc);
     string->allocator = allocator;
     string->len = len;
     char *result = VL_PTR_FORWARD(string, sizeof(vl_string_t));

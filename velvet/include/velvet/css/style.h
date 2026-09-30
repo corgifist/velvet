@@ -1,6 +1,7 @@
 #ifndef VELVET_CSS_STYLE_H
 #define VELVET_CSS_STYLE_H
 
+#include "velvet/support/string.h"
 #include "velvet/support/color.h"
 #include "velvet/support/memory.h"
 #include "velvet/common.h"
@@ -139,23 +140,32 @@ struct vl_css_rule {
 };
 typedef struct vl_css_rule vl_css_rule_t;
 
-enum vl_css_class_id_type {
-    VL_CSS_CLASS_ID_ELEMENT = 1,
-    VL_CSS_CLASS_ID_CLASS,
-    VL_CSS_CLASS_ID_ALL,
-    VL_CSS_CLASS_ID_PSEUDO_ELEMENT,
-    VL_CSS_CLASS_ID_UNIQUE_ID
+enum vl_css_class_atom_type {
+    VL_CSS_CLASS_ATOM_NONE = 0,
+    VL_CSS_CLASS_ATOM_ELEMENT = 1,
+    VL_CSS_CLASS_ATOM_CLASS_NAMES,
+    VL_CSS_CLASS_ATOM_ALL,
+    VL_CSS_CLASS_ATOM_PSEUDO_ELEMENT,
+    VL_CSS_CLASS_ATOM_UNIQUE_ID
 };
-typedef enum vl_css_class_id_type vl_css_class_id_type_t;
+typedef enum vl_css_class_atom_type vl_css_class_atom_type_t;
+
+struct vl_css_class_atom {
+    vl_css_class_atom_type_t type;
+    union {
+        VL_STRING string;
+        VL_DA(VL_STRING) class_names;
+    } as;
+};
+typedef struct vl_css_class_atom vl_css_class_atom_t;
 
 struct vl_css_class_id {
-    vl_css_class_id_type_t type;
-    VL_DA(char) name;
+    VL_DA(vl_css_class_atom_t) atoms;
 };
 typedef struct vl_css_class_id vl_css_class_id_t;
 
 struct vl_css_class_selector {
-    VL_DA(vl_css_class_id_t) id_chain;
+    VL_DA(vl_css_class_id_t) hierarchy;
 };
 typedef struct vl_css_class_selector vl_css_class_selector_t;
 
@@ -193,14 +203,16 @@ VL_API vl_result_t vl_css_style_merge_inline(vl_css_style_t *dst, const vl_css_i
 VL_API vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *src);
 VL_API vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src);
 VL_API vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule);
-VL_API vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_css_class_selector_t *selector);
-VL_API vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t *id);
+VL_API vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_css_class_selector_t *src);
+VL_API vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t *src);
+VL_API vl_result_t vl_css_class_atom_copy(vl_css_class_atom_t *dst, const vl_css_class_atom_t *src);
 
-VL_API vl_result_t vl_css_style_print(vl_css_style_t *style);
-VL_API vl_result_t vl_css_class_print(vl_css_class_t *class);
-VL_API vl_result_t vl_css_class_selector_print(vl_css_class_selector_t *selector);
-VL_API vl_result_t vl_css_class_id_print(vl_css_class_id_t *id);
-VL_API vl_result_t vl_css_rule_print(vl_css_rule_t *rule);
+VL_API vl_result_t vl_css_style_print(const vl_css_style_t *style);
+VL_API vl_result_t vl_css_class_print(const vl_css_class_t *class);
+VL_API vl_result_t vl_css_class_selector_print(const vl_css_class_selector_t *selector);
+VL_API vl_result_t vl_css_class_id_print(const vl_css_class_id_t *id);
+VL_API vl_result_t vl_css_class_atom_print(const vl_css_class_atom_t *atom);
+VL_API vl_result_t vl_css_rule_print(const vl_css_rule_t *rule);
 VL_API vl_result_t vl_css_value_print(vl_css_value_t value);
 
 VL_API vl_color_t vl_css_value_to_rgba(vl_css_value_t value);
@@ -211,6 +223,7 @@ VL_API vl_result_t vl_css_inline_style_deinit(vl_css_inline_style_t *style);
 VL_API vl_result_t vl_css_class_deinit(vl_css_class_t *class);
 VL_API vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector);
 VL_API vl_result_t vl_css_class_id_deinit(vl_css_class_id_t *id);
+VL_API vl_result_t vl_css_class_atom_deinit(vl_css_class_atom_t *atom);
 VL_API vl_result_t vl_css_rule_deinit(vl_css_rule_t *rule);
 
 #endif // VELVET_CSS_STYLE_H

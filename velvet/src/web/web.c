@@ -11,13 +11,6 @@
 #include "dom/style/style.h"
 #include "web/theme.h"
 
-static void propagate_stylesheet(vl_css_layout_node_t *node, vl_css_stylesheet_t *sheet) {
-    node->stylesheet = sheet;
-    for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
-        propagate_stylesheet(node->children[i], sheet);
-    }
-}
-
 vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_document_t *document) {
     if (!web) return VL_ERROR;
     VL_ZERO_OUT(web);
@@ -27,7 +20,6 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     vl_css_stylesheet_init(&web->default_stylesheet, vl_web_theme_default_stylesheet());
     web->theme = vl_web_theme_default();
     vl_css_layout_node_init(&web->root_layout_node, "root");
-    propagate_stylesheet(&web->dom.root->layout, &web->stylesheet);
 
     web->platform_context = context;
     web->title = "velvet";

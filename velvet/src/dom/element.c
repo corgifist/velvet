@@ -295,13 +295,12 @@ vl_result_t vl_dom_element_set_string(vl_dom_element_t *element, const char *pro
 }
 
 static vl_result_t element_set_class_name(vl_dom_element_t *element, const char *class_string) {
-    if (element->layout.affecting_selectors) {
-        for (int i = 0; i < VL_DA_LENGTH(element->layout.affecting_selectors); i++) {
-            vl_css_class_selector_deinit(element->layout.affecting_selectors + i);
+    if (element->layout.class_names) {
+        for (int i = 0; i < VL_DA_LENGTH(element->layout.class_names); i++) {
+            VL_STRING_FREE(element->layout.class_names[i]);
         }
-        VL_DA_FREE(element->layout.affecting_selectors);
+        VL_DA_FREE(element->layout.class_names);
     }
-    element->layout.affecting_selectors = VL_DA_INIT(vl_css_class_selector_t);
     const char *begin = class_string;
     const char *end = class_string;
     VL_DA_FREE(element->class_name);
@@ -311,13 +310,8 @@ static vl_result_t element_set_class_name(vl_dom_element_t *element, const char 
     const char *limit = element->class_name + VL_DA_LENGTH(element->class_name);
     while (class_end < limit) {
         if (*class_end == ' ' || *class_end == '\0') {
-            vl_css_class_selector_t selector = {0};
-            selector.id_chain = VL_DA_INIT(vl_css_class_id_t);
-            vl_css_class_id_t id = {0};
-            id.type = VL_CSS_CLASS_ID_CLASS;
-            id.name = VL_DA_INIT_FROM_STRING_WITH_SIZE(class_begin, class_end - class_begin);
-            VL_DA_APPEND(selector.id_chain, id);
-            VL_DA_APPEND(element->layout.affecting_selectors, selector);
+            if (!element->layout.class_names) element->layout.class_names = VL_DA_INIT(VL_STRING);
+            *VL_DA_PUSH(element->layout.class_names, VL_STRING) = VL_STRING_INIT(class_begin, class_end - class_begin);
             class_end++;
             class_begin = class_end;
         }

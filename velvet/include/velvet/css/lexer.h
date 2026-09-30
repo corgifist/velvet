@@ -26,7 +26,7 @@ enum vl_css_token_type {
     VL_CSS_TOKEN_TYPE_SYMBOL,
     VL_CSS_TOKEN_TYPE_NUMBER,
     VL_CSS_TOKEN_TYPE_STRING,
-    VL_CSS_TOKEN_TYPE_HEX_COLOR
+    VL_CSS_TOKEN_TYPE_HEX_ID
 };
 
 typedef enum vl_css_token_type vl_css_token_type_t;

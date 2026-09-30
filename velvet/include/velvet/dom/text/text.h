@@ -24,6 +24,7 @@ struct vl_dom_element_text_blueprint {
     int height;
     int weight;
     VL_DA(VL_DA(vl_web_sized_font_t*)) font_family;
+    char *text;
     vl_hash_t compound_hash;
     vl_dom_element_text_alignment_t alignment;
 };
@@ -54,7 +55,7 @@ typedef struct vl_dom_element_text_layout vl_dom_element_text_layout_t;
 
 struct vl_dom_element_text {
     vl_dom_element_t base;
-    VL_DA(char) text;
+    VL_STRING text;
     vl_dom_element_text_layout_t layout;
 };
 

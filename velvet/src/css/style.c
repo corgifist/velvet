@@ -142,19 +142,45 @@ vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
 
 vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_css_class_selector_t *selector) {
     if (!dst || !selector) return VL_ERROR;
-    if (selector->id_chain) {
-        dst->id_chain = VL_DA_INIT_WITH_CAPACITY(vl_css_class_id_t, VL_DA_LENGTH(selector->id_chain));
-        for (int i = 0; i < VL_DA_LENGTH(selector->id_chain); i++) {
-            vl_css_class_id_copy(VL_DA_PUSH(dst->id_chain, vl_css_class_id_t), selector->id_chain + i);
+    if (selector->hierarchy) {
+        dst->hierarchy = VL_DA_INIT_WITH_CAPACITY(vl_css_class_id_t, VL_DA_LENGTH(selector->hierarchy));
+        for (int i = 0; i < VL_DA_LENGTH(selector->hierarchy); i++) {
+            vl_css_class_id_copy(VL_DA_PUSH(dst->hierarchy, vl_css_class_id_t), selector->hierarchy + i);
         }
     }
     return VL_SUCCESS;
 }
 
-vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t *id) {
-    if (!dst || !id) return VL_ERROR;
-    dst->type = id->type;
-    dst->name = VL_DA_COPY(id->name);
+vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t *src) {
+    if (!dst || !src) return VL_ERROR;
+    if (src->atoms) {
+        dst->atoms = VL_DA_INIT_WITH_CAPACITY(vl_css_class_atom_t, VL_DA_LENGTH(src->atoms));
+        VL_DA_HEADER(dst->atoms)->count = VL_DA_LENGTH(src->atoms);
+        for (int i = 0; i < VL_DA_LENGTH(src->atoms); i++) {
+            vl_css_class_atom_copy(dst->atoms + i, src->atoms + i);
+        }
+    }
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_atom_copy(vl_css_class_atom_t *dst, const vl_css_class_atom_t *src) {
+    if (!dst || !src) return VL_ERROR;
+    VL_ZERO_OUT(dst);
+    dst->type = src->type;
+    switch (src->type) {
+    case VL_CSS_CLASS_ATOM_CLASS_NAMES: {
+        int len = VL_DA_LENGTH(src->as.class_names);
+        dst->as.class_names = VL_DA_INIT(vl_css_class_atom_t);
+        VL_DA_HEADER(dst->as.class_names)->count = len;
+        for (int i = 0; i < len; i++) {
+            dst->as.class_names[i] = VL_STRING_INIT(src->as.class_names[i]);
+        }
+        break;
+    }
+    default: {
+        dst->as.string = VL_STRING_INIT(src->as.string);
+    }
+    }
     return VL_SUCCESS;
 }
 
@@ -312,7 +338,7 @@ static void print_rule(const vl_css_rule_t *rule) {
     printf(";");
 }
 
-vl_result_t vl_css_style_print(vl_css_style_t *style) {
+vl_result_t vl_css_style_print(const vl_css_style_t *style) {
     if (!style) return VL_ERROR;
     if (style->applied_rules) {
         size_t len = VL_DA_LENGTH(style->applied_rules);
@@ -332,48 +358,67 @@ vl_result_t vl_css_value_print(vl_css_value_t value) {
     return VL_SUCCESS;
 }
 
-vl_result_t vl_css_rule_print(vl_css_rule_t *rule) {
+vl_result_t vl_css_rule_print(const vl_css_rule_t *rule) {
     if (!rule) return VL_ERROR;
     print_rule(rule);
     printf("\n");
     return VL_SUCCESS;
 }
 
-
-static void print_class_id(vl_css_class_id_t *id) {
-    if (!id) return;
-    switch (id->type) {
-    case VL_CSS_CLASS_ID_ALL: {
+static void print_class_atom(const vl_css_class_atom_t *atom) {
+    switch (atom->type) {
+    case VL_CSS_CLASS_ATOM_ELEMENT: {
+        printf("%s", atom->as.string);
+        break;
+    }
+    case VL_CSS_CLASS_ATOM_ALL: {
         printf("*");
-        return;
-    }
-    case VL_CSS_CLASS_ID_ELEMENT: break;
-    case VL_CSS_CLASS_ID_CLASS: {
-        printf(".");
         break;
     }
-    case VL_CSS_CLASS_ID_PSEUDO_ELEMENT: {
-        printf("::");
+    case VL_CSS_CLASS_ATOM_CLASS_NAMES: {
+        if (atom->as.class_names) {
+            int len = VL_DA_LENGTH(atom->as.class_names);
+            for (int i = 0; i < len; i++) {
+                printf(".%s", atom->as.class_names[i]);
+            }
+        }
         break;
     }
-    case VL_CSS_CLASS_ID_UNIQUE_ID: {
-        printf("#");
+    case VL_CSS_CLASS_ATOM_UNIQUE_ID: {
+        printf("#%s", atom->as.string);
+        break;
+    }
+    case VL_CSS_CLASS_ATOM_PSEUDO_ELEMENT: {
+        printf("::%s", atom->as.string);
+        break;
+    }
+    case VL_CSS_CLASS_ATOM_NONE:
+    default: {
+        printf("???");
         break;
     }
     }
-    printf("%s", id->name);
 }
 
-static void print_class_selector(vl_css_class_selector_t *selector) {
-    if (!selector->id_chain) return;
-    size_t len = VL_DA_LENGTH(selector->id_chain);
+static void print_class_id(const vl_css_class_id_t *id) {
+    if (!id) return;
+    int len = VL_DA_LENGTH(id->atoms);
     for (int i = 0; i < len; i++) {
-        vl_css_class_id_t *id = selector->id_chain + i;
+        print_class_atom(id->atoms + i);
+        // if (i != len - 1 && (id->atoms[i + 1].type != VL_CSS_CLASS_ATOM_PSEUDO_ELEMENT || id->atoms[i + 1].type != VL_CSS_CLASS_ATOM_UNIQUE_ID)) printf(" ");
+    }
+}
+
+static void print_class_selector(const vl_css_class_selector_t *selector) {
+    if (!selector->hierarchy) return;
+    int len = VL_DA_LENGTH(selector->hierarchy);
+    for (int i = 0; i < len; i++) {
+        vl_css_class_id_t *id = selector->hierarchy + i;
         print_class_id(id);
     }
 }
 
-vl_result_t vl_css_class_print(vl_css_class_t *class) {
+vl_result_t vl_css_class_print(const vl_css_class_t *class) {
     if (!class) return VL_ERROR;
     if (class->selectors) {
         size_t len = VL_DA_LENGTH(class->selectors);
@@ -395,14 +440,20 @@ vl_result_t vl_css_class_print(vl_css_class_t *class) {
     return VL_SUCCESS;
 }
 
-vl_result_t vl_css_class_selector_print(vl_css_class_selector_t *selector) {
+vl_result_t vl_css_class_selector_print(const vl_css_class_selector_t *selector) {
     if (!selector) return VL_ERROR;
     print_class_selector(selector);
     printf("\n");
     return VL_SUCCESS;
 }
 
-vl_result_t vl_css_class_id_print(vl_css_class_id_t *id) {
+vl_result_t vl_css_class_atom_print(const vl_css_class_atom_t *atom) {
+    if (!atom) return VL_ERROR;
+    print_class_atom(atom);
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_id_print(const vl_css_class_id_t *id) {
     if (!id) return VL_ERROR;
     print_class_id(id);
     printf("\n");
@@ -448,18 +499,43 @@ vl_result_t vl_css_value_deinit(vl_css_value_t *value) {
 
 vl_result_t vl_css_class_selector_deinit(vl_css_class_selector_t *selector) {
     if (!selector) return VL_ERROR;
-    if (selector->id_chain) {
-        for (int i = 0; i < VL_DA_LENGTH(selector->id_chain); i++) {
-            vl_css_class_id_deinit(selector->id_chain + i);
+    if (selector->hierarchy) {
+        for (int i = 0; i < VL_DA_LENGTH(selector->hierarchy); i++) {
+            vl_css_class_id_deinit(selector->hierarchy + i);
         }
-        VL_DA_FREE(selector->id_chain);
+        VL_DA_FREE(selector->hierarchy);
     }
     return VL_SUCCESS;
 }
 
 vl_result_t vl_css_class_id_deinit(vl_css_class_id_t *id) {
     if (!id) return VL_ERROR;
-    VL_DA_FREE(id->name);
+    if (id->atoms) {
+        for (int i = 0; i < VL_DA_LENGTH(id->atoms); i++) {
+            vl_css_class_atom_deinit(id->atoms + i);
+        }
+    }
+    VL_DA_FREE(id->atoms);
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_css_class_atom_deinit(vl_css_class_atom_t *atom) {
+    if (!atom) return VL_ERROR;
+    switch (atom->type) {
+    case VL_CSS_CLASS_ATOM_CLASS_NAMES: {
+        if (atom->as.class_names) {
+            int len = VL_DA_LENGTH(atom->as.class_names);
+            for (int i = 0; i < len; i++) {
+                VL_STRING_FREE(atom->as.class_names[i]);
+            }
+        }
+        VL_DA_FREE(atom->as.class_names);
+        break;
+    }
+    default: {
+        VL_STRING_FREE(atom->as.string);
+    }
+    }
     return VL_SUCCESS;
 }
 

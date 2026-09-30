@@ -18,19 +18,25 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     if (!node || !tag) return VL_ERROR;
     VL_ZERO_OUT(node);
     node->tag = tag;
-    node->affecting_selectors = VL_DA_INIT(vl_css_class_selector_t);
+    node->class_names = NULL;
     node->children = VL_DA_INIT(vl_css_layout_node_t*);
     vl_css_style_init(&node->style);
     return VL_SUCCESS;
 }
 
-static vl_css_layout_node_t *new_pseudo_element(vl_css_layout_node_t *node, VL_DA(vl_css_class_t*) force_styles) {
+static const char *s_pseudo_to_string[] = {
+    [VL_CSS_LAYOUT_PSEUDO_ELEMENT_NONE] = "none",
+    [VL_CSS_LAYOUT_PSEUDO_ELEMENT_BEFORE] = "before",
+    [VL_CSS_LAYOUT_PSEUDO_ELEMENT_AFTER] = "after"
+};
+
+static vl_css_layout_node_t *new_pseudo_element(vl_css_layout_node_t *node, vl_css_layout_pseudo_element_type_t type) {
     vl_css_layout_node_t *pseudo = &vl_dom_element_new("text")->layout;
     pseudo->web = node->web;
     pseudo->parent = node;
-    pseudo->force_styling = force_styles;
-    pseudo->is_pseudo = true;
+    pseudo->pseudo_type = type;
     ((vl_dom_element_t*) pseudo->owner)->owner = ((vl_dom_element_t*) node->owner)->owner;
+    ((vl_dom_element_t*) pseudo->owner)->parent = ((vl_dom_element_t*) node->owner);
     return pseudo;
 }
 
@@ -41,52 +47,94 @@ static vl_result_t stylesheet_broad_query(vl_css_layout_node_t *node, VL_DA(vl_c
         bool match = false;
         for (int j = 0; j < VL_DA_LENGTH(class->selectors); j++) {
             vl_css_class_selector_t *selector = class->selectors + j;
-            vl_css_layout_node_t *ancestor = node;
-            for (int k = VL_DA_LENGTH(selector->id_chain); k --> 0;) {
-                vl_css_class_id_t *id = selector->id_chain + k;
-                switch (id->type) {
-                case VL_CSS_CLASS_ID_ALL: {
-                    match = true;
-                    goto next_class;
-                    break;
-                }
-                case VL_CSS_CLASS_ID_ELEMENT: {
-                    if (ancestor && ancestor->tag && strcmp(ancestor->tag, id->name) != 0) {
+            vl_css_layout_node_t *level = node;
+            for (int k = VL_DA_LENGTH(selector->hierarchy); k --> 0;) {
+                vl_css_class_id_t *id = selector->hierarchy + k;
+                vl_css_layout_node_t *target_level = (level->pseudo_type ? level->parent : level);  
+                bool has_before = false;
+                bool has_after = false;
+                bool gate_pseudo_elements = false;
+                for (int l = VL_DA_LENGTH(id->atoms); l --> 0;) {
+                    vl_css_class_atom_t *atom = id->atoms + l;
+                    switch (atom->type) {
+                    case VL_CSS_CLASS_ATOM_ALL: {
+                        match = true;
                         goto next_selector;
-                    } else {
-                        if (ancestor && ancestor->parent) ancestor = ancestor->parent;
-                        goto next_id;
                     }
-                    break;
-                }
-                case VL_CSS_CLASS_ID_CLASS: {
-                    for (int l = 0; l < VL_DA_LENGTH(ancestor->affecting_selectors); l++) {
-                        if (strcmp(ancestor->affecting_selectors[l].id_chain->name, id->name) == 0) {
-                            goto next_id;
+                    case VL_CSS_CLASS_ATOM_ELEMENT: {
+                        if (level->pseudo_type && !gate_pseudo_elements) goto next_selector;
+                        if (atom->as.string && strcmp(target_level->tag, atom->as.string) != 0) {
+                            goto next_selector;
                         }
+                        break;
                     }
-                    goto next_selector;
-                    break;
-                }
-                case VL_CSS_CLASS_ID_UNIQUE_ID: {
-                    if (ancestor->unique_id && strcmp(ancestor->unique_id, id->name) == 0) {
-                        goto next_id;
+                    case VL_CSS_CLASS_ATOM_UNIQUE_ID: {
+                        if (level->pseudo_type && !gate_pseudo_elements) goto next_selector;
+                        if (atom->as.string && level->unique_id && strcmp(level->unique_id, atom->as.string) != 0) {
+                            goto next_selector;
+                        }
+                        break;
                     }
-                    goto next_selector;
-                    break;
+                    case VL_CSS_CLASS_ATOM_CLASS_NAMES: {
+                        if (level->pseudo_type && !gate_pseudo_elements) goto next_selector;
+                        if (atom->as.class_names && target_level->class_names) {
+                            int len = VL_DA_LENGTH(atom->as.class_names);
+                            for (int i1 = 0; i1 < len; i1++) {
+                                bool found = false;
+                                for (int j1 = 0; j1 < VL_DA_LENGTH(target_level->class_names); j1++) {
+                                    if (strcmp(atom->as.class_names[i1], target_level->class_names[j1]) == 0) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) goto next_selector;
+                            }
+                        } else {
+                            goto next_selector;
+                        }
+                        break;
+                    }
+                    case VL_CSS_CLASS_ATOM_PSEUDO_ELEMENT: {
+                        vl_css_layout_pseudo_element_type_t pseudo_type = 0;
+                        for (int i1 = 0; i1 < VL_ARR_LEN(s_pseudo_to_string); i1++) {
+                            if (atom->as.string && strcmp(s_pseudo_to_string[i1], atom->as.string) == 0) {
+                                pseudo_type = i1;
+                                break;
+                            }
+                        }
+                        if (pseudo_type == 0) goto next_selector;
+                        if (level->pseudo_type == 0) {
+                            if (pseudo_type == VL_CSS_LAYOUT_PSEUDO_ELEMENT_BEFORE) {
+                                has_before = true;
+                            }
+                            if (pseudo_type == VL_CSS_LAYOUT_PSEUDO_ELEMENT_AFTER) {
+                                has_after = true;
+                            }
+                        } else if (level->pseudo_type != pseudo_type) {
+                            goto next_selector;
+                        }
+                        gate_pseudo_elements = true;
+                        break;
+                    }
+                    default: break;
+                    }
                 }
-                case VL_CSS_CLASS_ID_PSEUDO_ELEMENT: {
-                    // TODO?
-                    break;
-                }
-                }
-                next_id:
-                continue;
+                if (level->parent) {
+                    if (has_before && !level->pseudo_before) {
+                        level->pseudo_before = new_pseudo_element(level, VL_CSS_LAYOUT_PSEUDO_ELEMENT_BEFORE);
+                        goto next_selector;
+                    }
+                    if (has_after && !level->pseudo_after) {
+                        level->pseudo_after = new_pseudo_element(level, VL_CSS_LAYOUT_PSEUDO_ELEMENT_AFTER);
+                        goto next_selector;
+                    }
+                    if (gate_pseudo_elements && !level->pseudo_type) goto next_selector;
+                    level = level->parent;
+                } else goto next_selector;
             }
             match = true;
             next_selector:
-            if (match) break;
-            continue;
+            if (match) goto next_class;
         }
         next_class:
         if (match) {
@@ -101,78 +149,22 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     vl_css_style_deinit(&node->style);
     vl_css_style_init(&node->style);
-    if (node->force_styling) {
-        for (int i = 0; i < VL_DA_LENGTH(node->force_styling); i++) {
-            vl_css_style_t tmp = {0};
-            vl_css_style_from_class(&tmp, node->force_styling[i]);
-            vl_css_style_merge(&node->style, &tmp);
-            vl_css_style_deinit(&tmp);
-        }
-    }
 
     VL_DA(vl_css_class_t*) matched_classes = NULL;
-    // vl_css_stylesheet_broad_query(node->stylesheet, &node->tag_selector, &matched_classes);
-    // vl_css_stylesheet_broad_query(node->stylesheet, &node->unique_id_selector, &matched_classes);
-    // if (node->affecting_selectors) {
-    //     for (int i = 0; i < VL_DA_LENGTH(node->affecting_selectors); i++) {
-    //         vl_css_stylesheet_broad_query(node->stylesheet, node->affecting_selectors + i, &matched_classes);
-    //     }
-    // }
     stylesheet_broad_query(node, &matched_classes);
-    VL_DA(vl_css_class_t*) matched_before_classes = NULL;
-    VL_DA(vl_css_class_t*) matched_after_classes = NULL;
+
     if (matched_classes) {
         for (int i = 0; i < VL_DA_LENGTH(matched_classes); i++) {
             vl_css_class_t *matched_class = matched_classes[i];
             vl_css_style_t tmp_style = {0};
-            bool is_before = false;
-            bool is_after = false;
-            for (int j = 0; j < VL_DA_LENGTH(matched_class->selectors); j++) {
-                vl_css_class_selector_t *selector = matched_class->selectors + j;
-                for (int k = 0; k < VL_DA_LENGTH(selector->id_chain); k++) {
-                    vl_css_class_id_t *id = selector->id_chain + k;
-                    if (id->type == VL_CSS_CLASS_ID_PSEUDO_ELEMENT && strcmp(id->name, "before") == 0) {
-                        is_before = true;
-                    }
-                    if (id->type == VL_CSS_CLASS_ID_PSEUDO_ELEMENT && strcmp(id->name, "after") == 0) {
-                        is_after = true;
-                    }
-                }
-            }
             vl_css_style_from_class(&tmp_style, matched_class);
-            if (is_before || is_after) {
-                VL_DA(vl_css_class_t*) *pseudo_classes = (is_before ? &matched_before_classes : &matched_after_classes);
-                if (!*pseudo_classes) *pseudo_classes = VL_DA_INIT(vl_css_class_t*);
-                VL_DA_APPEND(*pseudo_classes, matched_class);
-                goto next;
-            }
             vl_css_style_merge(&node->style, &tmp_style);
-            next:
             vl_css_style_deinit(&tmp_style);
         }
     }
     VL_DA_FREE(matched_classes);
-    if (node->is_pseudo) {
-        vl_css_value_t content_string = vl_css_style_get_property(&node->style, "content", VL_CSS_VALUE_NONE());
-        if (!VL_CSS_VALUE_IS_LITERAL(content_string)) {
-            node->content_hash = 0;
-        } else {
-            vl_dom_element_set_string(node->owner, "innerText", content_string.as.literal);
-            node->content_hash = vl_hash_string(content_string.as.literal);
-        }
-    }
     vl_css_style_merge_inline(&node->style, &node->inline_style);
     vl_css_style_print(&node->style);
-    if (matched_before_classes) {
-        if (!node->pseudo_before) {
-            node->pseudo_before = new_pseudo_element(node, matched_before_classes);
-        }
-    }
-    if (matched_after_classes) {
-        if (!node->pseudo_after) {
-            node->pseudo_after = new_pseudo_element(node, matched_after_classes);
-        }
-    }
     return VL_SUCCESS;
 }
 
@@ -288,6 +280,14 @@ vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
         css_color = VL_CSS_VALUE_RGBA(0, 0, 0, 1);
     }
     node->color = vl_css_value_to_rgba(css_color);
+    vl_css_value_t content_value = vl_css_layout_node_get_property(node, "content", VL_CSS_VALUE_NONE());
+    if (VL_CSS_VALUE_IS_LITERAL(content_value)) {
+        VL_STRING_FREE(node->content_string);
+        printf("content: '%s' on %s\n", content_value.as.literal, node->tag);
+        node->content_string = VL_STRING_INIT(content_value.as.literal);
+    } else {
+        node->content_string = NULL;
+    }
     node->position_type = get_position_type(vl_css_layout_node_get_property(node, "position", VL_CSS_VALUE_CONST_LITERAL("static")));
     node->position_metrics = construct_position_metrics(node);
     construct_dimensions(node);
@@ -403,15 +403,13 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
 vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     VL_STRING_FREE(node->unique_id);
-    if (node->affecting_selectors) {
-        for (int i = 0; i < VL_DA_LENGTH(node->affecting_selectors); i++) {
-            vl_css_class_selector_deinit(node->affecting_selectors + i);
+    if (node->class_names) {
+        for (int i = 0; i < VL_DA_LENGTH(node->class_names); i++) {
+            VL_STRING_FREE(node->class_names[i]);
         }
-        VL_DA_FREE(node->affecting_selectors);
+        VL_DA_FREE(node->class_names);
     }
-    if (node->force_styling) {
-        VL_DA_FREE(node->force_styling);
-    }
+    VL_STRING_FREE(node->content_string);
     vl_css_style_deinit(&node->style);
     vl_css_inline_style_deinit(&node->inline_style);
     if (node->pseudo_before) {
