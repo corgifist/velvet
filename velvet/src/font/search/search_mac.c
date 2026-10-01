@@ -16,7 +16,7 @@ static VL_STRING cf_string_to_da_string(CFStringRef cf_string) {
         cf_string, CFRangeMake(0, cf_length), 
         kCFStringEncodingUTF8, 0, false, 
         NULL, 0, &buffer_length);
-    VL_DA_STRING result = VL_DA_INIT_WITH_CAPACITY(char, buffer_length + 1);
+    VL_DA_STRING result = VL_DA_INIT(char, buffer_length + 1);
     CFStringGetCString(cf_string, result, buffer_length + 1, kCFStringEncodingUTF8);
     VL_DA_HEADER(result)->count = buffer_length;
     VL_STRING compact = VL_STRING_FROM_DA(result);

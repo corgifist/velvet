@@ -56,7 +56,7 @@ void da_test() {
 }
 
 void da_stress_test() {
-    VL_DA(int) da = VL_DA_INIT_WITH_ALLOCATOR(int, VL_ALLOCATOR_DEFAULT());
+    VL_DA(int) da = VL_DA_INIT(int, 8, VL_HERE, VL_ALLOCATOR_DEFAULT());
     vl_da_header_t *header = VL_DA_HEADER(da);
     VL_ASSERT(da);
     srand(time(NULL));
@@ -535,7 +535,7 @@ void html_realloc_test() {
 #include <memory.h>
 
 void misalign_test() {
-    VL_DA(bool) b = VL_DA_INIT_WITH_CAPACITY(bool, 5);
+    VL_DA(bool) b = VL_DA_INIT(bool, 5);
     *VL_DA_PUSH(b, bool) = true;
     *VL_DA_PUSH(b, bool) = false;
     *VL_DA_PUSH(b, bool) = true;
@@ -1312,47 +1312,50 @@ void styling_test() {
     //     <p class="before-test">Hello, World!</p>
     //     <p class="fake-button">Explore</p>
     // );
-    // const char *input = VL_STRINGIFY(
-    //     <style>
-    //         .before1::before {
-    //             content: "Before! ";
-    //         }
-    //         .before1::before {
-    //             color: blue;
-    //         }
+    const char *input = VL_STRINGIFY(
+        <style>
+            .before1::before {
+                content: "Before! ";
+            }
+            .before1::before {
+                color: blue;
+            }
+            .before1 {
+                color: deeppink;
+            }
 
-    //         .fancy-quote {
-    //             color: purple;
-    //         }
-    //         .fancy-quote::before {
-    //             content: "« ";
-    //             color: red;
-    //         }
-    //         .fancy-quote::after {
-    //             content: " »";
-    //             color: green;
-    //         }
+            .fancy-quote {
+                color: purple;
+            }
+            .fancy-quote::before {
+                content: "« ";
+                color: red;
+            }
+            .fancy-quote::after {
+                content: " »";
+                color: green;
+            }
 
-    //         .quote {
-    //             font-size: 1.5em;
-    //             color: DeepPink;
-    //         }
+            .quote {
+                font-size: 1.5em;
+                color: DeepPink;
+            }
 
-    //         .quote::before {
-    //             content: "\"";
-    //             color: green;
-    //         }
+            .quote::before {
+                content: "\"";
+                color: green;
+            }
 
-    //         .quote::after {
-    //             content: "\"";
-    //             color: blue;
-    //         }
-    //     </style>
-    //     <p class="before1">Hello, World!</p>
-    //     <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
-    //     <p class="quote">Quotes? Who?</p>
-    //     <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: green">World!</span></p>
-    // );
+            .quote::after {
+                content: "\"";
+                color: blue;
+            }
+        </style>
+        <p class="before1">Hello, World!</p>
+        <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
+        <p class="quote">Quotes? Who?</p>
+        <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: green">World!</span></p>
+    );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         h1 {
@@ -1545,58 +1548,58 @@ void styling_test() {
     //         </p>
     //     </div>
     // );
-    const char *input = VL_STRINGIFY(
-        <!doctype html>
-        <html lang="en">
-        <head>
-        <meta charset="utf-8" />
-        <title>CSS selector difference</title>
-        <style>
-            body {
-                // --velvet-element-highlight: highlight-green;
-            }
-            .a.b.c {
-            background: #c8f7c5;
-            border: 2px solid #2d8a34;
-            }
+    // const char *input = VL_STRINGIFY(
+    //     <!doctype html>
+    //     <html lang="en">
+    //     <head>
+    //     <meta charset="utf-8" />
+    //     <title>CSS selector difference</title>
+    //     <style>
+    //         body {
+    //             // --velvet-element-highlight: highlight-green;
+    //         }
+    //         .a.b.c {
+    //         background: #c8f7c5;
+    //         border: 2px solid #2d8a34;
+    //         }
 
-            .a .b .c {
-            background: #c5dcf7;
-            border: 2px solid #2d5f8a;
-            }
+    //         .a .b .c {
+    //         background: #c5dcf7;
+    //         border: 2px solid #2d5f8a;
+    //         }
 
-            .box {
-            padding: 12px;
-            margin: 10px 0;
-            color: #111;
-            font-family: sans-serif;
-            }
-        </style>
-        </head>
-        <body>
-        <h2>.a.b.c</h2>
-        <div class="box a b c">
-            This matches <code>.a.b.c</code> because one element has all three classes.
-        </div>
+    //         .box {
+    //         padding: 12px;
+    //         margin: 10px 0;
+    //         color: #111;
+    //         font-family: sans-serif;
+    //         }
+    //     </style>
+    //     </head>
+    //     <body>
+    //     <h2>.a.b.c</h2>
+    //     <div class="box a b c">
+    //         This matches <code>.a.b.c</code> because one element has all three classes.
+    //     </div>
 
-        <h2>.a .b .c</h2>
-        <div class="a">
-            <div class="b">
-            <div class="box c">
-                This matches <code>.a .b .c</code> because <code>.c</code> is inside <code>.b</code>, which is inside <code>.a</code>.
-            </div>
-            </div>
-        </div>
+    //     <h2>.a .b .c</h2>
+    //     <div class="a">
+    //         <div class="b">
+    //         <div class="box c">
+    //             This matches <code>.a .b .c</code> because <code>.c</code> is inside <code>.b</code>, which is inside <code>.a</code>.
+    //         </div>
+    //         </div>
+    //     </div>
 
-        <h2>Does not match both</h2>
-        <div class="box a">
-            <div class="box b c">
-            This does <strong>not</strong> match <code>.a.b.c</code>, and it also does <strong>not</strong> match <code>.a .b .c</code> because <code>.c</code> is not a descendant of <code>.b</code> here.
-            </div>
-        </div>
-        </body>
-        </html>
-    );
+    //     <h2>Does not match both</h2>
+    //     <div class="box a">
+    //         <div class="box b c">
+    //         This does <strong>not</strong> match <code>.a.b.c</code>, and it also does <strong>not</strong> match <code>.a .b .c</code> because <code>.c</code> is not a descendant of <code>.b</code> here.
+    //         </div>
+    //     </div>
+    //     </body>
+    //     </html>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

@@ -11,7 +11,7 @@
 
 VL_STRING wstring_to_string(const wchar_t* wstring) {
     int count = WideCharToMultiByte(CP_UTF8, 0, wstring, -1, NULL, 0, NULL, NULL);
-    VL_DA_STRING result = VL_DA_INIT_WITH_CAPACITY(char, count);
+    VL_DA_STRING result = VL_DA_INIT(char, count);
     WideCharToMultiByte(CP_UTF8, 0, wstring, -1, result, count, NULL, NULL);
     VL_DA_HEADER(result)->count = count - 1;
     VL_STRING compact = VL_STRING_FROM_DA(result);
@@ -36,8 +36,8 @@ vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, c
             DWORD max_name_len = 0;
             DWORD max_value_len = 0;
             if (RegQueryInfoKeyW(hKey, NULL, NULL, NULL, NULL, NULL, NULL, &value_count, &max_name_len, &max_value_len, NULL, NULL) == ERROR_SUCCESS) {
-                VL_DA(WCHAR) name_arr = VL_DA_INIT_WITH_CAPACITY(WCHAR, max_name_len + 1);
-                VL_DA(BYTE) value_arr = VL_DA_INIT_WITH_CAPACITY(BYTE, max_value_len + 1);
+                VL_DA(WCHAR) name_arr = VL_DA_INIT(WCHAR, max_name_len + 1);
+                VL_DA(BYTE) value_arr = VL_DA_INIT(BYTE, max_value_len + 1);
                 VL_DA_HEADER(name_arr)->count = max_name_len + 1;
                 VL_DA_HEADER(value_arr)->count = max_value_len + 1;
                 for (DWORD i = 0; i < value_count; ++i) {

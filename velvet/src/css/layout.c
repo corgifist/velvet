@@ -19,7 +19,7 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     VL_ZERO_OUT(node);
     node->tag = tag;
     node->class_names = NULL;
-    node->children = VL_DA_INIT(vl_css_layout_node_t*);
+    node->children = VL_DA_INIT(vl_css_layout_node_t*, 1);
     vl_css_style_init(&node->style);
     return VL_SUCCESS;
 }

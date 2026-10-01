@@ -110,7 +110,7 @@ typedef struct vl_css_value vl_css_value_t;
 #define VL_CSS_VALUE_LIST1(LIST) \
     VL_CSS_VALUE(VL_CSS_VALUE_LIST, {.list = (LIST)})
 #define VL_CSS_VALUE_LIST0() \
-    VL_CSS_VALUE_LIST1(VL_DA_INIT(vl_css_value_t))
+    VL_CSS_VALUE_LIST1(VL_DA_INIT1(vl_css_value_t))
 #define VL_CSS_VALUE_LIST(...) \
     VL_VA_DISPATCH(VL_CSS_VALUE_LIST, __VA_ARGS__)
 

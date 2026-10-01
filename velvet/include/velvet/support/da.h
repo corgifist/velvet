@@ -48,25 +48,16 @@ typedef void* VL_DA;
 // dynamic array of chars (simply char*)
 #define VL_DA_STRING VL_DA(char)
 
-/*
-    initializes a dynamic array of type TYPE with initial capacity of VL_DA_DEFAULT_CAPACITY
-    using the default memory allocator
-*/
-#define VL_DA_INIT(TYPE) \
-    VL_DA_INIT_WITH_CAPACITY(TYPE, VL_DA_DEFAULT_CAPACITY)
-
-/*
-    initializes a dynamic array of type TYPE with initial capacity of CAPACITY 
-    using the default memory allocator
-*/
-#define VL_DA_INIT_WITH_CAPACITY(TYPE, CAPACITY) \
-    VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, VL_ALLOCATOR_DEFAULT())
-
-#define VL_DA_INIT_WITH_ALLOCATOR(TYPE, ALLOCATOR) \
-    VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, VL_DA_DEFAULT_CAPACITY, ALLOCATOR)
-
-#define VL_DA_INIT_WITH_CAPACITY_AND_ALLOCATOR(TYPE, CAPACITY, ALLOCATOR) \
-    (vl_da_init(sizeof(TYPE), CAPACITY, VL_SOURCE_LOCATION_HERE, (ALLOCATOR)))
+#define VL_DA_INIT4(TYPE, CAPACITY, LOC, ALLOCATOR) \
+    (vl_da_init(sizeof(TYPE), (CAPACITY), (LOC), (ALLOCATOR)))
+#define VL_DA_INIT3(TYPE, CAPACITY, LOC) \
+    VL_DA_INIT4(TYPE, CAPACITY, LOC, VL_ALLOCATOR_DEFAULT())
+#define VL_DA_INIT2(TYPE, CAPACITY) \
+    VL_DA_INIT3(TYPE, CAPACITY, VL_HERE)
+#define VL_DA_INIT1(TYPE) \
+    VL_DA_INIT2(TYPE, VL_DA_DEFAULT_CAPACITY)
+#define VL_DA_INIT(...) \
+    VL_VA_DISPATCH(VL_DA_INIT, __VA_ARGS__)
 
 #define VL_DA_INIT_FROM_STRING(STRING) \
     VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, VL_ALLOCATOR_DEFAULT())

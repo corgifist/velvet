@@ -16,7 +16,7 @@ vl_result_t vl_html_tidy_document(vl_html_document_t *document) {
     if (vl_html_tidy_node(&document->root)) return VL_ERROR;
     if (!document->doctype || (document->doctype && VL_DA_LENGTH(document->doctype) == 0)) {
         if (!document->doctype) {
-            document->doctype = VL_DA_INIT_WITH_CAPACITY(VL_STRING, 1);
+            document->doctype = VL_DA_INIT(VL_STRING, 1);
         }
         *VL_DA_PUSH(document->doctype, VL_STRING) = VL_STRING_INIT("html");
     }

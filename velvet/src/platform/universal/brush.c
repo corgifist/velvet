@@ -31,7 +31,7 @@ vl_graphics_brush_t *vl_graphics_brush_universal_new_linear_gradient(vl_graphics
     vl_graphics_brush_linear_gradient_t *brush = VL_PTR_FORWARD(brush_mem, sizeof(vl_brush_index_t));
     brush->base.type = VL_GRAPHICS_RENDER_BRUSH_LINEAR_GRADIENT;
     brush->base.owner = render;
-    brush->stops = VL_DA_INIT_WITH_CAPACITY(vl_gradient_stop_t, stops_count);
+    brush->stops = VL_DA_INIT(vl_gradient_stop_t, stops_count);
     for (size_t i = 0; i < stops_count; i++) {
         VL_DA_APPEND(brush->stops, stops[i]);
     }

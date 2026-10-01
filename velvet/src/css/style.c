@@ -126,13 +126,13 @@ vl_result_t vl_css_rule_copy(vl_css_rule_t *dst, const vl_css_rule_t *rule) {
 vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
     if (!dst || !src) return VL_ERROR;
     if (src->selectors) {
-        dst->selectors = VL_DA_INIT_WITH_CAPACITY(vl_css_class_selector_t, VL_DA_LENGTH(src->selectors));
+        dst->selectors = VL_DA_INIT(vl_css_class_selector_t, VL_DA_LENGTH(src->selectors));
         for (int i = 0; i < VL_DA_LENGTH(src->selectors); i++) {
             vl_css_class_selector_copy(VL_DA_PUSH(dst->selectors, vl_css_class_selector_t), src->selectors + i);
         }
     }
     if (src->rules) {
-        dst->rules = VL_DA_INIT_WITH_CAPACITY(vl_css_rule_t, VL_DA_LENGTH(src->rules));
+        dst->rules = VL_DA_INIT(vl_css_rule_t, VL_DA_LENGTH(src->rules));
         for (int i = 0; i < VL_DA_LENGTH(src->rules); i++) {
             vl_css_rule_copy(VL_DA_PUSH(dst->rules, vl_css_rule_t), src->rules + i);
         }
@@ -143,7 +143,7 @@ vl_result_t vl_css_class_copy(vl_css_class_t *dst, const vl_css_class_t *src) {
 vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_css_class_selector_t *selector) {
     if (!dst || !selector) return VL_ERROR;
     if (selector->hierarchy) {
-        dst->hierarchy = VL_DA_INIT_WITH_CAPACITY(vl_css_class_id_t, VL_DA_LENGTH(selector->hierarchy));
+        dst->hierarchy = VL_DA_INIT(vl_css_class_id_t, VL_DA_LENGTH(selector->hierarchy));
         for (int i = 0; i < VL_DA_LENGTH(selector->hierarchy); i++) {
             vl_css_class_id_copy(VL_DA_PUSH(dst->hierarchy, vl_css_class_id_t), selector->hierarchy + i);
         }
@@ -154,7 +154,7 @@ vl_result_t vl_css_class_selector_copy(vl_css_class_selector_t *dst, const vl_cs
 vl_result_t vl_css_class_id_copy(vl_css_class_id_t *dst, const vl_css_class_id_t *src) {
     if (!dst || !src) return VL_ERROR;
     if (src->atoms) {
-        dst->atoms = VL_DA_INIT_WITH_CAPACITY(vl_css_class_atom_t, VL_DA_LENGTH(src->atoms));
+        dst->atoms = VL_DA_INIT(vl_css_class_atom_t, VL_DA_LENGTH(src->atoms));
         VL_DA_HEADER(dst->atoms)->count = VL_DA_LENGTH(src->atoms);
         for (int i = 0; i < VL_DA_LENGTH(src->atoms); i++) {
             vl_css_class_atom_copy(dst->atoms + i, src->atoms + i);
@@ -204,7 +204,7 @@ vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) 
     }
     case VL_CSS_VALUE_LIST: {
         if (value->as.list) {
-            dst->as.list = VL_DA_INIT_WITH_CAPACITY(vl_css_value_t, VL_DA_LENGTH(value->as.list));
+            dst->as.list = VL_DA_INIT(vl_css_value_t, VL_DA_LENGTH(value->as.list));
             VL_DA_HEADER(dst->as.list)->count = VL_DA_LENGTH(value->as.list);
             for (int i = 0; i < VL_DA_LENGTH(value->as.list); i++) {
                 vl_css_value_copy(dst->as.list + i, value->as.list + i);

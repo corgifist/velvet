@@ -221,7 +221,7 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     GL_CALL(render->ctx, BufferData(GL_ARRAY_BUFFER, BATCH_MAX * sizeof(vl_graphics_vertex_t), NULL, GL_DYNAMIC_DRAW));
 
     render->batch_offset = 0;
-    render->batch_vertices = VL_DA_INIT_WITH_CAPACITY(vl_graphics_vertex_t, BATCH_MAX);
+    render->batch_vertices = VL_DA_INIT(vl_graphics_vertex_t, BATCH_MAX);
     render->batch_active = false;
 
     GL_CALL(render->ctx, GenBuffers(1, &render->brush_vbo));
@@ -229,10 +229,10 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
     GL_CALL(render->ctx, BufferData(GL_UNIFORM_BUFFER, BRUSH_MAX * sizeof(Brush) + STOPS_MAX * sizeof(GradientStop), NULL, GL_DYNAMIC_READ));
 
     render->brush_offset = 0;
-    render->brush_da = VL_DA_INIT_WITH_CAPACITY(Brush, BRUSH_MAX);
+    render->brush_da = VL_DA_INIT(Brush, BRUSH_MAX);
     render->owned_brushes = VL_DA_INIT(vl_graphics_brush_t*);
 
-    render->stops_da = VL_DA_INIT_WITH_CAPACITY(GradientStop, STOPS_MAX);
+    render->stops_da = VL_DA_INIT(GradientStop, STOPS_MAX);
     render->stops_offset = 0;
 
     GL_CALL(render->ctx, GenVertexArrays(1, &render->batch_vao));
@@ -271,10 +271,10 @@ vl_graphics_render_t *vl_graphics_render_universal_new(vl_os_window_t *win) {
         GL_CALL(render->ctx, Uniform1i(sampler_location, i));
     }
 
-    render->active_samplers = VL_DA_INIT_WITH_CAPACITY(GLint, BITMAP_MAX);
+    render->active_samplers = VL_DA_INIT(GLint, BITMAP_MAX);
     GL_CALL(render->ctx, GenSamplers(BITMAP_MAX, render->active_samplers));
 
-    render->active_bitmaps = VL_DA_INIT_WITH_CAPACITY(vl_graphics_brush_bitmap_t*, BITMAP_MAX);
+    render->active_bitmaps = VL_DA_INIT(vl_graphics_brush_bitmap_t*, BITMAP_MAX);
     render->bitmap_offset = 0;
 
     GL_CALL(render->ctx, GenTextures(1, &render->dummy_texture));
