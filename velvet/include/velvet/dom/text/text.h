@@ -50,7 +50,7 @@ typedef struct vl_dom_element_text_segment vl_dom_element_text_segment_t;
 
 struct vl_dom_element_text_line {
     VL_DA(vl_dom_element_text_segment_t) segments;
-    float width, height, span_offset;
+    float width, height, span_offset, gap;
     bool wrapped;
 };
 typedef struct vl_dom_element_text_line vl_dom_element_text_line_t;

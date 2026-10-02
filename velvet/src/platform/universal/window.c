@@ -41,6 +41,16 @@ static void callback_window_resize(GLFWwindow *window, int w, int h) {
     }
 }
 
+static void callback_scroll(GLFWwindow* window, double x, double y) {
+    if (!s_pairs) return;
+    for (int i = 0; i < VL_DA_LENGTH(s_pairs); i++) {
+        vl_window_handle_pair_t *pair = s_pairs + i;
+        if (pair->handle == window) {
+            pair->window->io.scroll_delta = VL_VEC2_ADD(pair->window->io.scroll_delta, VL_VEC2(x, y));
+        }
+    }
+}
+
 vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     if (!s_initialized) {
         if (vl_os_window_universal_init()) return NULL;
@@ -76,6 +86,7 @@ vl_os_window_t *vl_os_window_universal_new(const char *title, int w, int h) {
     *VL_DA_PUSH(s_windows, vl_os_window_t*) = (vl_os_window_t*) win;
 
     glfwSetWindowSizeCallback(handle, callback_window_resize);
+    glfwSetScrollCallback(handle, callback_scroll);
     vl_os_window_universal_poll_events();
 
     return (vl_os_window_t*) win;
@@ -112,6 +123,11 @@ static void update_window_io(vl_os_window_t *window) {
 
 vl_result_t vl_os_window_universal_poll_events() {
     if (!s_windows) return VL_ERROR;
+    for (int i = 0; i < VL_DA_LENGTH(s_windows); i++) {
+        if (s_windows[i]) {
+            s_windows[i]->io.scroll_delta = VL_VEC2(0);
+        }
+    }
     glfwPollEvents();
     for (int i = 0; i < VL_DA_LENGTH(s_windows); i++) {
         if (s_windows[i]) {

@@ -297,7 +297,7 @@ static vl_css_value_t parse_font_list(vl_css_parser_t *parser, vl_css_rule_t *ru
     vl_css_value_t result = {.type = VL_CSS_VALUE_FONT_LIST, .as = {0}};
     vl_css_font_list_t *font_list = &result.as.font_list;
     font_list->fonts = VL_DA_INIT(VL_STRING);
-    while (!VL_TOKEN_COMPARE(current, ";")) {
+    while (!VL_TOKEN_COMPARE(current, ";") && current->type != VL_CSS_TOKEN_TYPE_STOP) {
         VL_STRING id = parse_id_or_string(parser);
         if (id) *VL_DA_PUSH(font_list->fonts, VL_STRING) = id;
         else if (tokenize(parser) || skip_spaces(parser)) break;

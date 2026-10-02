@@ -22,6 +22,7 @@ struct vl_os_window_io {
 
     float content_scale;
     vl_vec2_t window_size;
+    vl_vec2_t scroll_delta;
 };
 
 typedef struct vl_os_window_io vl_os_window_io_t;

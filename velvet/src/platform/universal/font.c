@@ -1,4 +1,5 @@
 #include "font/atlas.h"
+#include "support/base_math.h"
 #include "support/math.h"
 #include "support/da.h"
 #include "support/math.h"
@@ -28,7 +29,7 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     stbtt_GetFontVMetrics(&font->font, &font->base.ascent, &font->base.descent, &font->base.line_gap);
     font->base.ascent *= font->slim_scale;
     font->base.descent *= font->slim_scale;
-    font->base.line_gap *= font->slim_scale;
+    font->base.line_gap = VL_CEIL(font->base.line_gap * font->slim_scale);
     font->base.newline_advance = font->base.ascent - font->base.descent + font->base.line_gap;
     // font->base.kind = classify_font(data, stbtt_GetFontOffsetForIndex(data, 0), &font->font);
     return (vl_font_t*) font;
@@ -64,11 +65,11 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
         return NULL;
     }
     vl_byte_t *pixels = (atlas->data + atlas->width * atlas->cursor_y) + atlas->cursor_x;
-    stbtt_MakeGlyphBitmap(&f->font, pixels, w, h, atlas->width, f->scale, f->scale, glyph_id);
-    float bx1 = atlas->cursor_x;
-    float by1 = atlas->cursor_y;
-    float bx2 = bx1 + w;
-    float by2 = by1 + h;
+    stbtt_MakeGlyphBitmapSubpixel(&f->font, pixels, w, h, atlas->width, f->scale, f->scale, 0.0f, 0.0f, glyph_id);
+    float bx1 = VL_FLOOR(atlas->cursor_x);
+    float by1 = VL_FLOOR(atlas->cursor_y);
+    float bx2 = VL_FLOOR(bx1 + w);
+    float by2 = VL_FLOOR(by1 + h);
     vl_font_atlas_codepoint_t result = {0};
     result.owner = font;
     result.w = w / font->density;
@@ -79,7 +80,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     float ax = advance_x * f->scale / font->density;
     result.advance_x = ax;
     result.x1 = lb;
-    result.y1 = font->ascent + ((float) y1) / font->density;
+    result.y1 = font->ascent + font->line_gap + ((float) y1) / font->density;
     result.x2 = lb + w / font->density;
     result.y2 = font->ascent + ((float) y2) / font->density;
 

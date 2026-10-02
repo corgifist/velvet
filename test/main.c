@@ -1625,41 +1625,41 @@ void styling_test() {
 // <body>
 //   <h1>Text Wrapping Test Page</h1>
 
-// //   <p>
-// //     This is a normal paragraph containing enough text to test how a renderer
-// //     wraps words across multiple lines. The text should remain readable and
-// //     should not overflow its container.
-// //   </p>
+//   <p>
+//     This is a normal paragraph containing enough text to test how a renderer
+//     wraps words across multiple lines. The text should remain readable and
+//     should not overflow its container.
+//   </p>
 
-// //   <h2>Short Words</h2>
-// //   <p>
-// //     One two three four five six seven eight nine ten eleven twelve thirteen
-// //     fourteen fifteen sixteen seventeen eighteen nineteen twenty.
-// //   </p>
+//   <h2>Short Words</h2>
+//   <p>
+//     One two three four five six seven eight nine ten eleven twelve thirteen
+//     fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+//   </p>
 
-// //   <h2>Long Words</h2>
-// //   <p>
-// //     Pneumonoultramicroscopicsilicovolcanoconiosis
-// //     antidisestablishmentarianism
-// //     supercalifragilisticexpialidocious
-// //   </p>
+//   <h2>Long Words</h2>
+//   <p>
+//     Pneumonoultramicroscopicsilicovolcanoconiosis
+//     antidisestablishmentarianism
+//     supercalifragilisticexpialidocious
+//   </p>
 
-// //   <h2>Long URL</h2>
-// //   <p>
-// //     www.example.com/a-very-long-path-that-may-need-to-wrap/section/subsection/article?id=123456789&mode=preview
-// //   </p>
+//   <h2>Long URL</h2>
+//   <p>
+//     www.example.com/a-very-long-path-that-may-need-to-wrap/section/subsection/article?id=123456789&mode=preview
+//   </p>
 
-// //   <h2>Long Unbroken Text</h2>
-// //   <p>
-// //     ThisIsAReallyLongUnbrokenStringDesignedToTestWhetherTheRendererCanHandleTextThatContainsNoSpacesAtAllAndMayNeedToBreakOrOverflow
-// //   </p>
+//   <h2>Long Unbroken Text</h2>
+//   <p>
+//     ThisIsAReallyLongUnbrokenStringDesignedToTestWhetherTheRendererCanHandleTextThatContainsNoSpacesAtAllAndMayNeedToBreakOrOverflow
+//   </p>
 
 //   <h2>Mixed Content</h2>
 //   <p>
 //     This paragraph includes <strong>bold text</strong>,
 //     <span>italic text</span>,
-//     // and a line break.
-//     // This sentence begins after a forced line break.
+//     and a line break.
+//     This sentence begins after a forced line break.
 //   </p>
 
 //   <h2>Right-to-Left Text</h2>
@@ -1685,11 +1685,29 @@ void styling_test() {
 // </html>
 //     );
     const char *input = VL_STRINGIFY(
-        <p style="--velvet-element-highlight: highlight-orangex">
+        <p style="font-family: serif; font-size: 1em;">
             This paragraph includes <strong>bold text</strong>,
             <span>italic text</span>,
             and a line break. 
             This sentence begins after a forced break
+            VA AV
+        </p>
+        <p style="font-family: serif; font-size: 1.5em;">
+            This paragraph includes <strong>bold text</strong>,
+            <span>italic text</span>,
+            and a line break. 
+            This sentence begins after a forced break
+            VA AV
+        </p>
+        <p style="font-family: serif; font-size: 2em;">
+            This paragraph includes <strong>bold text</strong>,
+            <span>italic text</span>,
+            and a line break. 
+            This sentence begins after a forced break
+            VA AV
+        </p>
+        <p style="background: green; font-size: 2.5em; --velvet-element-highlight: highlight-orangex">
+            Hello, <strong>bold text</strong>
         </p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
@@ -1705,14 +1723,16 @@ void styling_test() {
     win->callback_resize = window_resize;
 
     bool close;
+    float y_offset = 0;
     while (!vl_os_window_should_close(win, &close) && !close) {
         vl_os_window_poll_events(ctx);
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_WHITE);
         vl_graphics_render_batch_begin(render);
-            // web.refresh_styles = true;
-            // web.root_layout_node.size = win->io.window_size;
+        y_offset += win->io.scroll_delta.y * 5;
+            vl_graphics_render_push_translate(render, VL_VEC2(0, y_offset));
             vl_web_render(&web);
+            vl_graphics_render_pop_transform(render);
          vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
     }
