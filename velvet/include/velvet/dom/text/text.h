@@ -41,9 +41,17 @@ struct vl_dom_element_text_glyph {
 };
 typedef struct vl_dom_element_text_glyph vl_dom_element_text_glyph_t;
 
-struct vl_dom_element_text_line {
+struct vl_dom_element_text_segment {
     VL_DA(vl_dom_element_text_glyph_t) glyphs;
+    float x, y;
     float width, height, span_offset;
+};
+typedef struct vl_dom_element_text_segment vl_dom_element_text_segment_t;
+
+struct vl_dom_element_text_line {
+    VL_DA(vl_dom_element_text_segment_t) segments;
+    float width, height, span_offset;
+    bool wrapped;
 };
 typedef struct vl_dom_element_text_line vl_dom_element_text_line_t;
 

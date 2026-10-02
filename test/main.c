@@ -824,9 +824,9 @@ void simple_dom_test() {
 #include "velvet/font/segmentation.h"
 
 void segmentation_test() {
-    const char *text = "Hello, world! こんにちは世界";
+    const char *text = "Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع";
     vl_font_segmentation_breaks_t breaks = NULL;
-    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_WORD, &breaks);
+    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_ONLY_WORDS, &breaks);
     for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {
         vl_font_segmentation_break_t *br = breaks + i;
         printf("%i %.*s %zu %zu\n", i, (int) br->end - (int) br->begin, text + br->begin, br->begin, br->end);
@@ -1312,50 +1312,50 @@ void styling_test() {
     //     <p class="before-test">Hello, World!</p>
     //     <p class="fake-button">Explore</p>
     // );
-    const char *input = VL_STRINGIFY(
-        <style>
-            .before1::before {
-                content: "Before! ";
-            }
-            .before1::before {
-                color: blue;
-            }
-            .before1 {
-                color: deeppink;
-            }
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         .before1::before {
+    //             content: "Before! ";
+    //         }
+    //         .before1::before {
+    //             color: blue;
+    //         }
+    //         .before1 {
+    //             color: deeppink;
+    //         }
 
-            .fancy-quote {
-                color: purple;
-            }
-            .fancy-quote::before {
-                content: "« ";
-                color: red;
-            }
-            .fancy-quote::after {
-                content: " »";
-                color: green;
-            }
+    //         .fancy-quote {
+    //             color: purple;
+    //         }
+    //         .fancy-quote::before {
+    //             content: "« ";
+    //             color: red;
+    //         }
+    //         .fancy-quote::after {
+    //             content: " »";
+    //             color: green;
+    //         }
 
-            .quote {
-                font-size: 1.5em;
-                color: DeepPink;
-            }
+    //         .quote {
+    //             font-size: 1.5em;
+    //             color: DeepPink;
+    //         }
 
-            .quote::before {
-                content: "\"";
-                color: green;
-            }
+    //         .quote::before {
+    //             content: "\"";
+    //             color: green;
+    //         }
 
-            .quote::after {
-                content: "\"";
-                color: blue;
-            }
-        </style>
-        <p class="before1">Hello, World!</p>
-        <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
-        <p class="quote">Quotes? Who?</p>
-        <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: green">World!</span></p>
-    );
+    //         .quote::after {
+    //             content: "\"";
+    //             color: blue;
+    //         }
+    //     </style>
+    //     <p class="before1">Hello, World!</p>
+    //     <p class="fancy-quote">The only wisdom is in knowing you know nothing</p>
+    //     <p class="quote">Quotes? Who?</p>
+    //     <p style="font-size: 1.5em; background-color: green">Hello, <span style="font-size: 1.5em; background-color: green">World!</span></p>
+    // );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         h1 {
@@ -1446,6 +1446,10 @@ void styling_test() {
     //             position: relative;
     //             top: -13px;
     //         }
+
+    //         span {
+    //             // --velvet-element-highlight: highlight-green;
+    //         }
     //     </style>
     //     <p>1: The first rule of Fight Club is: You do not talk about Fight Club.</p>
     //     <hr/>
@@ -1458,6 +1462,11 @@ void styling_test() {
     //         This is the second paragraph of text. This is the second paragraph of text.
     //         This is the second paragraph of text. This is the second paragraph of text.
     //     </article>
+
+    //     <div style="--velvet-element-highlight: highlight-orange">
+    //     Hello, WOWOWOWOWOWOWOWOWWOOWOWOWOWOWOO <span>AAAA BBBB CCCC DDDD</span> Hello!!!
+    //     </div>
+    //     Hello!
     // );
     // const char *input = VL_STRINGIFY(
     //     <!DOCTYPE html>
@@ -1600,6 +1609,89 @@ void styling_test() {
     //     </body>
     //     </html>
     // );
+//     const char *input = VL_STRINGIFY(
+//         <!doctype html>
+// <html lang="en">
+// <head>
+//   <meta charset="UTF-8">
+//   <meta name="viewport" content="width=device-width, initial-scale=1">
+//   <title>Text Wrapping Test</title>
+//   <style>
+//         body {
+//             --velvet-element-highlight: highlight-green;
+//         }
+//   </style>
+// </head>
+// <body>
+//   <h1>Text Wrapping Test Page</h1>
+
+// //   <p>
+// //     This is a normal paragraph containing enough text to test how a renderer
+// //     wraps words across multiple lines. The text should remain readable and
+// //     should not overflow its container.
+// //   </p>
+
+// //   <h2>Short Words</h2>
+// //   <p>
+// //     One two three four five six seven eight nine ten eleven twelve thirteen
+// //     fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+// //   </p>
+
+// //   <h2>Long Words</h2>
+// //   <p>
+// //     Pneumonoultramicroscopicsilicovolcanoconiosis
+// //     antidisestablishmentarianism
+// //     supercalifragilisticexpialidocious
+// //   </p>
+
+// //   <h2>Long URL</h2>
+// //   <p>
+// //     www.example.com/a-very-long-path-that-may-need-to-wrap/section/subsection/article?id=123456789&mode=preview
+// //   </p>
+
+// //   <h2>Long Unbroken Text</h2>
+// //   <p>
+// //     ThisIsAReallyLongUnbrokenStringDesignedToTestWhetherTheRendererCanHandleTextThatContainsNoSpacesAtAllAndMayNeedToBreakOrOverflow
+// //   </p>
+
+//   <h2>Mixed Content</h2>
+//   <p>
+//     This paragraph includes <strong>bold text</strong>,
+//     <span>italic text</span>,
+//     // and a line break.
+//     // This sentence begins after a forced line break.
+//   </p>
+
+//   <h2>Right-to-Left Text</h2>
+//   <p dir="rtl">
+//     هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.
+//   </p>
+
+//   <h2>Unicode and Emoji</h2>
+//   <p>
+//     Unicode characters: café, naïve, résumé, Ελληνικά, Русский, 中文, 日本語,
+//     العربية, हिन्दी, and emoji 😀 🚀 🌍.
+//   </p>
+
+//   <h2>Nested Elements</h2>
+//   <p>
+//     Start of paragraph
+//     <span>inside a span</span>
+//     <span>followed by another span containing more text that may wrap across
+//     lines</span>
+//     and the end of the paragraph.
+//   </p>
+// </body>
+// </html>
+//     );
+    const char *input = VL_STRINGIFY(
+        <p style="--velvet-element-highlight: highlight-orangex">
+            This paragraph includes <strong>bold text</strong>,
+            <span>italic text</span>,
+            and a line break. 
+            This sentence begins after a forced break
+        </p>
+    );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

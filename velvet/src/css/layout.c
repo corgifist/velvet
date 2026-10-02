@@ -145,6 +145,32 @@ static vl_result_t stylesheet_broad_query(vl_css_layout_node_t *node, VL_DA(vl_c
     return VL_SUCCESS;
 }
 
+#include "bits/construct_complex_metric.c"
+
+#include "bits/construct_dimensions.c"
+#include "bits/construct_borders.c"
+#include "bits/construct_background.c"
+
+#include "bits/construct_position_metrics.c"
+
+static vl_css_layout_display_t get_display_mode(vl_css_layout_node_t *node) {
+    if (!node) return VL_CSS_LAYOUT_DISPLAY_NONE;
+    bool is_inline = vl_html_is_tag_inline(node->tag);
+    vl_css_value_t display_value = vl_css_layout_node_get_property(node, "display", VL_CSS_VALUE_CONST_LITERAL(is_inline ? "inline" : "block"));
+    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "none")) return VL_CSS_LAYOUT_DISPLAY_NONE;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "block")) return VL_CSS_LAYOUT_DISPLAY_BLOCK;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "inline")) return VL_CSS_LAYOUT_DISPLAY_INLINE;
+    return VL_CSS_LAYOUT_DISPLAY_BLOCK;
+}
+
+static vl_css_layout_position_type_t get_position_type(vl_css_value_t value) {
+    if (!VL_CSS_VALUE_IS_LITERAL(value)) return VL_CSS_LAYOUT_POSITION_STATIC;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(value, "static")) return VL_CSS_LAYOUT_POSITION_STATIC;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(value, "absolute")) return VL_CSS_LAYOUT_POSITION_ABSOLUTE;
+    if (VL_CSS_VALUE_COMPARE_LITERALS(value, "relative")) return VL_CSS_LAYOUT_POSITION_RELATIVE;
+    return VL_CSS_LAYOUT_POSITION_STATIC;
+}
+
 vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     vl_css_style_deinit(&node->style);
@@ -164,7 +190,33 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     }
     VL_DA_FREE(matched_classes);
     vl_css_style_merge_inline(&node->style, &node->inline_style);
-    vl_css_style_print(&node->style);
+    // vl_css_style_print(&node->style);
+
+    node->display = get_display_mode(node);    
+    vl_color_t default_color = (node->parent ? node->parent->color : VL_BLACK);
+    if (strcmp(node->tag, "text") == 0) {
+        default_color = vl_web_theme_get_property(node->web->theme, "canvastext", default_color);
+    }
+    vl_css_value_t css_color = vl_css_layout_node_get_property(node, "color", VL_CSS_VALUE_RGBA(default_color.r, default_color.g, default_color.b, default_color.a));
+    if (!VL_CSS_VALUE_COLOR_COMPATIBLE(css_color)) {
+        css_color = VL_CSS_VALUE_RGBA(0, 0, 0, 1);
+    }
+    node->color = vl_css_value_to_rgba(css_color);
+    vl_css_value_t content_value = vl_css_layout_node_get_property(node, "content", VL_CSS_VALUE_NONE());
+    if (VL_CSS_VALUE_IS_LITERAL(content_value)) {
+        VL_STRING_FREE(node->content_string);
+        node->content_string = VL_STRING_INIT(content_value.as.literal);
+    } else {
+        node->content_string = NULL;
+    }
+    node->position_type = get_position_type(vl_css_layout_node_get_property(node, "position", VL_CSS_VALUE_CONST_LITERAL("static")));
+    node->position_metrics = construct_position_metrics(node);
+    construct_dimensions(node);
+    construct_complex_metric("margin", &node->margin, node->auto_margin, node);
+    construct_complex_metric("padding", &node->padding, NULL, node);
+    construct_borders(node);
+    construct_background(node);
+    node->effective_padding = VL_VEC4_ADD(node->padding, VL_VEC4(node->border[0].width, node->border[1].width, node->border[2].width, node->border[3].width));
     return VL_SUCCESS;
 }
 
@@ -230,72 +282,24 @@ static const struct {
     {"strong", layout_generic_div}
 };
 
-#include "bits/generic_metric_to_metric4.c"
-#include "bits/construct_complex_metric.c"
-
-#include "bits/construct_dimensions.c"
-#include "bits/construct_borders.c"
-#include "bits/construct_background.c"
-
-#include "bits/construct_position_metrics.c"
-
-static vl_css_layout_display_t get_display_mode(vl_css_layout_node_t *node) {
-    if (!node) return VL_CSS_LAYOUT_DISPLAY_NONE;
-    bool is_inline = vl_html_is_tag_inline(node->tag);
-    vl_css_value_t display_value = vl_css_layout_node_get_property(node, "display", VL_CSS_VALUE_CONST_LITERAL(is_inline ? "inline" : "block"));
-    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "none")) return VL_CSS_LAYOUT_DISPLAY_NONE;
-    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "block")) return VL_CSS_LAYOUT_DISPLAY_BLOCK;
-    if (VL_CSS_VALUE_COMPARE_LITERALS(display_value, "inline")) return VL_CSS_LAYOUT_DISPLAY_INLINE;
-    return VL_CSS_LAYOUT_DISPLAY_BLOCK;
-}
-
-static vl_css_layout_position_type_t get_position_type(vl_css_value_t value) {
-    if (!VL_CSS_VALUE_IS_LITERAL(value)) return VL_CSS_LAYOUT_POSITION_STATIC;
-    if (VL_CSS_VALUE_COMPARE_LITERALS(value, "static")) return VL_CSS_LAYOUT_POSITION_STATIC;
-    if (VL_CSS_VALUE_COMPARE_LITERALS(value, "absolute")) return VL_CSS_LAYOUT_POSITION_ABSOLUTE;
-    if (VL_CSS_VALUE_COMPARE_LITERALS(value, "relative")) return VL_CSS_LAYOUT_POSITION_RELATIVE;
-    return VL_CSS_LAYOUT_POSITION_STATIC;
-}
 
 vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node) {
+    if (!node) return VL_ERROR;
+    vl_css_layout_node_refresh_style(node);
+    return vl_css_layout_node_layout(node);
+}
+
+vl_result_t vl_css_layout_node_layout(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
     if (node->calculating_layout) return VL_SUCCESS;
     if (node->tag && strcmp(node->tag, "root") == 0) {
         return VL_SUCCESS;
     }
-    vl_css_layout_node_refresh_style(node);
-    node->calculating_layout = true;
-    node->position = VL_VEC2(0);
-    node->display = get_display_mode(node);
+    // node->position = VL_VEC2();
     node->block_last_margin = 0;
     node->block_applied_margin = VL_FLOAT_MIN;
     node->block_first_margin = VL_FLOAT_MIN;
     node->span_y_offset = 0;
-    vl_color_t default_color = (node->parent ? node->parent->color : VL_BLACK);
-    if (strcmp(node->tag, "text") == 0) {
-        default_color = vl_web_theme_get_property(node->web->theme, "canvastext", default_color);
-    }
-    vl_css_value_t css_color = vl_css_layout_node_get_property(node, "color", VL_CSS_VALUE_RGBA(default_color.r, default_color.g, default_color.b, default_color.a));
-    if (!VL_CSS_VALUE_COLOR_COMPATIBLE(css_color)) {
-        css_color = VL_CSS_VALUE_RGBA(0, 0, 0, 1);
-    }
-    node->color = vl_css_value_to_rgba(css_color);
-    vl_css_value_t content_value = vl_css_layout_node_get_property(node, "content", VL_CSS_VALUE_NONE());
-    if (VL_CSS_VALUE_IS_LITERAL(content_value)) {
-        VL_STRING_FREE(node->content_string);
-        printf("content: '%s' on %s\n", content_value.as.literal, node->tag);
-        node->content_string = VL_STRING_INIT(content_value.as.literal);
-    } else {
-        node->content_string = NULL;
-    }
-    node->position_type = get_position_type(vl_css_layout_node_get_property(node, "position", VL_CSS_VALUE_CONST_LITERAL("static")));
-    node->position_metrics = construct_position_metrics(node);
-    construct_dimensions(node);
-    construct_complex_metric("margin", &node->margin, node->auto_margin, node);
-    construct_complex_metric("padding", &node->padding, NULL, node);
-    construct_borders(node);
-    construct_background(node);
-    node->effective_padding = VL_VEC4_ADD(node->padding, VL_VEC4(node->border[0].width, node->border[1].width, node->border[2].width, node->border[3].width));
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             s_layout_overrides[i].layout(node);

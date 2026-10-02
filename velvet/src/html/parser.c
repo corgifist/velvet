@@ -315,11 +315,9 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     while (true && !short_tag) {
         vl_result_t parse_result = vl_html_parser_get_ex(parser, &tmp_node);
         if (parse_result == VL_HTML_PARSER_STOP) {
-            if (vl_html_node_deinit(&tmp_node)) return VL_ERROR;
             return VL_SUCCESS;
         }
         if (parse_result == VL_ERROR) {
-            vl_html_node_deinit(&tmp_node);
             return VL_ERROR;
         }
         if (parse_result == VL_HTML_PARSER_CLOSE_NODE) {
@@ -349,7 +347,7 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
     node->text = VL_DA_INIT(char);
     VL_STRING compact_string = NULL;
     if (current->line >= 1 && current->inline_pos > 1) {
-        if (*(current->text - 1) == ' ' && vl_html_is_tag_inline_ex(close_tag_begin, close_tag_end)) {
+        if ((*(current->text - 1) == ' ' || *(current->text - 1) == '\n' || *(current->text - 1) == '\t') && vl_html_is_tag_inline_ex(close_tag_begin, close_tag_end)) {
             *VL_DA_PUSH(node->text, char) = ' ';
         }
     }
@@ -365,6 +363,8 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
                 goto escape_fail;
             }
             while (!VL_TOKEN_COMPARE(current, ";")) {
+                if (current->type == VL_HTML_TOKEN_TYPE_STOP) goto escape_success;
+                if (VL_TOKEN_COMPARE(current, "<")) goto escape_success;
                 for (int i = 0; i < current->text_length; i++) {
                     *VL_DA_PUSH(entity_accumulator, char) = current->text[i];
                 }

@@ -67,7 +67,7 @@ vl_result_t vl_font_shaper_univesal_process(vl_font_shaper_t *shaper, const char
         kbts_ShapePushFont(s->context, &uf->font);
     }
     kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_DONT_KNOW);
-    kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_CODEPOINT_INDEX);
+    kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_SOURCE_INDEX);
     kbts_ShapeEnd(s->context);
     for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
         kbts_ShapePopFont(s->context);
@@ -83,6 +83,10 @@ bool vl_font_shaper_universal_shape(vl_font_shaper_t *shaper, vl_font_shaper_run
     if (!status) return false;
     run->hard_line_break = r->run.Flags & KBTS_BREAK_FLAG_LINE_HARD;
     run->font = r->run.Font->UserData;
+    switch (r->run.Direction) {
+    case KBTS_DIRECTION_LTR: run->direction = VL_FONT_SHAPER_RUN_DIRECTION_LTR; break;
+    case KBTS_DIRECTION_RTL: run->direction = VL_FONT_SHAPER_RUN_DIRECTION_RTL; break;
+    }
     return true;
 }
 
@@ -106,6 +110,7 @@ vl_result_t vl_font_shaper_run_universal_reset(vl_font_shaper_run_t *run) {
     r->iterator = 0;
     r->run = (kbts_run) {0};
     r->base.hard_line_break = false;
+    r->base.direction = VL_FONT_SHAPER_RUN_DIRECTION_NONE;
     return VL_SUCCESS;
 }
 

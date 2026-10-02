@@ -25,10 +25,18 @@ struct vl_font_shaper_glyph {
 
 typedef struct vl_font_shaper_glyph vl_font_shaper_glyph_t;
 
+enum vl_font_shaper_run_direction {
+    VL_FONT_SHAPER_RUN_DIRECTION_NONE = 0,
+    VL_FONT_SHAPER_RUN_DIRECTION_RTL,
+    VL_FONT_SHAPER_RUN_DIRECTION_LTR,
+};
+typedef enum vl_font_shaper_run_direction vl_font_shaper_run_direction_t;
+
 struct vl_font_shaper_run {
     vl_font_shaper_t *owner;
     vl_font_t *font;
     bool hard_line_break;
+    vl_font_shaper_run_direction_t direction;
 };
 
 typedef struct vl_font_shaper_run vl_font_shaper_run_t;

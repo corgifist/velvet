@@ -102,7 +102,7 @@ vl_result_t vl_html_tidy_node(vl_html_node_t *node) {
     vl_html_node_t html_node = create_minimal_node("html", true);
 
     vl_html_node_t head_node = create_minimal_node("head", false);
-    vl_html_node_t body_node = create_minimal_node("body", false);
+    vl_html_node_t body_node = create_minimal_node("body", true);
 
     VL_DA_APPEND(body_node.children, *node);
 

@@ -94,6 +94,11 @@ struct vl_css_layout_node {
     float block_first_margin;
     float block_first_offset;
     float span_y_offset;
+    float span_line_height;
+    float span_last_cursor;
+    vl_vec2_t span_position, span_area;
+    vl_vec2_t span_wrap_pos;
+    bool span_wrapped;
     bool calculating_layout;
 };
 
@@ -102,6 +107,7 @@ typedef struct vl_css_layout_node vl_css_layout_node_t;
 VL_API vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag);
 VL_API vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node);
 VL_API vl_result_t vl_css_layout_node_process(vl_css_layout_node_t *node);
+VL_API vl_result_t vl_css_layout_node_layout(vl_css_layout_node_t *node);
 VL_API vl_vec2_t vl_css_layout_node_get_raw_content_size(vl_css_layout_node_t *node);
 VL_API vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const char *property, vl_css_value_t fallback);
 VL_API vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *node, const char *property, vl_css_size_metric_t metric, float optional_parent_size);
