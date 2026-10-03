@@ -63,14 +63,14 @@ static void layout_pad_aware_node(vl_css_layout_node_t *parent, vl_css_layout_no
     );
 }
 
-static vl_css_layout_node_t *seek_next_child(vl_css_layout_node_t *parent, VL_DA(vl_css_layout_node_t*) children, int *index) {
+static vl_css_layout_node_t *seek_next_child(vl_css_layout_node_t *parent, int *index) {
     (*index)++;
-    int len = VL_DA_LENGTH(children);
+    int len = VL_DA_LENGTH(parent->children);
     if (*index >= len) return NULL;
-    vl_css_layout_node_t *child = children[*index];
+    vl_css_layout_node_t *child = parent->children[*index];
     while (child && *index < len) {
         if (!process_block_child(parent, child)) return child;
-        child = children[++(*index)];
+        child = parent->children[++(*index)];
     }
     return NULL;
 }
@@ -98,8 +98,8 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     bool is_html = (strcmp(node->tag, "html") == 0);
     PUSH_NEW_BLOCK_LINE(lines);
     int i = -1;
-    vl_css_layout_node_t *child = seek_next_child(node, node->children, &i);
-    vl_css_layout_node_t *prev = NULL, *next = seek_next_child(node, node->children, &i);
+    vl_css_layout_node_t *child = seek_next_child(node, &i);
+    vl_css_layout_node_t *prev = NULL, *next = seek_next_child(node, &i);
     while (child) {
         vl_css_block_line *line = VL_DA_LAST(lines);
         if (node->block_first_margin == VL_FLOAT_MIN) {
@@ -110,7 +110,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         }
         if (child->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) cursor.x = node->effective_padding.w;
         child->position.x += cursor.x;
-        child->span_position.x = node->position.x + child->position.x;
+        child->span_position.x = node->position.x + cursor.x;
         child->span_area.x = node->parent->size.x;
         layout_pad_aware_node(node, child);
 
@@ -162,13 +162,11 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             if (child->span_wrapped) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
-            child->position.x += child->span_wrap_pos.x;
-            child->size.x += -child->span_wrap_pos.x;
             child->position.y += cursor.y - child->margin.x;
             cursor.x += child->size.x + child->margin.y + child->margin.w;
             if (child->span_wrapped) {
-                cursor.x = child->span_last_cursor;
                 child->position.x = 0;
+                child->size.x = child->span_area.x;
             }
             node->span_wrapped = child->span_wrapped;
             line->width = VL_MAX(line->width, cursor.x);
@@ -182,13 +180,15 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             line->max_span_offset = VL_MAX(line->max_span_offset, child->span_y_offset);
             node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
             node->span_line_height = VL_MAX(node->span_line_height, child->span_line_height);
+            node->span_last_cursor = child->span_last_cursor;
             VL_DA_APPEND(line->elements, child);
             if (next && strcmp(next->tag, "br") == 0) {
                 cursor.x = node->effective_padding.w;
                 cursor.y += line->height;
             }
             if (child->span_wrapped) {
-                cursor.y += line->height - node->span_line_height;
+                cursor.x = child->span_last_cursor.x;
+                cursor.y += child->span_last_cursor.y;
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
             if ((!child->span_wrapped && cursor.x > node->size.x && next) || (next && next->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)) {
@@ -205,7 +205,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         node->size = size;
         prev = child;
         child = next;
-        next = seek_next_child(node, node->children, &i);
+        next = seek_next_child(node, &i);
     }
 
     for (int i = 0; i < VL_DA_LENGTH(lines); i++) {

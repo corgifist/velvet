@@ -416,6 +416,7 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             for (int i = 0; i < VL_DA_LENGTH(entity_accumulator); i++) {
                 *VL_DA_PUSH(node->text, char) = entity_accumulator[i];
             }
+            VL_DA_FREE(entity_accumulator);
             if (had_semicolon) *VL_DA_PUSH(node->text, char) = ';';
 
             escape_next:

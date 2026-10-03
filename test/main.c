@@ -1622,7 +1622,7 @@ void styling_test() {
         }
   </style>
 </head>
-<body>
+<body style="font-family: serif">
   <h1>Text Wrapping Test Page</h1>
 
   <p>
@@ -1676,8 +1676,13 @@ void styling_test() {
   <h2>Nested Elements</h2>
   <p>
     Start of paragraph
-    <span>inside a span</span> <span>followed by another span containing more text that may wrap across lines</span>
+    <span>inside a span</span>
+    <span>followed by another span containing more text that may wrap across lines</span>
     and the end of the paragraph.
+  </p>
+  <h2>Wrapping Spans</h2>
+  <p>
+        Hello, <span>World World World World World World World World World World World World World World World</span>
   </p>
   Xinside spanX<br>
   X<span>inside span</span>X

@@ -95,9 +95,8 @@ struct vl_css_layout_node {
     float block_first_offset;
     float span_y_offset;
     float span_line_height;
-    float span_last_cursor;
+    vl_vec2_t span_last_cursor;
     vl_vec2_t span_position, span_area;
-    vl_vec2_t span_wrap_pos;
     bool span_wrapped;
     bool calculating_layout;
 };
