@@ -205,7 +205,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
     // printf("layout: '%s' %f %f\n", layout->blueprint.text, element->layout.span_position.x, element->layout.span_area.x);
     vl_font_shaper_process(fonts->shaper, layout->blueprint.text, VL_STRING_LEN(layout->blueprint.text));
     VL_DA(vl_font_segmentation_break_t) word_breaks = NULL;
-    vl_font_segmentation_process_string(layout->blueprint.text, VL_STRING_LEN(layout->blueprint.text), VL_FONT_SEGMENTATION_ONLY_WORDS, &word_breaks);
+    vl_font_segmentation_process_string(layout->blueprint.text, VL_STRING_LEN(layout->blueprint.text), VL_FONT_SEGMENTATION_WORD, &word_breaks);
     vl_dom_element_text_line_t *line = push_new_line(&layout->lines);
     float base_x = element->layout.padding.w;
     float base_y = element->layout.padding.x;
@@ -214,6 +214,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
     bool out_of_segment = true;
     bool shifted = false;
     vl_dom_element_text_segment_t segment = new_segment();
+    int src_pos = 0;
     while (vl_font_shaper_shape(fonts->shaper, run)) {
         if (run->hard_line_break) {
             base_x = 0;
@@ -228,9 +229,10 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
         float span_position = element->layout.span_position.x;
         while (vl_font_shaper_iterate(run, &shaper_glyph)) {
             int current_break = 0;
+            src_pos = shaper_glyph.codepoint_index;
             for (int i = 0; i < VL_DA_LENGTH(word_breaks); i++) {
                 out_of_segment = true;
-                if (shaper_glyph.codepoint_index >= word_breaks[i].begin && shaper_glyph.codepoint_index <= word_breaks[i].end) {
+                if (src_pos >= word_breaks[i].begin && src_pos < word_breaks[i].end) {
                     current_break = i;
                     out_of_segment = false;
                     break;
@@ -263,10 +265,8 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             if (!out_of_segment) VL_DA_APPEND(segment.glyphs, text_glyph);
             line->width = VL_MAX(line->width, base_x + segment_x);
 
-            // printf("segment: '%.*s' %i %i %i\n", (int) (word_breaks[current_break].end - word_breaks[current_break].begin), layout->blueprint.text + word_breaks[current_break].begin, (int) shaper_glyph.codepoint_index, (int) word_breaks[current_break].end, out_of_segment);
-            if ((run->direction == VL_FONT_SHAPER_RUN_DIRECTION_LTR && shaper_glyph.codepoint_index >= word_breaks[current_break].end - 1) ||
-                (run->direction == VL_FONT_SHAPER_RUN_DIRECTION_RTL && shaper_glyph.codepoint_index <= word_breaks[current_break].begin + 1)
-                || shaper_glyph.codepoint_index >= VL_STRING_LEN(layout->blueprint.text)) {
+            printf("segment: '%.*s' %i (%i; %i) %i %i %i\n", (int) (word_breaks[current_break].end - word_breaks[current_break].begin), layout->blueprint.text + word_breaks[current_break].begin, (int) src_pos, (int) word_breaks[current_break].begin, (int) word_breaks[current_break].end, out_of_segment, VL_STRING_LEN(layout->blueprint.text), shaper_glyph.last);
+            if (src_pos >= word_breaks[current_break].end - U8_LENGTH(shaper_glyph.codepoint) || shaper_glyph.last) {
                 bool space_wrap = false;
                 if (span_position + base_x + segment.width > element->layout.span_area.x) {
                     if (shaper_glyph.codepoint == ' ') {
@@ -297,9 +297,9 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
                 }
                 out_of_segment = true;
             }
+            src_pos += U8_LENGTH(shaper_glyph.codepoint);
         }
     }
-    VL_DA_FREE(segment.glyphs);
     element->layout.span_last_cursor = VL_VEC2(base_x, base_y);
     vl_font_shaper_run_free(run);
     vl_font_shaper_pop_all_fonts(fonts->shaper);

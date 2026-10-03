@@ -824,7 +824,8 @@ void simple_dom_test() {
 #include "velvet/font/segmentation.h"
 
 void segmentation_test() {
-    const char *text = "Serif font لمّا كان الاعتراف بالكرامة المتأصلة في جميع";
+    const char *text = "Serif font    هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.";
+    // const char *text = "Unicode and Emoji";
     vl_font_segmentation_breaks_t breaks = NULL;
     vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_ONLY_WORDS, &breaks);
     for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {

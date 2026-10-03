@@ -21,6 +21,7 @@ struct vl_font_shaper_glyph {
     int codepoint_index;
     float x, y;
     float advance_x, advance_y;
+    bool last;
 };
 
 typedef struct vl_font_shaper_glyph vl_font_shaper_glyph_t;

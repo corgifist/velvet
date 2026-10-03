@@ -67,7 +67,7 @@ vl_result_t vl_font_shaper_univesal_process(vl_font_shaper_t *shaper, const char
         kbts_ShapePushFont(s->context, &uf->font);
     }
     kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_DONT_KNOW);
-    kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_SOURCE_INDEX);
+    kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_CODEPOINT_INDEX);
     kbts_ShapeEnd(s->context);
     for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
         kbts_ShapePopFont(s->context);
@@ -102,6 +102,7 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
     glyph->advance_x = ((float) r->iterator->AdvanceX) * f->slim_scale;
     glyph->advance_y = ((float) r->iterator->AdvanceY) * f->slim_scale;
     glyph->id = r->iterator->Id;
+    glyph->last = r->iterator->Next->Codepoint == 0 ? 1 : 0 && r->run.Flags;
     return glyph;
 }
 

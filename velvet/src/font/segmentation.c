@@ -1,6 +1,7 @@
 #include "velvet/font/segmentation.h"
 #include "support/result.h"
 #include "vendor/grapheme.h"
+#include "vendor/utf8.h"
 #include <stdint.h>
 
 VL_API vl_result_t vl_font_segmentation_process_string(const char *string, size_t string_len, vl_font_segmentation_type_t break_type, vl_font_segmentation_breaks_t *breaks) {
@@ -13,31 +14,23 @@ VL_API vl_result_t vl_font_segmentation_process_string(const char *string, size_
         switch (break_type) {
         case VL_FONT_SEGMENTATION_ONLY_WORDS:
         case VL_FONT_SEGMENTATION_WORD: {
-            ret = grapheme_next_word_break_utf8(string + offset, SIZE_MAX);
+            ret = grapheme_next_word_break_utf8(string + offset, string_len - offset);
             break;
         }
         case VL_FONT_SEGMENTATION_SENTENCE: {
-            ret = grapheme_next_sentence_break_utf8(string + offset, SIZE_MAX);
+            ret = grapheme_next_sentence_break_utf8(string + offset, string_len - offset);
             break;
         }
         case VL_FONT_SEGMENTATION_LINE: {
-            ret = grapheme_next_line_break_utf8(string + offset, SIZE_MAX);
+            ret = grapheme_next_line_break_utf8(string + offset, string_len - offset);
             break;
         }
         }
-        if (break_type == VL_FONT_SEGMENTATION_ONLY_WORDS) {
-            bool not_space = false;
-            for (int i = offset; i < offset + ret; i++) {
-                if (string[i] != ' ') {
-                    not_space = true;
-                    break;
-                }
-            }
-            if (!not_space) continue;
-        }
+        int begin = offset;
+        int end = offset + ret;
         *VL_DA_PUSH(*breaks, vl_font_segmentation_break_t) = (vl_font_segmentation_break_t) {
-            .begin = offset,
-            .end = offset + ret
+            .begin = begin,
+            .end = end
         };
     }
     return VL_SUCCESS;
