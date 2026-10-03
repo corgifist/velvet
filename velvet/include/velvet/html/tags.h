@@ -8,14 +8,16 @@ static const char *s_html_inline_tags[] = {
     "span",
     "code",
     "text",
-    "strong"
+    "strong",
+    "br"
 };
 
 static const char *s_html_void_tags[] = {
     "meta",
     "link",
     "img",
-    "hr"
+    "hr",
+    "br"
 };
 
 VL_API bool vl_html_is_tag_inline(const char *tag);

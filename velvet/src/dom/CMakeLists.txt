@@ -3,6 +3,7 @@ add_subdirectory(head)
 add_subdirectory(style)
 add_subdirectory(div)
 add_subdirectory(text)
+add_subdirectory(void)
 
 set(Velvet_Sources
     ${Velvet_Sources}

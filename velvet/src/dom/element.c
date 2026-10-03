@@ -16,6 +16,7 @@
 #include "velvet/dom/style/style.h"
 #include "velvet/dom/div/div.h"
 #include "velvet/dom/text/text.h"
+#include "velvet/dom/void/void.h"
 
 typedef struct {
     const char *tag;
@@ -41,7 +42,8 @@ static const vl_dom_element_pair_t s_elements[] = {
     {"code", vl_dom_element_div_new},
     {"hr", vl_dom_element_div_new},
     {"article", vl_dom_element_div_new},
-    {"strong", vl_dom_element_div_new}
+    {"strong", vl_dom_element_div_new},
+    {"br", vl_dom_element_void_new}
 };
 
 static vl_vec2_t dom_to_css_size(vl_css_layout_node_t *node) {

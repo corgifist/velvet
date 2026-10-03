@@ -181,8 +181,14 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             }
             line->max_span_offset = VL_MAX(line->max_span_offset, child->span_y_offset);
             node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
+            node->span_line_height = VL_MAX(node->span_line_height, child->span_line_height);
             VL_DA_APPEND(line->elements, child);
+            if (next && strcmp(next->tag, "br") == 0) {
+                cursor.x = node->effective_padding.w;
+                cursor.y += line->height;
+            }
             if (child->span_wrapped) {
+                cursor.y += line->height - node->span_line_height;
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
             if ((!child->span_wrapped && cursor.x > node->size.x && next) || (next && next->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)) {
@@ -191,6 +197,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
         }
+        next:
         if (!prev) {
             node->block_first_offset = child->padding.x + node->padding.x + node->parent->padding.x;
         }

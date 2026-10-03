@@ -197,8 +197,9 @@ static const char *close_tag_begin = NULL;
 static const char *close_tag_end = NULL;
 
 static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node) {
-    if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip <
     vl_html_token_t *current = parser->lookahead;
+    // printf("before: %c %i\nn", *(current->text - 1), empty_before);
+    if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip <
     if (VL_TOKEN_COMPARE(current, "/")) {
         // parse closing node
         // e.g. </div>
@@ -260,6 +261,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     }
     node->tag = VL_STRING_INIT(current->text, current->text_length);
     bool short_tag = vl_html_is_tag_void(node->tag);
+    bool inline_tag = vl_html_is_tag_inline(node->tag);
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip tag name and spaces
     // parsing node open
     while (!VL_TOKEN_COMPARE(current, ">")) {
@@ -312,7 +314,10 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
 
     if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
     vl_html_node_t tmp_node = {0};
+    bool first = true;
+    bool prev_text = true;
     while (true && !short_tag) {
+        bool empty_before = (*(current->text - 1) == ' ') || (*(current->text - 1) == '\t') || (*(current->text - 1) == '\n');
         vl_result_t parse_result = vl_html_parser_get_ex(parser, &tmp_node);
         if (parse_result == VL_HTML_PARSER_STOP) {
             return VL_SUCCESS;
@@ -334,6 +339,12 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             }
             return VL_SUCCESS;
         }
+        if (!first && empty_before && vl_html_is_tag_inline(tmp_node.tag) && !prev_text) {
+            vl_html_node_t *space_node = VL_DA_PUSH(node->children, vl_html_node_t);
+            space_node->text = VL_STRING_INIT(" ");
+        }
+        first = false;
+        prev_text = (tmp_node.text ? 1 : 0);
         if (!node->children) node->children = VL_DA_INIT(vl_html_node_t);
         VL_DA_APPEND(node->children, tmp_node);
     }
@@ -359,12 +370,12 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
         // parse html escapes (e.g. &apos;)
         if (VL_TOKEN_COMPARE(current, "&")) {
             VL_DA(char) entity_accumulator = VL_DA_INIT(char);
+            bool had_semicolon = false;
             if (tokenize(parser)) {  // skip &
                 goto escape_fail;
             }
             while (!VL_TOKEN_COMPARE(current, ";")) {
-                if (current->type == VL_HTML_TOKEN_TYPE_STOP) goto escape_success;
-                if (VL_TOKEN_COMPARE(current, "<")) goto escape_success;
+                if (current->type == VL_HTML_TOKEN_TYPE_STOP || VL_TOKEN_COMPARE(current, "<") || VL_TOKEN_EMPTY(current)) goto escape_success;
                 for (int i = 0; i < current->text_length; i++) {
                     *VL_DA_PUSH(entity_accumulator, char) = current->text[i];
                 }
@@ -372,8 +383,11 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
                     goto escape_fail;
                 }
             }
-            if (tokenize(parser)) { // skip ;
-                goto escape_fail;
+            if (VL_TOKEN_COMPARE(current, ";")) {
+                if (tokenize(parser)) { // skip ;
+                    goto escape_fail;
+                }
+                had_semicolon = true;
             }
             goto escape_success;
 
@@ -402,7 +416,7 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             for (int i = 0; i < VL_DA_LENGTH(entity_accumulator); i++) {
                 *VL_DA_PUSH(node->text, char) = entity_accumulator[i];
             }
-            *VL_DA_PUSH(node->text, char) = ';';
+            if (had_semicolon) *VL_DA_PUSH(node->text, char) = ';';
 
             escape_next:
             continue;
@@ -420,9 +434,9 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             *VL_DA_PUSH(node->text, char) = current->text[i];
         }
         if (tokenize(parser)) return VL_ERROR;
-        const char *original_text = current->text;
+        bool empty_token = VL_TOKEN_EMPTY(current);
         if (skip_spaces(parser)) return VL_ERROR;
-        if (original_text != current->text) {
+        if (!(VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "/")) && empty_token) {
             *VL_DA_PUSH(node->text, char) = ' ';
         }
     }
