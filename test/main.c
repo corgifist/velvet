@@ -1626,68 +1626,68 @@ void styling_test() {
   </style>
 </head>
 <body style="font-family: serif">
-//   <h1>Text Wrapping Test Page</h1>
+  <h1>Text Wrapping Test Page</h1>
 
-//   <p>
-//     This is a normal paragraph containing enough text to test how a renderer
-//     wraps words across multiple lines. The text should remain readable and
-//     should not overflow its container.
-//   </p>
+  <p>
+    This is a normal paragraph containing enough text to test how a renderer
+    wraps words across multiple lines. The text should remain readable and
+    should not overflow its container.
+  </p>
 
-//   <h2>Short Words</h2>
-//   <p>
-//     One two three four five six seven eight nine ten eleven twelve thirteen
-//     fourteen fifteen sixteen seventeen eighteen nineteen twenty.
-//   </p>
+  <h2>Short Words</h2>
+  <p>
+    One two three four five six seven eight nine ten eleven twelve thirteen
+    fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+  </p>
 
-//   <h2>Long Words</h2>
-//   <p>
-//     Pneumonoultramicroscopicsilicovolcanoconiosis
-//     antidisestablishmentarianism
-//     supercalifragilisticexpialidocious
-//   </p>
+  <h2>Long Words</h2>
+  <p>
+    Pneumonoultramicroscopicsilicovolcanoconiosis
+    antidisestablishmentarianism
+    supercalifragilisticexpialidocious
+  </p>
 
-//   <h2>Long URL</h2>
-//   <p>
-//     www.example.com/a-very-long-path-that-may-need-to-wrap/section/subsection/article?id=123456789&mode=preview
-//   </p>
+  <h2>Long URL</h2>
+  <p>
+    www.example.com/a-very-long-path-that-may-need-to-wrap/section/subsection/article?id=123456789&mode=preview
+  </p>
 
-//   <h2>Long Unbroken Text</h2>
-//   <p>
-//     ThisIsAReallyLongUnbrokenStringDesignedToTestWhetherTheRendererCanHandleTextThatContainsNoSpacesAtAllAndMayNeedToBreakOrOverflow
-//   </p>
+  <h2>Long Unbroken Text</h2>
+  <p>
+    ThisIsAReallyLongUnbrokenStringDesignedToTestWhetherTheRendererCanHandleTextThatContainsNoSpacesAtAllAndMayNeedToBreakOrOverflow
+  </p>
 
-//   <h2>Mixed Content</h2>
-//   <p>
-//     This paragraph includes <strong>bold text</strong>,
-//     <span>italic text</span>,
-//     and a line break.
-//     This sentence begins after a forced line break.
-//   </p>
+  <h2>Mixed Content</h2>
+  <p>
+    This paragraph includes <strong>bold text</strong>,
+    <span>italic text</span>,
+    and a line break.
+    This sentence begins after a forced line break.
+  </p>
 
-//   <h2>Right-to-Left Text</h2>
-//   <p dir="rtl">
-//     هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.
-//   </p>
+  <h2>Right-to-Left Text</h2>
+  <p dir="rtl">
+    هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.
+  </p>
 
-//   <h2>Unicode and Emoji</h2>
-//   <p>
-//     Unicode characters: café, naïve, résumé, Ελληνικά, Русский, 中文, 日本語,
-//     العربية, हिन्दी, and emoji 😀 🚀 🌍.
-//   </p>
+  <h2>Unicode and Emoji</h2>
+  <p>
+    Unicode characters: café, naïve, résumé, Ελληνικά, Русский, 中文, 日本語,
+    العربية, हिन्दी, and emoji 😀 🚀 🌍.
+  </p>
 
-//   <h2>Nested Elements</h2>
-//   <p>
-//     Start of paragraph
-//     <span>inside a span</span>
-//     <span>followed by another span containing more text that may wrap across lines</span>
-//     and the end of the paragraph.
-//   </p>
+  <h2>Nested Elements</h2>
+  <p>
+    Start of paragraph
+    <span>inside a span</span>
+    <span>followed by another span containing more text that may wrap across lines</span>
+    and the end of the paragraph.
+  </p>
 
-//   <h2>Wrapping Spans</h2>
-//   <p>
-//         Hello, <span>World World World World World World World World World World World World World World World</span>
-//   </p>
+  <h2>Wrapping Spans</h2>
+  <p>
+        Hello, <span>World World World World World World World World World World World World World World World</span>
+  </p>
 
     <h2>Subfonts</h2>
     <p style="font-size: 3em; font-weight: light">Hello 日本語</p>
