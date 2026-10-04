@@ -65,6 +65,8 @@ void vl_da_clear(VL_DA *da) {
     vl_da_header_t orig_header = *VL_DA_HEADER(*da);
     vl_allocator_t allocator = orig_header.allocator;
     vl_da_header_t *new_header = vl_arealloc(allocator, VL_DA_HEADER(*da), sizeof(vl_da_header_t) + orig_header.element_size * VL_DA_DEFAULT_CAPACITY);
+    new_header->count = 0;
+    new_header->capacity = VL_DA_DEFAULT_CAPACITY;
     *da = VL_PTR_FORWARD(new_header, sizeof(vl_da_header_t));
 }
 

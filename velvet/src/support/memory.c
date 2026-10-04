@@ -48,11 +48,10 @@ static void init_roots() {
 }
 
 void *vl_malloc_(size_t size, vl_source_location_t loc) {
-    if (size == 0) return NULL;
     init_roots();
-    vl_memory_allocation_t *allocation = malloc(sizeof(vl_memory_allocation_t) + size);
+    vl_memory_allocation_t *allocation = calloc(1, sizeof(vl_memory_allocation_t) + size);
     if (!allocation) return NULL;
-    memset(allocation, 0, sizeof(vl_memory_allocation_t) + size);
+    // memset(allocation, 0, sizeof(vl_memory_allocation_t) + size);
     void *mem = VL_PTR_FORWARD(allocation, sizeof(vl_memory_allocation_t));
     
     allocation->size = size;
@@ -72,16 +71,12 @@ void *vl_malloc_(size_t size, vl_source_location_t loc) {
 }
 
 void *vl_realloc_(void *mem, size_t new_size, vl_source_location_t loc) {
-    if (!mem) {
+    if (!mem || (mem && !VL_MEMORY_ALLOCATION(mem))) {
         return vl_malloc_(new_size, loc);
     }
     vl_memory_allocation_t *orig_allocation = VL_MEMORY_ALLOCATION(mem);
     if (orig_allocation && new_size == 0) {
         vl_free_(mem, loc);
-        return NULL;
-    }
-    if ((!mem || !orig_allocation) && new_size == 0) {
-        // wtf
         return NULL;
     }
     init_roots();
@@ -119,7 +114,6 @@ void vl_free_(void *mem, vl_source_location_t loc) {
     s_allocations_count--;
     s_bytes_allocated -= allocation->size;
     memset(allocation, 0, sizeof(vl_memory_allocation_t) + allocation->size);
-    allocation->magic = 0; // making sure magic is set to zero to prevent double-freeing
     free(allocation);
 }
 

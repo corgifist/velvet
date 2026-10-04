@@ -21,11 +21,24 @@ vl_result_t vl_font_shaper_run_universal_free(vl_font_shaper_run_t *run) {
     return VL_SUCCESS;
 }
 
+static void vl_kbts_allocator(void *Data, kbts_allocator_op *Op) {
+    switch(Op->Kind) {
+    case KBTS_ALLOCATOR_OP_KIND_ALLOCATE: {
+        Op->Allocate.Pointer = vl_malloc(Op->Allocate.Size);
+        break;
+    }
+    case KBTS_ALLOCATOR_OP_KIND_FREE: {
+        vl_free(Op->Free.Pointer);
+        break;
+    } 
+    }
+}
+
 vl_font_shaper_t *vl_font_shaper_universal_new(vl_platform_context_t *context, vl_source_location_t loc) {
     vl_font_shaper_universal_t *shaper = VL_NEW(vl_font_shaper_universal_t, loc);
     if (!shaper) goto err;
     shaper->base.context = context;
-    shaper->context = kbts_CreateShapeContext(NULL, NULL);
+    shaper->context = kbts_CreateShapeContext(vl_kbts_allocator, NULL);
     shaper->base.font_stack = VL_DA_INIT(vl_font_shaper_font_ref_t*);
     if (!shaper->context) goto err;
 
@@ -45,7 +58,7 @@ vl_font_shaper_font_ref_t *vl_font_shaper_universal_add_font(vl_font_shaper_t *s
     for (int i = 0; i < VL_DA_LENGTH(font->fonts); i++) {
         vl_font_info_t *fi = font->fonts[i];
         if (!fi) continue;
-        kbts_font kb_font = kbts_FontFromMemory((void*) f->data, f->data_length, i, NULL, NULL);
+        kbts_font kb_font = kbts_FontFromMemory((void*) f->data, f->data_length, i, vl_kbts_allocator, NULL);
         kb_font.UserData = fi;
         VL_DA_APPEND(font_ref->fonts, kb_font);
     }

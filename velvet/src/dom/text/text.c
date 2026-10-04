@@ -205,7 +205,6 @@ static void try_add_web_family(vl_web_t *web, const char *name, vl_dom_element_t
                 }
             }
         }
-        // printf("%i %i %i\n", priority, start, end);
     }
     VL_DA(vl_web_sized_font_t*) used_fonts = calculate_used_fonts(blueprint);
     VL_DA_FREE(blueprint->font_family);
@@ -301,7 +300,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
         vl_web_sized_font_t* part = layout->blueprint.font_family[i];
         if (!part) continue;
         vl_font_shaper_push_font(fonts->shaper, part->shaper_ref);
-        // printf("pushing %s\n", part->font->name);
+        printf("pushing %s\n", part->font->name);
     }
     // printf("layout: '%s' %f %f\n", layout->blueprint.text, element->layout.span_position.x, element->layout.span_area.x);
     vl_font_shaper_process(fonts->shaper, layout->blueprint.text, VL_STRING_LEN(layout->blueprint.text));

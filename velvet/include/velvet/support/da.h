@@ -113,7 +113,7 @@ typedef void* VL_DA;
     (vl_da_delete((VL_DA(void)*) &(DA), (INDEX), VL_SOURCE_LOCATION_HERE))
 
 #define VL_DA_CLEAR(DA) \
-    vl_da_clear(&(DA))
+    vl_da_clear((VL_DA*) &(DA))
 
 /*
     returns a pointer to the header of the dynamic array

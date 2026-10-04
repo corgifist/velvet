@@ -8,11 +8,10 @@ typedef struct {
 } vl_memory_basic_header_t;
 
 void *vl_zeroing_malloc(size_t size) {
-    vl_memory_basic_header_t *header = malloc(sizeof(vl_memory_basic_header_t) + size);
+    vl_memory_basic_header_t *header = calloc(1, sizeof(vl_memory_basic_header_t) + size);
     if (!header) return NULL;
     header->size = size;
     void *mem = VL_PTR_FORWARD(header, sizeof(vl_memory_basic_header_t));
-    memset(mem, 0, size);
     return mem;
 }
 

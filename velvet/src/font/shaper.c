@@ -56,8 +56,7 @@ vl_result_t vl_font_shaper_pop_font(vl_font_shaper_t *shaper) {
 
 vl_result_t vl_font_shaper_pop_all_fonts(vl_font_shaper_t *shaper) {
     if (!shaper) return VL_ERROR;
-    VL_DA_FREE(shaper->font_stack);
-    shaper->font_stack = VL_DA_INIT(vl_font_shaper_font_ref_t*);
+    VL_DA_CLEAR(shaper->font_stack);
     return VL_SUCCESS;
 }
 
