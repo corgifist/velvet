@@ -50,3 +50,30 @@ vl_result_t vl_font_search_classify(const char *font_name, int *weight, bool *it
     }
     return VL_SUCCESS;
 }
+
+vl_result_t vl_font_search_description_print(const vl_font_search_description_t *search) {
+    if (!search) return VL_ERROR;
+    printf("font %s at path %s", search->name, search->path);
+    if (search->subfonts) {
+        int len = VL_DA_LENGTH(search->subfonts);
+        if (len == 1) {
+            printf(" at index %i", search->subfonts[0]);
+        } else if (len > 1) {
+            printf(" at indices ");
+            for (int i = 0; i < len; i++) {
+                printf("%i", i);
+                if (i != len - 1) printf(", ");
+            }
+        }
+    }
+    printf("\n");
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_font_search_description_deinit(vl_font_search_description_t *search) {
+    if (!search) return VL_ERROR;
+    VL_STRING_FREE(search->name);
+    VL_STRING_FREE(search->path);
+    VL_DA_FREE(search->subfonts);
+    return VL_SUCCESS;
+}

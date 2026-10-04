@@ -12,7 +12,6 @@ VL_API vl_result_t vl_font_segmentation_process_string(const char *string, size_
     size_t ret = 0;
     for (size_t offset = 0; offset < string_len; offset += ret) {
         switch (break_type) {
-        case VL_FONT_SEGMENTATION_ONLY_WORDS:
         case VL_FONT_SEGMENTATION_WORD: {
             ret = grapheme_next_word_break_utf8(string + offset, string_len - offset);
             break;

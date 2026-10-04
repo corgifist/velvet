@@ -165,8 +165,8 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             child->position.y += cursor.y - child->margin.x;
             cursor.x += child->size.x + child->margin.y + child->margin.w;
             if (child->span_wrapped) {
-                child->position.x = 0;
-                child->size.x = child->span_area.x;
+                child->position.x = node->effective_padding.w;
+                child->size.x = child->span_area.x - node->effective_padding.w - node->effective_padding.y;
             }
             node->span_wrapped = child->span_wrapped;
             line->width = VL_MAX(line->width, cursor.x);
@@ -187,7 +187,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 cursor.y += line->height;
             }
             if (child->span_wrapped) {
-                cursor.x = child->span_last_cursor.x;
+                cursor.x = child->span_last_cursor.x + node->effective_padding.w;
                 cursor.y += child->span_last_cursor.y;
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }

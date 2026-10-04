@@ -39,7 +39,7 @@ typedef struct vl_ht_header vl_ht_header_t;
     VL_HT_NEW_WITH_CAPACITY_AND_ALLOCATOR_AND_HASH_FUNC(KEY, VALUE, CAPACITY, ALLOCATOR, NULL)
 
 #define VL_HT_NEW_WITH_CAPACITY_AND_ALLOCATOR_AND_HASH_FUNC(KEY, VALUE, CAPACITY, ALLOCATOR, HASH_FUNC) \
-    (vl_ht_new(sizeof(VALUE), sizeof(VALUE), (size_t) (CAPACITY), (#KEY), HASH_FUNC, ALLOCATOR, VL_SOURCE_LOCATION_HERE))
+    (vl_ht_new(sizeof(KEY), sizeof(VALUE), (size_t) (CAPACITY), (#KEY), HASH_FUNC, ALLOCATOR, VL_SOURCE_LOCATION_HERE))
 
 #define VL_HT_PUT(HT, KEY, VALUE) \
     (vl_ht_put(&(HT), &(KEY), &(VALUE), sizeof(KEY), sizeof(VALUE), VL_SOURCE_LOCATION_HERE))

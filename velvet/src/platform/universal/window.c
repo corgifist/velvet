@@ -119,6 +119,12 @@ static void update_window_io(vl_os_window_t *window) {
     int window_width, window_height;
     glfwGetWindowSize(win->handle, &window_width, &window_height);
     window->io.window_size = VL_VEC2(window_width, window_height);
+
+    vl_hash_t title_hash = 0;
+    if (window->title && (title_hash = vl_hash_string(window->title)) != win->title_hash) {
+        win->title_hash = title_hash;
+        glfwSetWindowTitle(win->handle, window->title);
+    }
 }
 
 vl_result_t vl_os_window_universal_poll_events() {

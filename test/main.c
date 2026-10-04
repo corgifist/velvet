@@ -23,6 +23,7 @@
 #include "velvet/html/parser.h"
 #include "velvet/support/error_pool.h"
 #include "velvet/support/global_error_pool.h"
+#include "velvet/support/measurement.h"
 #include "velvet/support/memory.h"
 #include "velvet/support/result.h"
 #include "velvet/support/managed_assert.h"
@@ -824,10 +825,11 @@ void simple_dom_test() {
 #include "velvet/font/segmentation.h"
 
 void segmentation_test() {
-    const char *text = "Serif font    هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.";
+    // const char *text = "Serif font هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.";
     // const char *text = "Unicode and Emoji";
+    const char *text= ".c";
     vl_font_segmentation_breaks_t breaks = NULL;
-    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_ONLY_WORDS, &breaks);
+    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_LINE, &breaks);
     for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {
         vl_font_segmentation_break_t *br = breaks + i;
         printf("%i %.*s %zu %zu\n", i, (int) br->end - (int) br->begin, text + br->begin, br->begin, br->end);
@@ -1566,7 +1568,7 @@ void styling_test() {
     //     <title>CSS selector difference</title>
     //     <style>
     //         body {
-    //             // --velvet-element-highlight: highlight-green;
+    //             --velvet-element-highlight: highlight-green;
     //         }
     //         .a.b.c {
     //         background: #c8f7c5;
@@ -1681,10 +1683,17 @@ void styling_test() {
     <span>followed by another span containing more text that may wrap across lines</span>
     and the end of the paragraph.
   </p>
+
   <h2>Wrapping Spans</h2>
   <p>
         Hello, <span>World World World World World World World World World World World World World World World</span>
   </p>
+
+    <h2>Subfonts</h2>
+    <p style="font-size: 3em; font-weight: light">Hello 日本語</p>
+    <p style="font-size: 3em; font-weight: normal">Hello 日本語</p>
+    <p style="font-size: 3em; font-weight: bold">Hello 日本語</p>
+    <p style="font-size: 3em; font-weight: extrablack">Hello 日本語</p>
   Xinside spanX<br>
   X<span>inside span</span>X
 </body>
@@ -1734,15 +1743,20 @@ void styling_test() {
     float y_offset = 0;
     while (!vl_os_window_should_close(win, &close) && !close) {
         vl_os_window_poll_events(ctx);
+        vl_measurement_t frame_measure = {0};
+        vl_measurement_start(&frame_measure, "frame measure");
         vl_graphics_presentation_begin(present);
         vl_graphics_render_clear(render, VL_WHITE);
         vl_graphics_render_batch_begin(render);
         y_offset += win->io.scroll_delta.y * 5;
+            // web.refresh_styles = true;
             vl_graphics_render_push_translate(render, VL_VEC2(0, y_offset));
             vl_web_render(&web);
             vl_graphics_render_pop_transform(render);
          vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
+        vl_measurement_end(&frame_measure);
+        win->title = vl_sprintf_tmp("Velvet (%f ms per frame)", frame_measure.seconds * 1000.0f);
     }
     vl_web_deinit(&web);
     vl_html_document_free(doc);
@@ -1757,9 +1771,9 @@ void styling_test() {
 
 void font_search() {
     VL_DA(vl_font_search_description_t) results = NULL;
-    vl_font_search_query(&results, NULL);
+    vl_font_search_query(&results, "Songti SC");
     for (int i = 0; i < VL_DA_LENGTH(results); i++) {
-        printf("%i %i %s %s\n", i, (int) VL_DA_LENGTH(results), results[i].name, results[i].path);
+        vl_font_search_description_print(results + i);
     }
 }
 

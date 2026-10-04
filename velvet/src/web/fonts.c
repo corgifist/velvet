@@ -38,14 +38,15 @@ static vl_web_font_family_t *find_family(vl_web_fonts_t *fonts, const char *fami
     return NULL;
 }
 
-static vl_web_font_t *find_variation(vl_web_font_family_t *family, vl_web_font_weight_t weight) {
+static VL_DA(vl_web_font_t*) find_variation(vl_web_font_family_t *family, vl_web_font_weight_t weight) {
+    VL_DA(vl_web_font_t*) variations = NULL;
     for (int i = 0; i < VL_DA_LENGTH(family->variations); i++) {
         vl_web_font_t *variation = family->variations + i;
-        if (variation->weight == weight) {
-            return variation;
-        }
+        if (weight > 0 && variation->weight != weight) continue;
+        if (!variations) variations = VL_DA_INIT(vl_web_font_t*);
+        VL_DA_APPEND(variations, variation);
     }
-    return NULL;
+    return variations;
 }
 
 VL_API vl_result_t vl_web_fonts_add_font(vl_web_fonts_t *fonts, const char *family_name, const vl_byte_t *font_data, size_t font_len, vl_web_font_weight_t weight) {
@@ -61,8 +62,9 @@ vl_result_t vl_web_fonts_add_font_with_part_name(vl_web_fonts_t *fonts, const ch
         family->variations = VL_DA_INIT(vl_web_font_t);
     }
 
-    vl_web_font_t *variation = find_variation(family, weight);
-    if (!variation) {
+    VL_DA(vl_web_font_t*) variations = find_variation(family, weight);
+    vl_web_font_t *variation = variations ? *variations : NULL;
+    if (!variations) {
         variation = VL_DA_PUSH(family->variations, vl_web_font_t);
         variation->weight = weight;
         variation->parts = VL_DA_INIT(vl_web_font_part_t);
@@ -71,23 +73,24 @@ vl_result_t vl_web_fonts_add_font_with_part_name(vl_web_fonts_t *fonts, const ch
     part.data = font_data;
     part.len = font_len;
     part.name = part_name ? part_name : family_name;
-    part.unit_font = vl_font_new(fonts->owner->platform_context, part.name, 1, 1.0f, font_data, font_len);
-    part.unit_shaper_ref = vl_font_shaper_add_font(fonts->shaper, part.unit_font);
     part.sized_fonts = VL_DA_INIT(vl_web_sized_font_t);
     VL_DA_APPEND(variation->parts, part);
+    VL_DA_FREE(variations);
     return VL_SUCCESS;
 }
 
-vl_result_t vl_web_fonts_add_font_with_part_name_from_disk(vl_web_fonts_t *fonts, const char *family_name, const char *path, vl_web_font_weight_t weight, const char *part_name) {
+vl_result_t vl_web_fonts_add_font_with_part_name_from_disk(vl_web_fonts_t *fonts, const char *family_name, const char *path, vl_web_font_weight_t weight, const char *part_name, VL_DA(int) subfonts, int priority) {
     if (!fonts || !family_name || !path) return VL_ERROR;
     vl_web_font_family_t *family = find_family(fonts, family_name);
     if (!family) {
         family = VL_DA_PUSH(fonts->families, vl_web_font_family_t);
         family->name = family_name;
         family->variations = VL_DA_INIT(vl_web_font_t);
+        family->priority = priority;
     }
 
-    vl_web_font_t *variation = find_variation(family, weight);
+    VL_DA(vl_web_font_t*) variations = find_variation(family, weight);
+    vl_web_font_t *variation = variations ? *variations : NULL;
     if (!variation) {
         variation = VL_DA_PUSH(family->variations, vl_web_font_t);
         variation->weight = weight;
@@ -98,18 +101,21 @@ vl_result_t vl_web_fonts_add_font_with_part_name_from_disk(vl_web_fonts_t *fonts
     part.path = path;
     part.name = part_name ? part_name : family_name;
     part.sized_fonts = VL_DA_INIT(vl_web_sized_font_t);
-    printf("adding %s %s (%s) %i\n", family_name, part_name, path, weight);
+    part.subfonts = subfonts;
+    part.priority = priority;
+    // printf("adding %s %s (%s) %i\n", family_name, part_name, path, weight);
     VL_DA_APPEND(variation->parts, part);
+    VL_DA_FREE(variations);
     return VL_SUCCESS;
 }
 
-static void add_system_font_from_description(vl_web_fonts_t *fonts, vl_font_search_description_t *font, const char *family_name, const char *part_family) {
+static void add_system_font_from_description(vl_web_fonts_t *fonts, vl_font_search_description_t *font, const char *family_name, const char *part_family, int priority) {
     // printf("%s %s %s %i\n", font->name, family_name, part_family, vl_font_search_compare_family_names(font->name, part_family));
     if (!vl_font_search_compare_family_names(font->name, part_family)) return;
     if (utf8casestr(font->name, "Italic") || utf8casestr(font->name, "Narrow") || utf8casestr(font->name, "Condensed")) return;
     int weight;
     vl_font_search_classify(font->name, &weight, NULL, NULL, NULL, NULL);
-    vl_web_fonts_add_font_with_part_name_from_disk(fonts, family_name, font->path, weight, font->name);
+    vl_web_fonts_add_font_with_part_name_from_disk(fonts, family_name, font->path, weight, font->name, font->subfonts, priority);
 }
 
 vl_result_t vl_web_fonts_add_parts_from_system(vl_web_fonts_t *fonts, const char *family_name, const char *part_family) {
@@ -120,9 +126,10 @@ vl_result_t vl_web_fonts_add_parts_from_system(vl_web_fonts_t *fonts, const char
         family->name = family_name;
         family->variations = VL_DA_INIT(vl_web_font_t);
     }
+    int priority = ++fonts->priority_index;
     for (int i = 0; i < VL_DA_LENGTH(fonts->system_fonts); i++) {
         vl_font_search_description_t *font = fonts->system_fonts + i;
-        add_system_font_from_description(fonts, font, family_name, part_family);
+        add_system_font_from_description(fonts, font, family_name, part_family, priority);
     }
 
     return VL_SUCCESS;
@@ -130,9 +137,10 @@ vl_result_t vl_web_fonts_add_parts_from_system(vl_web_fonts_t *fonts, const char
 
 VL_API vl_result_t vl_web_fonts_add_family_from_system(vl_web_fonts_t *fonts, const char *family_name) {
     if (!fonts || !family_name) return VL_ERROR;
+    int priority = ++fonts->priority_index;
     for (int i = 0; i < VL_DA_LENGTH(fonts->system_fonts); i++) {
         vl_font_search_description_t *font = fonts->system_fonts + i;
-        add_system_font_from_description(fonts, font, family_name, family_name);
+        add_system_font_from_description(fonts, font, family_name, family_name, priority);
     }
     return VL_SUCCESS;
 }
@@ -147,8 +155,6 @@ static void prepare_part(vl_web_fonts_t *fonts, vl_web_font_part_t *part) {
         // printf("read data: %s %p\n", part->path, part->data);
         if (!part->data) return;
         part->len = VL_DA_LENGTH(part->data) - 1;
-        part->unit_font = vl_font_new(fonts->owner->platform_context, part->name, 1, 1, part->data, part->len);
-        part->unit_shaper_ref = vl_font_shaper_add_font(fonts->shaper, part->unit_font);
     }
 }
 
@@ -160,72 +166,51 @@ VL_DA(vl_web_sized_font_t*) vl_web_fonts_get_font(vl_web_fonts_t *fonts, const c
         return NULL;
     }
 
-    vl_web_font_t *variation = find_variation(family, weight);
-    if (!variation) {
+    VL_DA(vl_web_font_t*) variations = find_variation(family, weight);
+    if (!variations) {
         vl_global_error_pool_append("no such font variation with weight %i for family with name %s for vl_web_fonts_t %p", weight, family->name, fonts);
         return NULL;
     }
 
     VL_DA(vl_web_sized_font_t*) result = NULL;
-    for (int i = 0; i < VL_DA_LENGTH(variation->parts); i++) {
-        if (!result) result = VL_DA_INIT(vl_web_sized_font_t*);
-        vl_web_font_part_t *part = variation->parts + i;
-        prepare_part(fonts, part);
-        vl_web_sized_font_t *sized_font = NULL;
-        for (int j = 0; j < VL_DA_LENGTH(part->sized_fonts); j++) {
-            if (!part->sized_fonts[j].font) continue;
-            if (part->sized_fonts[j].font->height == height) {
-                sized_font = part->sized_fonts + j;
-                break;
-            }
-        }
-        
-        if (!sized_font) {
-            sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
-            sized_font->font = vl_font_new(fonts->owner->platform_context, part->name, height, 2.0f, part->data, part->len);
-            sized_font->shaper_ref = part->unit_shaper_ref;
-        }
-
-        VL_DA_APPEND(result, sized_font);
-    }
-    return result;
-}
-
-vl_web_sized_font_t *vl_web_fonts_get_font_by_unit_font(vl_web_fonts_t *fonts, vl_font_t *unit_font, vl_web_font_weight_t weight, int height) {
-    if (!fonts || !unit_font) return NULL;
-    for (int i = 0; i < VL_DA_LENGTH(fonts->families); i++) {
-        vl_web_font_family_t *family = fonts->families + i;
-        vl_web_font_t *variation = find_variation(family, weight);
-        if (!variation) continue;
-        for (int k = 0; k < VL_DA_LENGTH(variation->parts); k++) {
-            vl_web_font_part_t *part = variation->parts + k;
+    for (int l = 0; l < VL_DA_LENGTH(variations); l++) {
+        vl_web_font_t *variation = variations[l];
+        for (int i = 0; i < VL_DA_LENGTH(variation->parts); i++) {
+            if (!result) result = VL_DA_INIT(vl_web_sized_font_t*);
+            vl_web_font_part_t *part = variation->parts + i;
             prepare_part(fonts, part);
-            if (part->unit_font == unit_font) {
-                for (int l = 0; l < VL_DA_LENGTH(part->sized_fonts); l++) {
-                    vl_web_sized_font_t *sized_font = part->sized_fonts + l;
-                    if (sized_font->font->height == height) {
-                        return sized_font;
-                    }
+            vl_web_sized_font_t *sized_font = NULL;
+            for (int j = 0; j < VL_DA_LENGTH(part->sized_fonts); j++) {
+                if (!part->sized_fonts[j].font) continue;
+                if (part->sized_fonts[j].font->height == height) {
+                    sized_font = part->sized_fonts + j;
+                    break;
                 }
-                if (!part->sized_fonts) part->sized_fonts = VL_DA_INIT(vl_web_sized_font_t);
-                vl_web_sized_font_t *sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
-                sized_font->font = vl_font_new(fonts->owner->platform_context, part->name, height, 2.0f, part->data, part->len);
-                sized_font->shaper_ref = part->unit_shaper_ref;
-                return sized_font;
             }
+            
+            if (!sized_font) {
+                sized_font = VL_DA_PUSH(part->sized_fonts, vl_web_sized_font_t);
+                sized_font->font = vl_font_new_with_subfont_indices(fonts->owner->platform_context, part->name, height, 2.0f, part->data, part->len, part->subfonts);
+                sized_font->shaper_ref = vl_font_shaper_add_font(fonts->shaper, sized_font->font);
+                sized_font->weight = variation->weight;
+                sized_font->priority = part->priority;
+            }
+
+            VL_DA_APPEND(result, sized_font);
         }
     }
-    return NULL;
+    VL_DA_FREE(variations);
+    return result;
 }
 
 static vl_byte_t *s_tmp_copy_buffer = NULL;
 static size_t s_tmp_copy_size = 0;
 
-static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, vl_font_t *font, uint32_t glyph_id) {
+static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, vl_font_t *font, uint32_t glyph_id, int font_index) {
     // first check if the glyph is already rasterized
     for (int i = 0; i < VL_DA_LENGTH(fonts->atlases); i++) {
         vl_web_font_atlas_t *atlas = fonts->atlases + i;
-        vl_font_atlas_codepoint_t *search = vl_font_atlas_find_glyph_id(&atlas->atlas, font, glyph_id);
+        vl_font_atlas_codepoint_t *search = vl_font_atlas_find_glyph_id_with_font_index(&atlas->atlas, font, glyph_id, font_index);
         if (search) {
             if (codepoint) {
                 codepoint->atlas_index = i;
@@ -250,8 +235,11 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
         free_atlas->index = VL_DA_LENGTH(fonts->atlases) - 1;
     }
     
-    vl_font_atlas_codepoint_t *rasterized = vl_font_rasterize_glyph_id(font, &free_atlas->atlas, glyph_id);
-    if (!rasterized) return VL_ERROR;
+    vl_font_atlas_codepoint_t *rasterized = vl_font_rasterize_glyph_id_with_font_index(font, &free_atlas->atlas, glyph_id, font_index);
+    if (!rasterized) {
+        if (free_atlas->atlas.full) return rasterize_glyph_id(fonts, codepoint, font, glyph_id, font_index);
+        else return VL_ERROR;
+    }
     size_t cursor_x = rasterized->uv.tl.x * free_atlas->atlas.width;
     size_t cursor_y = rasterized->uv.tl.y * free_atlas->atlas.height;
     size_t w = rasterized->w * font->density;
@@ -274,9 +262,14 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
     return VL_SUCCESS;
 }
 
+vl_result_t vl_web_fonts_find_glyph_id_with_font_and_font_index(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, vl_font_t *font, uint32_t glyph_id, int font_index) {
+    if (!fonts || !font) return VL_ERROR;
+    return rasterize_glyph_id(fonts, codepoint, font, glyph_id, font_index);
+}
+
 vl_result_t vl_web_fonts_find_glyph_id_with_font(vl_web_fonts_t *fonts, vl_web_font_atlas_codepoint_t *codepoint, vl_font_t *font, uint32_t glyph_id) {
     if (!fonts || !font) return VL_ERROR;
-    return rasterize_glyph_id(fonts, codepoint, font, glyph_id);
+    return rasterize_glyph_id(fonts, codepoint, font, glyph_id, 0);
 }
 
 vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
@@ -296,11 +289,10 @@ vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
                 vl_web_font_part_t *part = variation->parts + k;
                 for (int l = 0; l < VL_DA_LENGTH(part->sized_fonts); l++) {
                     vl_web_sized_font_t *sized_font = part->sized_fonts + l;
+                    vl_font_shaper_free_font(fonts->shaper, sized_font->shaper_ref);
                     vl_font_free(sized_font->font);
                 }
                 VL_DA_FREE(part->sized_fonts);
-                vl_font_shaper_free_font(fonts->shaper, part->unit_shaper_ref);
-                vl_font_free(part->unit_font);
             }
             VL_DA_FREE(variation->parts);
         }
@@ -310,9 +302,7 @@ vl_result_t vl_web_fonts_deinit(vl_web_fonts_t *fonts) {
     vl_web_font_storage_deinit(&fonts->storage);
     vl_font_shaper_free(fonts->shaper);
     for (int i = 0; i < VL_DA_LENGTH(fonts->system_fonts); i++) {
-        vl_font_search_description_t *desc = fonts->system_fonts + i;
-        VL_STRING_FREE(desc->name);
-        VL_STRING_FREE(desc->path);
+        vl_font_search_description_deinit(fonts->system_fonts + i);
     }
     VL_DA_FREE(fonts->system_fonts);
     return VL_SUCCESS;

@@ -8,6 +8,7 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreText/CoreText.h>
+#include <CoreGraphics/CoreGraphics.h>
 
 static VL_STRING cf_string_to_da_string(CFStringRef cf_string) {
     size_t cf_length = CFStringGetLength(cf_string);
@@ -22,6 +23,43 @@ static VL_STRING cf_string_to_da_string(CFStringRef cf_string) {
     VL_STRING compact = VL_STRING_FROM_DA(result);
     VL_DA_FREE(result);
     return compact;
+}
+
+static VL_DA(int) get_subfonts(CTFontDescriptorRef descriptor, const char *path) {
+    VL_DA(int) result = NULL;
+
+    CFURLRef url = CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault, (const UInt8*) path, strlen(path), false);
+
+    CFArrayRef descriptors =
+        CTFontManagerCreateFontDescriptorsFromURL(url);
+
+    int count = descriptors ? CFArrayGetCount(descriptors) : 0;
+
+    CFStringRef target_font_name =
+        CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute);
+    for (int i = 0; descriptors && i < count; i++) {
+        CTFontDescriptorRef candidate =
+            (CTFontDescriptorRef)CFArrayGetValueAtIndex(descriptors, i);
+
+        CFStringRef candidate_font_name =
+            CTFontDescriptorCopyAttribute(candidate, kCTFontNameAttribute);
+
+        bool matches =
+            (CFStringCompare(candidate_font_name, target_font_name, 0) == 0);
+
+        // printf("%s == %s\n", cf_string_to_da_string(target_font_name), cf_string_to_da_string(candidate_font_name));
+        if (candidate_font_name) CFRelease(candidate_font_name);
+
+        if (matches) {
+            if (!result) result = VL_DA_INIT(int, 1);
+            VL_DA_APPEND(result, i);
+        }
+    }
+
+    if (target_font_name) CFRelease(target_font_name);
+    if (descriptors) CFRelease(descriptors);
+    if (url) CFRelease(url);
+    return result;
 }
 
 vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, const char *name) {
@@ -55,6 +93,7 @@ vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, c
         }
         if (font_path_string) {
             desc.path = cf_string_to_da_string(font_path_string);
+            desc.subfonts = get_subfonts(font, desc.path);
         }
         VL_DA_APPEND(*results, desc);
         release:

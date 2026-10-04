@@ -87,9 +87,9 @@ static vl_result_t init_graphics_presentation(vl_platform_context_t *ctx, vl_pla
 static vl_result_t init_font(vl_platform_context_t *ctx, vl_platform_context_types_t *types) {
 #if VL_FEATURE(UNIVERSAL_PLATFORM)
     if (types->font == VL_PLATFORM_CONTEXT_UNIVERSAL) {
-        ctx->font_new = vl_font_universal_new;
-        ctx->font_rasterize_glyph_id = vl_font_universal_rasterize_glyph_id;
-        ctx->font_get_glyph_id_by_codepoint = vl_font_universal_get_glyph_id_by_codepoint;
+        ctx->font_new_with_subfont_indices = vl_font_universal_new_with_subfont_indices;
+        ctx->font_rasterize_glyph_id_with_font_index = vl_font_universal_rasterize_glyph_id_with_font_index;
+        ctx->font_get_glyph_id_and_font_index_by_codepoint = vl_font_universal_get_glyph_id_and_font_index_by_codepoint;
         ctx->font_get_kern_advance = vl_font_universal_get_kern_advance;
         ctx->font_get_text_size_ex = vl_font_universal_get_text_size_ex;
         ctx->font_free = vl_font_universal_free;

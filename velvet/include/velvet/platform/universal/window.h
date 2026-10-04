@@ -7,6 +7,7 @@
 
 #include "velvet/os/window.h"
 #include "velvet/platform/context.h"
+#include "velvet/support/hash.h"
 
 #define GLFW_INCLUDE_NONE // we're using glad loader
 #include <GLFW/glfw3.h>
@@ -15,6 +16,7 @@ struct vl_os_window_universal {
     vl_os_window_t base;
     
     GLFWwindow *handle;
+    vl_hash_t title_hash;
 };
 
 typedef struct vl_os_window_universal vl_os_window_universal_t;

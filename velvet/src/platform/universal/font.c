@@ -9,7 +9,7 @@
 #include "font/font.h"
 #include "support/result.h"
 
-vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc) {
+vl_font_t *vl_font_universal_new_with_subfont_indices(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, VL_DA(int) subfonts, vl_source_location_t loc) {
     if (!context) return NULL;
     vl_font_universal_t *font = VL_NEW(vl_font_universal_t, loc);
     if (!font) return NULL;
@@ -21,35 +21,58 @@ vl_font_t *vl_font_universal_new(vl_platform_context_t *context, const char *nam
     font->data = data;
     font->data_length = data_length;
 
-    if (!stbtt_InitFont(&font->font, font->data, stbtt_GetFontOffsetForIndex(data, 0))) {
-        goto err;
+    int number_of_fonts = stbtt_GetNumberOfFonts(data);
+    font->base.fonts = VL_DA_INIT(vl_font_info_t*, number_of_fonts);
+    for (int i = 0; i < number_of_fonts; i++) {
+        if (subfonts) {
+            int len = VL_DA_LENGTH(subfonts);
+            bool match = false;
+            for (int j = 0; j < len; j++) {
+                if (subfonts[j] == i) {
+                    match = true;
+                    break;
+                }
+            }
+            if (!match) {
+                *VL_DA_PUSH(font->base.fonts, vl_font_info_t*) = NULL;
+                continue;
+            }
+        }
+        vl_font_universal_info_t *font_info = VL_NEW(vl_font_universal_info_t);
+        if (!stbtt_InitFont(&font_info->font, font->data, stbtt_GetFontOffsetForIndex(data, i))) {
+            continue;
+        }
+        font_info->scale = stbtt_ScaleForMappingEmToPixels(&font_info->font, height * density);
+        font_info->slim_scale = font_info->scale / density;
+        int ascent, descent, line_gap;
+        stbtt_GetFontVMetrics(&font_info->font, &ascent, &descent, &line_gap);
+        font_info->base.ascent = ascent * font_info->slim_scale;
+        font_info->base.descent = descent * font_info->slim_scale;
+        font_info->base.line_gap = VL_CEIL(line_gap * font_info->slim_scale);
+        font_info->base.owner = (vl_font_t*) font;
+        font_info->base.index = i;
+        VL_DA_APPEND(font->base.fonts, font_info);
     }
-    font->slim_scale = stbtt_ScaleForMappingEmToPixels(&font->font, height);
-    font->scale = font->slim_scale * density;
-    stbtt_GetFontVMetrics(&font->font, &font->base.ascent, &font->base.descent, &font->base.line_gap);
-    font->base.ascent *= font->slim_scale;
-    font->base.descent *= font->slim_scale;
-    font->base.line_gap = VL_CEIL(font->base.line_gap * font->slim_scale);
-    font->base.newline_advance = font->base.ascent - font->base.descent + font->base.line_gap;
-    // font->base.kind = classify_font(data, stbtt_GetFontOffsetForIndex(data, 0), &font->font);
     return (vl_font_t*) font;
     err:
     vl_free(font);
     return NULL;
 }
 
-vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t glyph_id) {
+vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id_with_font_index(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t glyph_id, int font_index) {
     if (!font || !atlas) return NULL;
     if (atlas->format != VL_FONT_ATLAS_FORMAT_RRRR8) return NULL;
     if (atlas->full) return NULL;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
+    vl_font_universal_info_t *ui = (vl_font_universal_info_t*) f->base.fonts[font_index % VL_DA_LENGTH(f->base.fonts)];
     int advance_x, left_bearing;
-    stbtt_GetGlyphHMetrics(&f->font, glyph_id, &advance_x, &left_bearing);
+    stbtt_GetGlyphHMetrics(&ui->font, glyph_id, &advance_x, &left_bearing);
     int x1, y1, x2, y2;
-    stbtt_GetGlyphBitmapBox(&f->font, glyph_id, f->scale, f->scale, &x1, &y1, &x2, &y2);
+    stbtt_GetGlyphBitmapBox(&ui->font, glyph_id, ui->scale, ui->scale, &x1, &y1, &x2, &y2);
     float w = x2 - x1;
     float h = y2 - y1;
     if (atlas->cursor_y >= atlas->height) {
+        atlas->full = true;
         return NULL;
     }
     if (atlas->cursor_x + w + 2 >= atlas->width) {
@@ -65,7 +88,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
         return NULL;
     }
     vl_byte_t *pixels = (atlas->data + atlas->width * atlas->cursor_y) + atlas->cursor_x;
-    stbtt_MakeGlyphBitmapSubpixel(&f->font, pixels, w, h, atlas->width, f->scale, f->scale, 0.0f, 0.0f, glyph_id);
+    stbtt_MakeGlyphBitmapSubpixel(&ui->font, pixels, w, h, atlas->width, ui->scale, ui->scale, 0.0f, 0.0f, glyph_id);
     float bx1 = VL_FLOOR(atlas->cursor_x);
     float by1 = VL_FLOOR(atlas->cursor_y);
     float bx2 = VL_FLOOR(bx1 + w);
@@ -76,13 +99,13 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     result.h = h / font->density;
     result.glyph_id = glyph_id;
     
-    float lb = left_bearing * f->scale / font->density;
-    float ax = advance_x * f->scale / font->density;
+    float lb = left_bearing * ui->scale / font->density;
+    float ax = advance_x * ui->scale / font->density;
     result.advance_x = ax;
     result.x1 = lb;
-    result.y1 = font->ascent + font->line_gap + ((float) y1) / font->density;
+    result.y1 = ui->base.ascent + ui->base.line_gap + ((float) y1) / font->density;
     result.x2 = lb + w / font->density;
-    result.y2 = font->ascent + ((float) y2) / font->density;
+    result.y2 = ui->base.ascent + ((float) y2) / font->density;
 
     float aw = atlas->width;
     float ah = atlas->height;
@@ -92,24 +115,32 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id(vl_font_t *font,
     result.uv.bl = VL_POINT(bx1 / aw, by2 / ah);
     atlas->cursor_x += w + 2;
     atlas->largest_glyph_on_line = VL_MAX(h, atlas->largest_glyph_on_line);
-    if (atlas->cursor_x + font->height * font->density >= atlas->width - 2
-            && atlas->cursor_y + font->height * font->density >= atlas->height - 2) {
-        atlas->full = true;
-    }
     result.index = VL_DA_LENGTH(atlas->codepoints);
+    result.font_index = font_index;
     return VL_DA_APPEND(atlas->codepoints, result);
 }
 
-uint32_t vl_font_universal_get_glyph_id_by_codepoint(vl_font_t *font, uint32_t codepoint) {
+uint32_t vl_font_universal_get_glyph_id_and_font_index_by_codepoint(vl_font_t *font, uint32_t codepoint, int *font_index) {
     if (!font) return 0;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
-    return stbtt_FindGlyphIndex(&f->font, codepoint);
+    for (int i = 0; i < VL_DA_LENGTH(font->fonts); i++) {
+        vl_font_universal_info_t *ui = (vl_font_universal_info_t*) font->fonts[i];
+        if (!ui) continue;
+        uint32_t glyph_id = stbtt_FindGlyphIndex(&ui->font, codepoint);
+        if (glyph_id != 0) {
+            if (font_index) *font_index = i;
+            return glyph_id;
+        }
+    }
+    if (font_index) *font_index = 0;
+    return 0;
 }
 
 float vl_font_universal_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {
     if (codepoint_a == 0 || codepoint_b == 0) return 0;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
-    return ((float) stbtt_GetGlyphKernAdvance(&f->font, codepoint_a, codepoint_b)) * f->slim_scale;
+    // return ((float) stbtt_GetGlyphKernAdvance(&f->font, codepoint_a, codepoint_b)) * f->slim_scale;
+    return 0;
 }
 
 vl_vec2_t vl_font_universal_get_text_size_ex(vl_font_t *font, const char *text, size_t text_length) {
@@ -118,33 +149,36 @@ vl_vec2_t vl_font_universal_get_text_size_ex(vl_font_t *font, const char *text, 
     float y = 0;
     float base_x = 0;
     float base_y = 0;
-    for (size_t i = 0; i < text_length; i++) {
-        int c = text[i];
-        if (c == '\n') {
-            base_y += font->newline_advance;
-            base_x = 0;
-            y = VL_MAX(y, base_y);
-            continue;
-        }
-        int ax, lsb;
-        stbtt_GetCodepointHMetrics(&f->font, c, &ax, &lsb);
-        int x1, y1, x2, y2;
-        stbtt_GetCodepointBitmapBox(&f->font, c, f->slim_scale, f->slim_scale, &x1, &y1, &x2, &y2);
-        int w = x2 - x1;
-        int h = y2 - y1;
-        base_x += ax * f->slim_scale;
-        float bx = base_x + (lsb + w) * f->slim_scale;
-        float by = base_y + f->base.ascent - f->base.descent + f->base.line_gap + (y1 + h) / font->density;
-        x = VL_MAX(bx, x);
-        y = VL_MAX(by, y);
-        if (i != text_length - 1)
-            base_x += stbtt_GetGlyphKernAdvance(&f->font, c, text[i + 1]) * f->slim_scale;
-    }
+    // for (size_t i = 0; i < text_length; i++) {
+    //     int c = text[i];
+    //     if (c == '\n') {
+    //         base_y += font->newline_advance;
+    //         base_x = 0;
+    //         y = VL_MAX(y, base_y);
+    //         continue;
+    //     }
+    //     int ax, lsb;
+    //     stbtt_GetCodepointHMetrics(&f->font, c, &ax, &lsb);
+    //     int x1, y1, x2, y2;
+    //     stbtt_GetCodepointBitmapBox(&f->font, c, f->slim_scale, f->slim_scale, &x1, &y1, &x2, &y2);
+    //     int w = x2 - x1;
+    //     int h = y2 - y1;
+    //     base_x += ax * f->slim_scale;
+    //     float bx = base_x + (lsb + w) * f->slim_scale;
+    //     float by = base_y + f->base.ascent - f->base.descent + f->base.line_gap + (y1 + h) / font->density;
+    //     x = VL_MAX(bx, x);
+    //     y = VL_MAX(by, y);
+    //     if (i != text_length - 1)
+    //         base_x += stbtt_GetGlyphKernAdvance(&f->font, c, text[i + 1]) * f->slim_scale;
+    // }
     return VL_VEC2(x, y);
 }
 
 vl_result_t vl_font_universal_free(vl_font_t *font) {
     if (!font) return VL_ERROR;
-    // nothing to free for us!
+    for (int i = 0; i < VL_DA_LENGTH(font->fonts); i++) {
+        vl_free(font->fonts[i]);
+    }
+    VL_DA_FREE(font->fonts);
     return VL_SUCCESS;
 }

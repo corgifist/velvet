@@ -23,7 +23,7 @@ typedef enum vl_dom_element_text_alignment vl_dom_element_text_alignment_t;
 struct vl_dom_element_text_blueprint {
     int height;
     int weight;
-    VL_DA(VL_DA(vl_web_sized_font_t*)) font_family;
+    VL_DA(vl_web_sized_font_t*) font_family;
     char *text;
     vl_hash_t compound_hash;
     vl_dom_element_text_alignment_t alignment;
@@ -33,7 +33,7 @@ typedef struct vl_dom_element_text_blueprint vl_dom_element_text_blueprint_t;
 struct vl_dom_element_text_glyph {
     float x1, y1;
     float x2, y2;
-    int32_t glyph_id, codepoint;
+    int32_t id, codepoint;
     bool line_break;
     vl_font_t *font;
     vl_graphics_brush_t *brush;

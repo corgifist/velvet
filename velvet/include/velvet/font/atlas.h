@@ -27,6 +27,8 @@ struct vl_font_atlas_codepoint {
     float x1, y1;
     float x2, y2;
     float advance_x;
+
+    int font_index;
 };
 
 typedef struct vl_font_atlas_codepoint vl_font_atlas_codepoint_t;
@@ -54,6 +56,7 @@ VL_API vl_font_atlas_t *vl_font_atlas_new_(vl_font_atlas_format_t format, size_t
 #define vl_font_atlas_init(...) \
     vl_font_atlas_init_va_expand(__VA_ARGS__, VL_SOURCE_LOCATION_HERE)
 VL_API vl_result_t vl_font_atlas_init_(vl_font_atlas_t *atlas, vl_font_atlas_format_t format, size_t width, size_t height, vl_source_location_t loc);
+VL_API vl_font_atlas_codepoint_t *vl_font_atlas_find_glyph_id_with_font_index(vl_font_atlas_t *atlas, struct vl_font *font, uint32_t glyph_id, int font_index);
 VL_API vl_font_atlas_codepoint_t *vl_font_atlas_find_glyph_id(vl_font_atlas_t *atlas, struct vl_font *font, uint32_t glyph_id);
 VL_API vl_result_t vl_font_atlas_deinit(vl_font_atlas_t *atlas);
 VL_API vl_result_t vl_font_atlas_free(vl_font_atlas_t *atlas);

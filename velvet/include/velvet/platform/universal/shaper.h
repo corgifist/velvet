@@ -25,7 +25,7 @@ typedef struct vl_font_shaper_run_universal vl_font_shaper_run_universal_t;
 
 struct vl_font_shaper_font_ref_universal {
     vl_font_shaper_font_ref_t base;
-    kbts_font font;
+    VL_DA(kbts_font) fonts;
 };
 
 typedef struct vl_font_shaper_font_ref_universal vl_font_shaper_font_ref_universal_t;

@@ -39,11 +39,16 @@ vl_font_shaper_t *vl_font_shaper_universal_new(vl_platform_context_t *context, v
 vl_font_shaper_font_ref_t *vl_font_shaper_universal_add_font(vl_font_shaper_t *shaper, vl_font_t *font) {
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
-    kbts_font added_font = kbts_FontFromMemory((void*) f->data, f->data_length, 0, NULL, NULL);
-    added_font.UserData = font;
     vl_font_shaper_font_ref_universal_t *font_ref = VL_NEW(vl_font_shaper_font_ref_universal_t);
-    font_ref->font = added_font;
     font_ref->base.font = font;
+    font_ref->fonts = VL_DA_INIT(kbts_font);
+    for (int i = 0; i < VL_DA_LENGTH(font->fonts); i++) {
+        vl_font_info_t *fi = font->fonts[i];
+        if (!fi) continue;
+        kbts_font kb_font = kbts_FontFromMemory((void*) f->data, f->data_length, i, NULL, NULL);
+        kb_font.UserData = fi;
+        VL_DA_APPEND(font_ref->fonts, kb_font);
+    }
     VL_DA_APPEND(shaper->font_stack, font_ref);
     return (vl_font_shaper_font_ref_t*) font_ref;
 }
@@ -51,7 +56,10 @@ vl_font_shaper_font_ref_t *vl_font_shaper_universal_add_font(vl_font_shaper_t *s
 vl_result_t vl_font_shaper_universal_free_font(vl_font_shaper_t *shaper, vl_font_shaper_font_ref_t *font) {
     vl_font_shaper_universal_t *s = (vl_font_shaper_universal_t*) shaper;
     vl_font_shaper_font_ref_universal_t *f = (vl_font_shaper_font_ref_universal_t*) font;
-    kbts_FreeFont(&f->font);
+    for (int i = 0; i < VL_DA_LENGTH(f->fonts); i++) {
+        kbts_FreeFont(f->fonts + i);
+    }
+    VL_DA_FREE(f->fonts);
     vl_free(font);
     return VL_SUCCESS;
 }
@@ -62,14 +70,19 @@ vl_result_t vl_font_shaper_univesal_process(vl_font_shaper_t *shaper, const char
         vl_global_error_pool_append("font stack is either empty or NULL for vl_font_shaper_t %p", shaper);
         return VL_ERROR;
     }
+    int fonts_count = 0;
     for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
         vl_font_shaper_font_ref_universal_t *uf = (vl_font_shaper_font_ref_universal_t*) shaper->font_stack[i];
-        kbts_ShapePushFont(s->context, &uf->font);
+        if (!uf) continue;
+        for (int j = 0; j < VL_DA_LENGTH(uf->fonts); j++) {
+            kbts_ShapePushFont(s->context, uf->fonts + j);
+            fonts_count++;
+        }
     }
     kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_DONT_KNOW);
     kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_CODEPOINT_INDEX);
     kbts_ShapeEnd(s->context);
-    for (int i = 0; i < VL_DA_LENGTH(shaper->font_stack); i++) {
+    for (int i = 0; i < fonts_count; i++) {
         kbts_ShapePopFont(s->context);
     }
     return VL_SUCCESS;
@@ -91,7 +104,7 @@ bool vl_font_shaper_universal_shape(vl_font_shaper_t *shaper, vl_font_shaper_run
 }
 
 vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *run, vl_font_shaper_glyph_t *glyph) {
-    vl_font_universal_t *f = (vl_font_universal_t*) run->font;
+    vl_font_universal_info_t *f = (vl_font_universal_info_t*) run->font;
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
     int status = kbts_GlyphIteratorNext(&r->run.Glyphs, &r->iterator);
     if (!status) return NULL;
@@ -102,16 +115,15 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
     glyph->advance_x = ((float) r->iterator->AdvanceX) * f->slim_scale;
     glyph->advance_y = ((float) r->iterator->AdvanceY) * f->slim_scale;
     glyph->id = r->iterator->Id;
-    glyph->last = r->iterator->Next->Codepoint == 0 ? 1 : 0 && r->run.Flags;
+    glyph->last = r->iterator->Next->Codepoint == 0 ? 1 : 0;
     return glyph;
 }
 
 vl_result_t vl_font_shaper_run_universal_reset(vl_font_shaper_run_t *run) {
     vl_font_shaper_run_universal_t *r = (vl_font_shaper_run_universal_t*) run;
-    r->iterator = 0;
-    r->run = (kbts_run) {0};
-    r->base.hard_line_break = false;
-    r->base.direction = VL_FONT_SHAPER_RUN_DIRECTION_NONE;
+    vl_font_shaper_t *owner = r->base.owner;
+    VL_ZERO_OUT(r);
+    r->base.owner = owner;
     return VL_SUCCESS;
 }
 

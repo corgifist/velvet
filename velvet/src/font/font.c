@@ -5,19 +5,27 @@
 #include "support/result.h"
 #include "vendor/utf8.h"
 
+vl_font_t *vl_font_new_with_subfont_indices_(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, VL_DA(int) subfonts, vl_source_location_t loc) {
+    if (!context || !context->font_new_with_subfont_indices) return NULL;
+    return context->font_new_with_subfont_indices(context, name, height, density, data, data_length, subfonts, loc);
+}
+
 vl_font_t *vl_font_new_(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc) {
-    if (!context || !context->font_new) return NULL;
-    return context->font_new(context, name, height, density, data, data_length, loc);
+    return vl_font_new_with_subfont_indices_(context, name, height, density, data, data_length, NULL, loc);
 }
 
 vl_font_atlas_codepoint_t *vl_font_rasterize_codepoint(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t codepoint) {
     uint32_t glyph_id = vl_font_get_glyph_id_by_codepoint(font, codepoint);
-    return vl_font_universal_rasterize_glyph_id(font, atlas, glyph_id);
+    return vl_font_rasterize_glyph_id(font, atlas, glyph_id);
 }
 
 vl_font_atlas_codepoint_t *vl_font_rasterize_glyph_id(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t glyph_id) {
-    if (!font || !atlas || !font->context || !font->context->font_rasterize_glyph_id) return NULL;
-    return font->context->font_rasterize_glyph_id(font, atlas, glyph_id);
+    return vl_font_rasterize_glyph_id_with_font_index(font, atlas, glyph_id, 0);
+}
+
+vl_font_atlas_codepoint_t *vl_font_rasterize_glyph_id_with_font_index(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t glyph_id, int font_index) {
+    if (!font || !atlas || !font->context || !font->context->font_rasterize_glyph_id_with_font_index) return NULL;
+    return font->context->font_rasterize_glyph_id_with_font_index(font, atlas, glyph_id, font_index);
 }
 
 vl_result_t vl_font_rasterize_codepoint_range(vl_font_t *font, vl_font_atlas_t *atlas, uint32_t begin, uint32_t end) {
@@ -46,9 +54,13 @@ vl_result_t vl_font_rasterize_codepoints(vl_font_t *font, vl_font_atlas_t *atlas
     return VL_SUCCESS;
 }
 
+uint32_t vl_font_get_glyph_id_and_font_index_by_codepoint(vl_font_t *font, uint32_t codepoint, int *font_idnex) {
+    if (!font || !font->context || !font->context->font_get_glyph_id_and_font_index_by_codepoint) return 0;
+    return font->context->font_get_glyph_id_and_font_index_by_codepoint(font, codepoint, font_idnex);
+}
+
 uint32_t vl_font_get_glyph_id_by_codepoint(vl_font_t *font, uint32_t codepoint) {
-    if (!font || !font->context || !font->context->font_get_glyph_id_by_codepoint) return 0;
-    return font->context->font_get_glyph_id_by_codepoint(font, codepoint);
+    return vl_font_get_glyph_id_and_font_index_by_codepoint(font, codepoint, NULL);
 }
 
 float vl_font_get_kern_advance(vl_font_t *font, uint32_t codepoint_a, uint32_t codepoint_b) {

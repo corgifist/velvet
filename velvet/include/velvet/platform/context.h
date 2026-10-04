@@ -1,6 +1,7 @@
 #ifndef VELVET_PLATFORM_CONTEXT_H
 #define VELVET_PLATFORM_CONTEXT_H
 
+#include "velvet/support/da.h"
 #include "velvet/support/result.h"
 #include "velvet/support/api.h"
 #include "velvet/support/memory.h"
@@ -78,9 +79,9 @@ typedef vl_result_t (*vl_ctx_graphics_brush_free)(struct vl_graphics_brush *brus
 struct vl_font;
 struct vl_font_atlas_codepoint;
 struct vl_font_atlas;
-typedef struct vl_font* (*vl_ctx_font_new)(struct vl_platform_context *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, vl_source_location_t loc);
-typedef struct vl_font_atlas_codepoint* (*vl_ctx_font_rasterize_glyph_id)(struct vl_font *font, struct vl_font_atlas *atlas, uint32_t glyph_id);
-typedef uint32_t (*vl_ctx_font_get_glyph_id_by_codepoint)(struct vl_font *font, uint32_t codepoint);
+typedef struct vl_font* (*vl_ctx_font_new_with_subfont_indices)(struct vl_platform_context *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, VL_DA(int) subfonts, vl_source_location_t loc);
+typedef struct vl_font_atlas_codepoint* (*vl_ctx_font_rasterize_glyph_id_with_font_index)(struct vl_font *font, struct vl_font_atlas *atlas, uint32_t glyph_id, int font_index);
+typedef uint32_t (*vl_ctx_font_get_glyph_id_and_font_index_by_codepoint)(struct vl_font *font, uint32_t codepoint, int *font_index);
 typedef float (*vl_ctx_font_get_kern_advance)(struct vl_font *font, uint32_t codepoint_a, uint32_t codepoint_b);
 typedef union vl_vec2 (*vl_ctx_font_get_text_size_ex)(struct vl_font *font, const char *text, size_t size);
 typedef vl_result_t (*vl_ctx_font_free)(struct vl_font *font);
@@ -133,9 +134,9 @@ struct vl_platform_context {
     vl_ctx_graphics_brush_new_bitmap graphics_brush_new_bitmap;
     vl_ctx_graphics_brush_free graphics_brush_free;
 
-    vl_ctx_font_new font_new;
-    vl_ctx_font_rasterize_glyph_id font_rasterize_glyph_id;
-    vl_ctx_font_get_glyph_id_by_codepoint font_get_glyph_id_by_codepoint;
+    vl_ctx_font_new_with_subfont_indices font_new_with_subfont_indices;
+    vl_ctx_font_rasterize_glyph_id_with_font_index font_rasterize_glyph_id_with_font_index;
+    vl_ctx_font_get_glyph_id_and_font_index_by_codepoint font_get_glyph_id_and_font_index_by_codepoint;
     vl_ctx_font_get_kern_advance font_get_kern_advance;
     vl_ctx_font_get_text_size_ex font_get_text_size_ex;
     vl_ctx_font_free font_free;

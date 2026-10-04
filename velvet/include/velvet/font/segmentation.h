@@ -9,7 +9,6 @@ enum vl_font_segmentation_type {
     VL_FONT_SEGMENTATION_WORD = 0,
     VL_FONT_SEGMENTATION_SENTENCE,
     VL_FONT_SEGMENTATION_LINE,
-    VL_FONT_SEGMENTATION_ONLY_WORDS // not including spaces
 };
 
 typedef enum vl_font_segmentation_type vl_font_segmentation_type_t;
