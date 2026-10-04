@@ -1756,7 +1756,7 @@ void styling_test() {
          vl_graphics_render_batch_end(render);
         vl_graphics_presentation_end(present);
         vl_measurement_end(&frame_measure);
-        win->title = vl_sprintf_tmp("Velvet (%f ms per frame)", frame_measure.seconds * 1000.0f);
+        win->title = vl_sprintf_tmp("Velvet (%0.2fms, %0.2fMB)", frame_measure.seconds * 1000.0f, vl_memory_allocated_bytes() / 1024.0f / 1024.0f);
     }
     vl_web_deinit(&web);
     vl_html_document_free(doc);

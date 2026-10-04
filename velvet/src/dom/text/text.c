@@ -327,7 +327,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
         // printf("%s %s %i %i %i %p %p %p\n", font_info->owner->name, sized_fat_font->font->name, font_info->owner->height, sized_fat_font->font->height, font_info->index, font_info, sized_fat_font, sized_font);
         if (!sized_font) continue;
         float line_height = sized_font->ascent - sized_font->descent + sized_font->line_gap + 2;
-        float span_position = element->layout.span_position.x;
+        float span_position = element->layout.span_x_cursor;
         while (vl_font_shaper_iterate(run, &shaper_glyph)) {
             int current_break = 0;
             for (int i = 0; i < VL_DA_LENGTH(word_breaks); i++) {
@@ -360,7 +360,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             line->width = VL_MAX(line->width, base_x + segment_x);
             // printf("%i %i segment: %s '%.*s' %i (%i; %i) %i\n", runi, text_glyph.id, sized_font->owner->name, (int) (word_breaks[current_break].end - word_breaks[current_break].begin), layout->blueprint.text + word_breaks[current_break].begin, (int) src_pos, (int) word_breaks[current_break].begin, (int) word_breaks[current_break].end, VL_STRING_LEN(layout->blueprint.text));
             if (src_pos >= word_breaks[current_break].end - 1 || shaper_glyph.last) {
-                if (span_position + base_x + segment.width > element->layout.span_area.x && VL_DA_LENGTH(line->segments) > 0) {
+                if (span_position + base_x + segment.width > element->layout.span_x_area && VL_DA_LENGTH(line->segments) > 0) {
                     // printf("breaking %c: %s\n", shaper_glyph.codepoint, layout->blueprint.text);
                     line->wrapped = true;
                     base_x = 0;

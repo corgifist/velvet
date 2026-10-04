@@ -16,7 +16,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
-#define TRIANGLES_MAX 128
+#define TRIANGLES_MAX 512
 #define BATCH_MAX TRIANGLES_MAX * 3
 
 static void ensure_context(GLFWwindow *window) {

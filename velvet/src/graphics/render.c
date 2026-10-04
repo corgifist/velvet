@@ -7,6 +7,8 @@
 #include "support/math.h"
 #include "support/result.h"
 
+static vl_mat4_t break_mat = VL_MAT4(0);
+
 vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window) {
     if (!window || !vl_platform_context_valid(window->context) || !window->context->graphics_render_new) return NULL;
     vl_graphics_render_t *render = window->context->graphics_render_new(window);
@@ -25,8 +27,17 @@ vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t co
 vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, vl_mat4_t transform) {
     if (!render) return VL_ERROR;
     if (render->transform) {
+        vl_mat4_t *prev = VL_DA_LAST(render->transform);
         vl_mat4_t *mat = VL_DA_PUSH(render->transform, vl_mat4_t);
-        vl_mat4_dup(mat, transform);
+        if (memcmp(&transform, &break_mat, sizeof(transform)) == 0) {
+            prev = NULL;
+            transform = VL_MAT4();
+        }
+        if (!prev) {
+            *mat = transform;
+        } else {
+            vl_mat4_mul(mat, transform, *prev);
+        }
     }
     return VL_SUCCESS;
 }
@@ -68,19 +79,11 @@ vl_result_t vl_graphics_render_batch_begin(vl_graphics_render_t *render) {
 
 vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec2_t point, vl_graphics_brush_t *brush, vl_color_t color, vl_vec2_t uv) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_batch_vertex) return VL_ERROR;
-    if (render->transform) {
-        vl_vec2_t orig_point = point;
-        static vl_mat4_t break_mat = VL_MAT4(0);
-        for (int i = 0; i < VL_DA_LENGTH(render->transform); i++) {
-            if (memcmp(render->transform + i, &break_mat, sizeof(vl_mat4_t)) == 0) {
-                point = orig_point;
-                continue;
-            }
-            vl_vec4_t src = {point.x, point.y, 0, 1};
-            vl_vec4_t dst;
-            vl_mat4_mul_vec4(&dst, render->transform[i], src);
-            point = VL_POINT(dst.x, dst.y);
-        }
+    if (render->transform && !VL_DA_EMPTY(render->transform)) {
+        vl_vec4_t src = {point.x, point.y, 0, 1};
+        vl_vec4_t dst;
+        vl_mat4_mul_vec4(&dst, *((vl_mat4_t*) VL_DA_LAST(render->transform)), src);
+        point = VL_POINT(dst.x, dst.y);
     }
     return render->context->graphics_render_batch_vertex(render, point, brush, color, uv); 
 }
