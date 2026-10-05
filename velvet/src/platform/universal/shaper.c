@@ -128,7 +128,7 @@ vl_font_shaper_glyph_t *vl_font_shaper_universal_iterate(vl_font_shaper_run_t *r
     glyph->advance_x = ((float) r->iterator->AdvanceX) * f->slim_scale;
     glyph->advance_y = ((float) r->iterator->AdvanceY) * f->slim_scale;
     glyph->id = r->iterator->Id;
-    glyph->last = r->iterator->Next->Codepoint == 0 ? 1 : 0;
+    glyph->last = (r->iterator->Next ? (r->iterator->Next->Codepoint > 0 ? 0 : 1) : 1);
     return glyph;
 }
 

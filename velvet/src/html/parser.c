@@ -227,7 +227,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             return VL_ERROR;
         }
         if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip doctype
-        if (!node->attributes) node->attributes = VL_DA_INIT(vl_html_attribute_t);
+        if (!node->attributes) node->attributes = VL_DA_INIT(vl_html_attribute_t, 1);
         while (!VL_TOKEN_COMPARE(current, ">")) {
             if (current->type != VL_HTML_TOKEN_TYPE_WORD && !(VL_TOKEN_COMPARE(current, "\"") || VL_TOKEN_COMPARE(current, "'"))) {
                 vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected word or string while parsing doctype");
@@ -308,7 +308,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         attribute.value = compact_string;
 
         append_attribute:
-        if (!node->attributes) node->attributes = VL_DA_INIT(vl_html_attribute_t);
+        if (!node->attributes) node->attributes = VL_DA_INIT(vl_html_attribute_t, 1);
         VL_DA_APPEND(node->attributes, attribute);
     }
 
@@ -345,7 +345,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         }
         first = false;
         prev_text = (tmp_node.text ? 1 : 0);
-        if (!node->children) node->children = VL_DA_INIT(vl_html_node_t);
+        if (!node->children) node->children = VL_DA_INIT(vl_html_node_t, 1);
         VL_DA_APPEND(node->children, tmp_node);
     }
 

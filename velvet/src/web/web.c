@@ -26,6 +26,7 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     web->refresh_styles = true;
     vl_web_fonts_init(&web->fonts, web);
     web->fonts.owner = web;
+    vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Tiro Devanagari Sanskrit");
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Songti TC");
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Songti SC");
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Times New Roman");

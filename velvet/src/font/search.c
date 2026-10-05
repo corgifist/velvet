@@ -11,17 +11,116 @@
 #include "vendor/utf8.h"
 #include "velvet/web/fonts.h"
 
+typedef struct {
+    const char *ptr;
+    int len;
+} font_root;
+
+static int is_space(unsigned char c)
+{
+    return c == ' ' || c == '\t' ||
+           c == '\n' || c == '\r' ||
+           c == '\f' || c == '\v';
+}
+
+static int equals_word(const char *s, size_t len,
+                       const char *word, size_t word_len)
+{
+    return len == word_len && utf8ncasecmp(s, word, word_len) == 0;
+}
+
+font_root font_root_name(const char *description, size_t description_size) {
+#define STR_LEN(STR) { STR, sizeof(STR) - 1 }
+    static const struct {
+        const char *text;
+        size_t len;
+    } suffixes[] = {
+        STR_LEN("Italic"),
+        STR_LEN("Bold"),
+        STR_LEN("Condensed"),
+        STR_LEN("Narrow"),
+        STR_LEN("Light"),
+        STR_LEN("Oblique"),
+        STR_LEN("Thin"),
+        STR_LEN("Medium"),
+        STR_LEN("UltraLight"),
+        STR_LEN("Black"),
+        STR_LEN("UltraBlack"),
+        STR_LEN("ExtraLight"),
+        STR_LEN("ExtraBlack"),
+    };
+
+    font_root result = { NULL, 0 };
+
+    if (description == NULL || description_size == 0)
+        return result;
+
+    size_t length = 0;
+    while (length < description_size && description[length] != '\0')
+        ++length;
+
+    size_t start = 0;
+    while (start < length &&
+           is_space((unsigned char)description[start])) {
+        ++start;
+    }
+
+    size_t end = length;
+    while (end > start &&
+           is_space((unsigned char)description[end - 1])) {
+        --end;
+    }
+
+    result.ptr = description;
+    result.len = length;
+
+    for (;;) {
+        size_t word_start = end;
+
+        while (word_start > start &&
+               !is_space((unsigned char)description[word_start - 1])) {
+            --word_start;
+        }
+
+        const char *word = description + word_start;
+        size_t word_len = end - word_start;
+        int is_style_word = 0;
+
+        for (size_t i = 0; i < VL_ARR_LEN(suffixes); i++) {
+            if (equals_word(word, word_len, suffixes[i].text, suffixes[i].len)) {
+                is_style_word = 1;
+                break;
+            }
+        }
+
+        if (!is_style_word)
+            break;
+
+        end = word_start;
+
+        while (end > start &&
+               is_space((unsigned char)description[end - 1])) {
+            --end;
+        }
+    }
+
+    result.ptr = description + start;
+    result.len = end - start;
+    return result;
+}
+
 bool vl_font_search_compare_family_names(const char *family_name, const char *query) {
     if (!family_name || !query) return false;
     while (*query != '\0' && *query == ' ') { query++; }
     int family_len = strlen(family_name);
     int query_len = strlen(query);
-    // printf("query: %s\n", query);
     if (query_len > family_len) return false;
     while (query[query_len - 1] == ' ' && query_len > 0) { query_len--; }
     if (query_len == 0) return false;
-    // if (memcmp(family_name, query, query_len) == 0) printf("compare: '%s' '%s' %i res: %i\n", family_name, query, query_len, utf8ncasecmp(family_name, query, query_len));
-    return (utf8ncasecmp(family_name, query, query_len) == 0);
+
+    font_root family_root = font_root_name(family_name, family_len);
+    font_root query_root = font_root_name(query, query_len);
+    return (query_root.len == family_root.len && utf8ncasecmp(family_root.ptr, query_root.ptr, query_root.len) == 0);
 }
 
 vl_result_t vl_font_search_classify(const char *font_name, int *weight, bool *italic, bool *bold, bool *oblique, bool *narrow) {

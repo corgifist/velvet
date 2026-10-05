@@ -826,10 +826,11 @@ void simple_dom_test() {
 
 void segmentation_test() {
     // const char *text = "Serif font هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.";
-    // const char *text = "Unicode and Emoji";
-    const char *text= ".c";
+    const char *text = "Unicode and Emoji Юникод и Эмодзи";
+
+
     vl_font_segmentation_breaks_t breaks = NULL;
-    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_LINE, &breaks);
+    vl_font_segmentation_process_string(text, strlen(text), VL_FONT_SEGMENTATION_WORD, &breaks, VL_FONT_SEGMENTATION_INDEX_TYPE_CODEPOINT);
     for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {
         vl_font_segmentation_break_t *br = breaks + i;
         printf("%i %.*s %zu %zu\n", i, (int) br->end - (int) br->begin, text + br->begin, br->begin, br->end);
@@ -1700,6 +1701,11 @@ void styling_test() {
 </html>
     );
     // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         body {
+    //             --velvet-element-highlight: highlight-green;
+    //         }
+    //     </style>
     //     <p style="font-family: serif; font-size: 1em;">
     //         This paragraph includes <strong>bold text</strong>,
     //         <span>italic text</span>,
@@ -1726,6 +1732,9 @@ void styling_test() {
     //     </p>
     //     Xinside spanX<br>
     //     X<span>inside span</span>X
+    // );
+    // const char *input = VL_STRINGIFY(
+    //     <p style="font-size: 3em">Ελληνικά 1 2 3 4 5</p>
     // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
@@ -1771,7 +1780,7 @@ void styling_test() {
 
 void font_search() {
     VL_DA(vl_font_search_description_t) results = NULL;
-    vl_font_search_query(&results, "Songti SC");
+    vl_font_search_query(&results, "Helvetica Neue");
     for (int i = 0; i < VL_DA_LENGTH(results); i++) {
         vl_font_search_description_print(results + i);
     }

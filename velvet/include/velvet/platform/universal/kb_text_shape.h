@@ -2537,6 +2537,7 @@ enum kbts_glyph_flags_enum
 
   KBTS_GLYPH_FLAG_LIGATURE = (1 << 28),
   KBTS_GLYPH_FLAG_MULTIPLE_SUBSTITUTION = (1 << 29),
+  KBTS_GLYPH_FLAG_FROM_SINGLETON_DECOMPOSITION = (1 << 30)
 };
 
 typedef kbts_u8 kbts_joining_feature;
@@ -20363,7 +20364,10 @@ static void kbts__ExecuteOp(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storag
               {
                 Decomposition = GlyphToDecompose.Decomposition;
                 DecompositionSize = kbts__GetDecompositionSize(Decomposition);
-
+                if(DecompositionSize == 1)
+                {
+                  Decomposed[0].Flags |= KBTS_GLYPH_FLAG_FROM_SINGLETON_DECOMPOSITION;
+                }
                 // Only decompose when the font supports the decomposed form.
                 KBTS__FOR(DecompositionIndex, 0, DecompositionSize)
                 {
@@ -20560,7 +20564,7 @@ static void kbts__ExecuteOp(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storag
             KBTS_INSTRUMENT_BLOCK_END(ParentNSquaredStupidity);
           }
 
-          if(!Recomposed)
+          if(!Recomposed && (Glyph->Flags & KBTS_GLYPH_FLAG_FROM_SINGLETON_DECOMPOSITION))
           {
             KBTS__FOR(SingleRecompositionIndex, 0, SingleRecompositionCodepointCount)
             {
