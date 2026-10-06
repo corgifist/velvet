@@ -20928,7 +20928,6 @@ kbts__AATMorxLigature(
   kbts_u32 Cursor;
   kbts_u32 Count;
   kbts_u32 Cumulated=0;
-  kbts_b32 Last=0;
 
   KBTS__UNUSED(SubtableOffset);
 
@@ -21114,15 +21113,16 @@ kbts__AATMorxLigature(
 
     if(Action&0x80000000)
     {
-      Last=1;
       break;
     }
   }
 
-  if(Last)
-    *ComponentCount=0;
-  else
-    *ComponentCount=Count;
+  /*
+   * Keep the surviving ligature on the component stack after a
+   * LigActionLast.  HarfBuzz does the same: a following state transition
+   * may extend the ligature (for example ffi = ff + i).
+   */
+  *ComponentCount=Count;
 }
 
 static kbts_glyph *
@@ -28911,8 +28911,8 @@ static kbts_shape_config *kbts__PlaceShapeConfig(kbts_font *Font, kbts_script Sc
       }
     }
 
-    if((Script == KBTS_SCRIPT_ARABIC) &&
-      kbts__AATFontIsAAT(Font))
+    if(kbts__AATFontHasMorx(Font) ||
+       kbts__AATFontHasMort(Font))
     {
       Config.OpList = kbts__OpList_ArabicAAT;
     } else if((Config.Shaper == KBTS_SHAPER_ARABIC) && !Rclt)

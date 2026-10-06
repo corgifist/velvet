@@ -87,6 +87,9 @@ vl_result_t vl_font_search_query(VL_DA(vl_font_search_description_t)* results, c
         vl_font_search_description_t desc = {0};
         if (font_name) {
             desc.name = cf_string_to_da_string(font_name);
+            // if (utf8casestr(desc.name, "Hiragino")) {
+            //     printf("font: %s\n", desc.name);
+            // }
             if ((name && !vl_font_search_compare_family_names(desc.name, name))) {
                 VL_STRING_FREE(desc.name);
                 goto release;

@@ -162,6 +162,9 @@ static void try_add_web_family(vl_web_t *web, const char *name, vl_dom_element_t
     vl_measurement_t measure = {0};
     vl_measurement_start(&measure, "font finding");
     VL_DA(vl_web_sized_font_t*) whole_family = try_get_web_font(&web->fonts, name, -1, blueprint->height);
+    if (!whole_family) {
+        whole_family = vl_web_fonts_get_font(&web->fonts, "serif", -1, blueprint->height);
+    }
     for (int i = VL_DA_LENGTH(whole_family); i --> 0;) {
         vl_web_sized_font_t *part = whole_family[i];
         VL_DA_APPEND(blueprint->font_family, part);

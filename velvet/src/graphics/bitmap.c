@@ -15,7 +15,7 @@ vl_graphics_bitmap_t *vl_graphics_bitmap_new(vl_graphics_render_t *render,
 
 vl_result_t vl_graphics_bitmap_update(vl_graphics_bitmap_t *bitmap,
         size_t x, size_t y, size_t width, size_t height, void *data) {
-    if (!bitmap || !bitmap->owner || !bitmap->owner->context || !bitmap->owner->context->graphics_bitmap_update) return VL_ERROR;
+    if (!bitmap || !data || !bitmap->owner || !bitmap->owner->context || !bitmap->owner->context->graphics_bitmap_update) return VL_ERROR;
     return bitmap->owner->context->graphics_bitmap_update(bitmap, x, y, width, height, data);
 }
 

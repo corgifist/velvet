@@ -49,6 +49,16 @@ font_root font_root_name(const char *description, size_t description_size) {
         STR_LEN("UltraBlack"),
         STR_LEN("ExtraLight"),
         STR_LEN("ExtraBlack"),
+        STR_LEN("W0"),
+        STR_LEN("W1"),
+        STR_LEN("W2"),
+        STR_LEN("W3"),
+        STR_LEN("W4"),
+        STR_LEN("W5"),
+        STR_LEN("W6"),
+        STR_LEN("W7"),
+        STR_LEN("W8"),
+        STR_LEN("GB"),
     };
 
     font_root result = { NULL, 0 };

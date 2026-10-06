@@ -1745,13 +1745,30 @@ void styling_test() {
                 margin-block-end: 0.5em;
             }
         </style>
-        <p dir="rtl">
-            هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.
+        <p>
+            السلام عليكم<br>
+            بسم الله الرحمن الرحيم<br>
+            لا إله إلا الله<br>
+            محمد رسول الله<br>
+            العربية لغة جميلة<br>
         </p>
         <p>Ελληνικά, 中文, 日本語</p>
         <p>العربية, हिन्दी</p>
         <p>Kerning: VA AV</p>
-        <p style="font-family: Zapfino">Zapfino!</p>
+        <p style="font-family: Zapfinos">Zapfino!</p>
+        <p style="font-family: Skia; margin-top: 3em">
+            AVATAR WAY WA To Te<br>
+            office ffi ff fi fl<br>
+            1234567890<br>
+        </p>
+        <p style="font-family: 'Hoefler Text">
+            The office of the affinity official
+            AVATAR To Ta Te
+        </p>
+        <p style="font-family: 'Hiragino Sans'">
+            日本語の文章です<br>
+            漢字とひらがなとカタカナ
+        </p>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
@@ -1797,7 +1814,7 @@ void styling_test() {
 
 void font_search() {
     VL_DA(vl_font_search_description_t) results = NULL;
-    vl_font_search_query(&results, "Geeza Pro");
+    vl_font_search_query(&results, "Hiragino");
     printf("%zu results:\n", VL_DA_LENGTH(results));
     for (int i = 0; i < VL_DA_LENGTH(results); i++) {
         vl_font_search_description_print(results + i);

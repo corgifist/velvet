@@ -258,7 +258,7 @@ static vl_result_t rasterize_glyph_id(vl_web_fonts_t *fonts, vl_web_font_atlas_c
     }
     if (!free_atlas) {
         free_atlas = VL_DA_PUSH(fonts->atlases, vl_web_font_atlas_t);
-        vl_font_atlas_init(&free_atlas->atlas, VL_FONT_ATLAS_FORMAT_RRRR8, 512, 512);
+        vl_font_atlas_init(&free_atlas->atlas, VL_FONT_ATLAS_FORMAT_RRRR8, 2048, 1024);
         free_atlas->bitmap = vl_graphics_bitmap_new(fonts->owner->render, free_atlas->atlas.width, free_atlas->atlas.height, VL_GRAPHICS_BITMAP_FORMAT_RRRR8, NULL);
         free_atlas->brush = vl_graphics_brush_new_bitmap(fonts->owner->render, free_atlas->bitmap);
         free_atlas->index = VL_DA_LENGTH(fonts->atlases) - 1;

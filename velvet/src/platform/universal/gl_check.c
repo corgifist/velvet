@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void vl_gl_check_errors(GladGLContext *ctx) {
+void vl_gl_check_errors(GladGLContext *ctx, vl_source_location_t loc) {
     GLenum error = ctx->GetError();
     if (error == GL_NO_ERROR) return;
-    printf("GL ERROR: %i\n", (int) error);
+    printf("OpenGL Error (%i) at %s:%i\n", (int) error, loc.file, loc.line);
     VL_ASSERT(0);
 }
 
