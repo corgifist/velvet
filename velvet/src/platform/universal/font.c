@@ -1,5 +1,6 @@
 #include "font/atlas.h"
 #include "support/base_math.h"
+#include "support/error_pool.h"
 #include "support/math.h"
 #include "support/da.h"
 #include "support/math.h"
@@ -45,12 +46,29 @@ vl_font_t *vl_font_universal_new_with_subfont_indices(vl_platform_context_t *con
         font_info->scale = stbtt_ScaleForMappingEmToPixels(&font_info->font, height * density);
         font_info->slim_scale = font_info->scale / density;
         int ascent, descent, line_gap;
-        stbtt_GetFontVMetrics(&font_info->font, &ascent, &descent, &line_gap);
+        if (!stbtt_GetFontVMetricsOS2(&font_info->font, &ascent, &descent, &line_gap))
+            stbtt_GetFontVMetrics(&font_info->font, &ascent, &descent, &line_gap);
         font_info->base.ascent = ascent * font_info->slim_scale;
         font_info->base.descent = descent * font_info->slim_scale;
         font_info->base.line_gap = VL_CEIL(line_gap * font_info->slim_scale);
         font_info->base.owner = (vl_font_t*) font;
         font_info->base.index = i;
+        int len = 0;
+        const char *face_name = NULL;
+        for (int i = 0; i <= STBTT_UNICODE_EID_UNICODE_2_0_FULL; i++) {
+            for (int j = 0; j <= STBTT_PLATFORM_ID_MICROSOFT; j++) {
+                face_name = stbtt_GetFontNameString(&font_info->font, 
+                &len, j, i, STBTT_MS_LANG_ENGLISH, 4
+                );
+                if (face_name && len > 0) goto found_name;
+                face_name = stbtt_GetFontNameString(&font_info->font, 
+                &len, j, i, STBTT_MAC_LANG_ENGLISH, 4
+                );
+                if (face_name && len > 0) goto found_name;
+            }
+        }
+        found_name:
+        if (face_name && len > 0) font_info->base.name = VL_STRING_INIT(face_name, len);
         VL_DA_APPEND(font->base.fonts, font_info);
     }
     return (vl_font_t*) font;
@@ -65,6 +83,7 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id_with_font_index(
     if (atlas->full) return NULL;
     vl_font_universal_t *f = (vl_font_universal_t*) font;
     vl_font_universal_info_t *ui = (vl_font_universal_info_t*) f->base.fonts[font_index % VL_DA_LENGTH(f->base.fonts)];
+    if (!ui) return NULL;
     int advance_x, left_bearing;
     stbtt_GetGlyphHMetrics(&ui->font, glyph_id, &advance_x, &left_bearing);
     int x1, y1, x2, y2;
@@ -177,6 +196,10 @@ vl_vec2_t vl_font_universal_get_text_size_ex(vl_font_t *font, const char *text, 
 vl_result_t vl_font_universal_free(vl_font_t *font) {
     if (!font) return VL_ERROR;
     for (int i = 0; i < VL_DA_LENGTH(font->fonts); i++) {
+        vl_font_info_t *info = font->fonts[i];
+        if (info) {
+            VL_STRING_FREE(info->name);
+        }
         vl_free(font->fonts[i]);
     }
     VL_DA_FREE(font->fonts);

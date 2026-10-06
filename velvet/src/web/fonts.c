@@ -114,6 +114,7 @@ static void add_system_font_from_description(vl_web_fonts_t *fonts, vl_font_sear
     if (!vl_font_search_compare_family_names(font->name, part_family)) return;
     if (utf8casestr(font->name, "Italic") || utf8casestr(font->name, "Narrow") || utf8casestr(font->name, "Condensed")) return;
     int weight;
+    vl_font_search_description_print(font);
     vl_font_search_classify(font->name, &weight, NULL, NULL, NULL, NULL);
     vl_web_fonts_add_font_with_part_name_from_disk(fonts, family_name, font->path, weight, font->name, font->subfonts, priority);
 }
@@ -131,6 +132,34 @@ vl_result_t vl_web_fonts_add_parts_from_system(vl_web_fonts_t *fonts, const char
         vl_font_search_description_t *font = fonts->system_fonts + i;
         add_system_font_from_description(fonts, font, family_name, part_family, priority);
     }
+
+    return VL_SUCCESS;
+}
+
+VL_API vl_result_t vl_web_fonts_add_parts_from_disk(vl_web_fonts_t *fonts, const char *family_name, const char *path) {
+    if (!fonts || !family_name || !path) return VL_ERROR;
+    vl_web_font_family_t *family = find_family(fonts, family_name);
+    if (!family) {
+        family = VL_DA_PUSH(fonts->families, vl_web_font_family_t);
+        family->name = family_name;
+        family->variations = VL_DA_INIT(vl_web_font_t);
+    }
+    int priority = ++fonts->priority_index;
+    vl_web_font_storage_record_t *query = vl_web_font_storage_query(&fonts->storage, path);
+    if (!query) return VL_ERROR;
+    vl_font_t *fat_font = vl_font_new(fonts->owner->platform_context, family_name, 1, 1, query->data, query->len);
+    if (!fat_font) return VL_ERROR;
+    for (int i = 0; i < VL_DA_LENGTH(fat_font->fonts); i++) {
+        vl_font_info_t *subfont = fat_font->fonts[i];
+        if (!subfont) continue;
+        if (utf8casestr(subfont->name, "Italic")) continue;
+        int weight;
+        vl_font_search_classify(subfont->name, &weight, NULL, NULL, NULL, NULL);
+        VL_DA(int) subfonts = VL_DA_INIT(int);
+        *VL_DA_PUSH(subfonts, int) = i;
+        vl_web_fonts_add_font_with_part_name_from_disk(fonts, family_name, path, weight, VL_STRING_COPY(subfont->name), subfonts, priority);
+    }
+    vl_font_free(fat_font);
 
     return VL_SUCCESS;
 }

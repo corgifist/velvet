@@ -1380,6 +1380,37 @@ static int stbtt__get_svg(stbtt_fontinfo *info)
    return info->svg;
 }
 
+static int stbtt__supported_cmap_format(int format)
+{
+    return format == 0 ||
+           format == 4 ||
+           format == 6 ||
+           format == 12;
+}
+
+static int stbtt__cmap_score(int platform, int encoding, int format)
+{
+    /*
+       Prefer larger Unicode repertoires, then BMP Unicode.
+       Format 12 is generally preferable to format 4 because it supports
+       codepoints above U+FFFF.
+    */
+    if (platform == 3 && encoding == 10 && format == 12) return 500;
+    if (platform == 0 && encoding == 6  && format == 12) return 490;
+    if (platform == 3 && encoding == 10 && format == 13) return 480;
+
+    if (platform == 0 && encoding == 4  && format == 12) return 470;
+    if (platform == 3 && encoding == 1  && format == 4)  return 400;
+    if (platform == 0 && encoding == 3  && format == 4)  return 390;
+    if (platform == 0 && encoding == 4  && format == 4)  return 380;
+
+    /* Legacy Unicode subtables */
+    if (platform == 0 && format == 6) return 200;
+    if (platform == 0 && format == 0) return 100;
+
+    return -1;
+}
+
 static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, int fontstart)
 {
    stbtt_uint32 cmap, t;
@@ -1461,31 +1492,51 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
 
    info->svg = -1;
 
-   // find a cmap encoding table we understand *now* to avoid searching
-   // later. (todo: could make this installable)
-   // the same regardless of glyph.
-   numTables = ttUSHORT(data + cmap + 2);
-   info->index_map = 0;
-   for (i=0; i < numTables; ++i) {
-      stbtt_uint32 encoding_record = cmap + 4 + 8 * i;
-      // find an encoding we understand:
-      switch(ttUSHORT(data+encoding_record)) {
-         case STBTT_PLATFORM_ID_MICROSOFT:
-            switch (ttUSHORT(data+encoding_record+2)) {
-               case STBTT_MS_EID_UNICODE_BMP:
-               case STBTT_MS_EID_UNICODE_FULL:
-                  // MS/Unicode
-                  info->index_map = cmap + ttULONG(data+encoding_record+4);
-                  break;
-            }
-            break;
-        case STBTT_PLATFORM_ID_UNICODE:
-            // Mac/iOS has these
-            // all the encodingIDs are unicode, so we don't bother to check it
-            info->index_map = cmap + ttULONG(data+encoding_record+4);
-            break;
+info->index_map = 0;
+{
+    int best_score = -1;
+    int numTables = ttUSHORT(data + cmap + 2);
+
+    for (i = 0; i < numTables; ++i) {
+        stbtt_uint32 record = cmap + 4 + 8 * i;
+        int platform = ttUSHORT(data + record + 0);
+        int encoding = ttUSHORT(data + record + 2);
+        stbtt_uint32 subtable = cmap + ttULONG(data + record + 4);
+        int format = ttUSHORT(data + subtable);
+        int score = -1;
+
+         if (!stbtt__supported_cmap_format(format))
+               continue;
+
+         /*
+            * Unicode platform subtables.
+            */
+         if (platform == 0) {
+               if (format == 12) score = 400;
+               else if (format == 4) score = 300;
+               else if (format == 6) score = 200;
+               else if (format == 0) score = 100;
+         }
+
+         /*
+            * Microsoft Unicode subtables.
+            */
+         if (platform == 3) {
+               if (encoding == 10 && format == 12)
+                  score = 390;
+               else if (encoding == 1 && format == 4)
+                  score = 290;
+               else if (encoding == 0 && format == 6)
+                  score = 190;
+         }
+
+         if (score > best_score) {
+               best_score = score;
+               info->index_map = subtable;
+         }
       }
    }
+
    if (info->index_map == 0)
       return 0;
 
@@ -1507,13 +1558,20 @@ STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codep
    } else if (format == 6) {
       stbtt_uint32 first = ttUSHORT(data + index_map + 6);
       stbtt_uint32 count = ttUSHORT(data + index_map + 8);
-      if ((stbtt_uint32) unicode_codepoint >= first && (stbtt_uint32) unicode_codepoint < first+count)
-         return ttUSHORT(data + index_map + 10 + (unicode_codepoint - first)*2);
+
+      if (unicode_codepoint >= 0 &&
+         (stbtt_uint32) unicode_codepoint >= first &&
+         (stbtt_uint32) unicode_codepoint < first + count)
+         return ttUSHORT(data + index_map + 10 +
+                           (unicode_codepoint - first) * 2);
+
       return 0;
    } else if (format == 2) {
       STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean
       return 0;
    } else if (format == 4) { // standard mapping for windows fonts: binary search collection of ranges
+      if (unicode_codepoint < 0 || unicode_codepoint > 0xffff)
+        return 0;
       stbtt_uint16 segcount = ttUSHORT(data+index_map+6) >> 1;
       stbtt_uint16 searchRange = ttUSHORT(data+index_map+8) >> 1;
       stbtt_uint16 entrySelector = ttUSHORT(data+index_map+10);
@@ -1558,30 +1616,36 @@ STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codep
 
          return ttUSHORT(data + offset + (unicode_codepoint-start)*2 + index_map + 14 + segcount*6 + 2 + 2*item);
       }
-   } else if (format == 12 || format == 13) {
-      stbtt_uint32 ngroups = ttULONG(data+index_map+12);
-      stbtt_int32 low,high;
-      low = 0; high = (stbtt_int32)ngroups;
-      // Binary search the right group.
-      while (low < high) {
-         stbtt_int32 mid = low + ((high-low) >> 1); // rounds down, so low <= mid < high
-         stbtt_uint32 start_char = ttULONG(data+index_map+16+mid*12);
-         stbtt_uint32 end_char = ttULONG(data+index_map+16+mid*12+4);
-         if ((stbtt_uint32) unicode_codepoint < start_char)
+   } else if (format == 12) {
+    stbtt_uint32 ngroups = ttULONG(data + index_map + 12);
+    stbtt_uint32 cp;
+    stbtt_uint32 low, high;
+
+    if (unicode_codepoint < 0)
+        return 0;
+
+    cp = (stbtt_uint32) unicode_codepoint;
+    low = 0;
+    high = ngroups;
+
+    while (low < high) {
+        stbtt_uint32 mid = low + (high - low) / 2;
+        stbtt_uint32 group = index_map + 16 + mid * 12;
+        stbtt_uint32 start = ttULONG(data + group + 0);
+        stbtt_uint32 end   = ttULONG(data + group + 4);
+
+        if (cp < start) {
             high = mid;
-         else if ((stbtt_uint32) unicode_codepoint > end_char)
-            low = mid+1;
-         else {
-            stbtt_uint32 start_glyph = ttULONG(data+index_map+16+mid*12+8);
-            if (format == 12)
-               return start_glyph + unicode_codepoint-start_char;
-            else // format == 13
-               return start_glyph;
-         }
-      }
-      return 0; // not found
+        } else if (cp > end) {
+            low = mid + 1;
+        } else {
+            stbtt_uint32 glyph = ttULONG(data + group + 8);
+            return glyph + cp - start;
+        }
+    }
+
+    return 0;
    }
-   // @TODO
    STBTT_assert(0);
    return 0;
 }
@@ -1762,6 +1826,8 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
          flags = vertices[off+i].type;
          x     = (stbtt_int16) vertices[off+i].x;
          y     = (stbtt_int16) vertices[off+i].y;
+         int contour_end = 1 + ttUSHORT(endPtsOfContours + j * 2);
+         int next_i = (i + 1 < contour_end) ? i + 1 : i;
 
          if (next_move == i) {
             if (i != 0)
@@ -1774,14 +1840,14 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
                // where we can start, and we need to save some state for when we wraparound.
                scx = x;
                scy = y;
-               if (!(vertices[off+i+1].type & 1)) {
+               if (!(vertices[off+next_i].type & 1)) {
                   // next point is also a curve point, so interpolate an on-point curve
-                  sx = (x + (stbtt_int32) vertices[off+i+1].x) >> 1;
-                  sy = (y + (stbtt_int32) vertices[off+i+1].y) >> 1;
+                  sx = (x + (stbtt_int32) vertices[off+next_i].x) >> 1;
+                  sy = (y + (stbtt_int32) vertices[off+next_i].y) >> 1;
                } else {
                   // otherwise just use the next point as our start point
-                  sx = (stbtt_int32) vertices[off+i+1].x;
-                  sy = (stbtt_int32) vertices[off+i+1].y;
+                  sx = (stbtt_int32) vertices[off+next_i].x;
+                  sy = (stbtt_int32) vertices[off+next_i].y;
                   ++i; // we're using point i+1 as the starting point, so skip it
                }
             } else {
@@ -2638,15 +2704,46 @@ STBTT_DEF void stbtt_GetFontVMetrics(const stbtt_fontinfo *info, int *ascent, in
    if (lineGap) *lineGap = ttSHORT(info->data+info->hhea + 8);
 }
 
-STBTT_DEF int  stbtt_GetFontVMetricsOS2(const stbtt_fontinfo *info, int *typoAscent, int *typoDescent, int *typoLineGap)
+STBTT_DEF int stbtt_GetFontVMetricsOS2(
+    const stbtt_fontinfo *info,
+    int *ascent,
+    int *descent,
+    int *lineGap)
 {
-   int tab = stbtt__find_table(info->data, info->fontstart, "OS/2");
-   if (!tab)
-      return 0;
-   if (typoAscent ) *typoAscent  = ttSHORT(info->data+tab + 68);
-   if (typoDescent) *typoDescent = ttSHORT(info->data+tab + 70);
-   if (typoLineGap) *typoLineGap = ttSHORT(info->data+tab + 72);
-   return 1;
+    stbtt_uint32 os2;
+    stbtt_uint16 version;
+
+    os2 = stbtt__find_table(info->data, info->fontstart, "OS/2");
+
+    if (os2 == 0)
+        return 0;
+
+    /*
+     * OS/2 version 0 and later contain the sTypo metrics at these offsets.
+     *
+     *   +68: sTypoAscender
+     *   +70: sTypoDescender
+     *   +72: sTypoLineGap
+     */
+    version = ttUSHORT(info->data + os2);
+
+    /*
+     * All OS/2 versions currently relevant here have these fields.
+     * Keep the version read to make the intent explicit and to avoid
+     * treating a malformed table as valid.
+     */
+    (void) version;
+
+    if (ascent)
+        *ascent = (stbtt_int16) ttUSHORT(info->data + os2 + 68);
+
+    if (descent)
+        *descent = (stbtt_int16) ttUSHORT(info->data + os2 + 70);
+
+    if (lineGap)
+        *lineGap = (stbtt_int16) ttUSHORT(info->data + os2 + 72);
+
+    return 1;
 }
 
 STBTT_DEF void stbtt_GetFontBoundingBox(const stbtt_fontinfo *info, int *x0, int *y0, int *x1, int *y1)

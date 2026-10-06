@@ -3,6 +3,7 @@
 #include "velvet/font/search.h"
 #include "velvet/support/platform.h"
 #include "velvet/support/string.h"
+#include "vendor/utf8.h"
 
 #if VL_PLATFORM(MAC)
 

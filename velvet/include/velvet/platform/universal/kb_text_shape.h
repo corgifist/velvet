@@ -2415,6 +2415,16 @@ enum kbts_blob_table_id_enum
   KBTS_BLOB_TABLE_ID_MAXP,
   KBTS_BLOB_TABLE_ID_OS2,
   KBTS_BLOB_TABLE_ID_NAME,
+  KBTS_BLOB_TABLE_ID_MORT,
+  KBTS_BLOB_TABLE_ID_MORX,
+  KBTS_BLOB_TABLE_ID_KERN,
+  KBTS_BLOB_TABLE_ID_KERX,
+  KBTS_BLOB_TABLE_ID_FEAT,
+  KBTS_BLOB_TABLE_ID_PROP,
+  KBTS_BLOB_TABLE_ID_ANKR,
+  KBTS_BLOB_TABLE_ID_JUST,
+  KBTS_BLOB_TABLE_ID_OPBD,
+  KBTS_BLOB_TABLE_ID_TRAK,
 
   KBTS_BLOB_TABLE_ID_COUNT,
 };
@@ -3823,6 +3833,62 @@ typedef struct kbts_run
   kbts_glyph_iterator Glyphs;
 } kbts_run;
 
+#ifndef KBTS_AAT_MAX_STATE_STACK
+#define KBTS_AAT_MAX_STATE_STACK 64
+#endif
+
+#ifndef KBTS_AAT_MAX_INSERTION
+#define KBTS_AAT_MAX_INSERTION 31
+#endif
+
+#ifndef KBTS_AAT_MAX_REARRANGE
+#define KBTS_AAT_MAX_REARRANGE 64
+#endif
+
+typedef struct kbts__aat_state_header
+{
+  kbts_u32 ClassTable;
+  kbts_u32 StateArray;
+  kbts_u32 EntryTable;
+  kbts_u32 ClassCount;
+} kbts__aat_state_header;
+
+typedef struct kbts__aat_state_entry
+{
+  kbts_u16 NewState;
+  kbts_u16 Flags;
+  kbts_u16 Extra;
+} kbts__aat_state_entry;
+
+typedef struct kbts__aat_driver
+{
+  kbts_font *Font;
+  kbts_glyph_storage *Storage;
+
+  const kbts_u8 *Base;
+  kbts_u32 Length;
+
+  kbts_u32 StateHeader;
+  kbts_u32 ClassTable;
+  kbts_u32 StateArray;
+  kbts_u32 EntryTable;
+
+  kbts_u16 State;
+  kbts_u16 ClassCount;
+
+  kbts_glyph *Current;
+  kbts_glyph *Mark;
+
+  kbts_glyph *Stack[KBTS_AAT_MAX_STATE_STACK];
+  kbts_u32 StackCount;
+
+  kbts_b32 Reverse;
+  kbts_b32 DontAdvance;
+  kbts_b32 EndOfText;
+
+  kbts_u32 Safety;
+} kbts__aat_driver;
+
 //
 // Context API
 // The context can do everything for you. It is pretty convenient!
@@ -3957,6 +4023,7 @@ KBTS_EXPORT kbts_script kbts_ScriptTagToScript(kbts_script_tag Tag);
 #endif
 
 #ifdef KB_TEXT_SHAPE_IMPLEMENTATION
+
 #ifdef _MSC_VER
 #define KBTS__UNUSED(X) (void)sizeof((X))
 #define KBTS__RESTRICT __restrict
@@ -4468,10 +4535,13 @@ enum kbts__op_kind_enum
   KBTS__OP_KIND_GPOS_METRICS,
   KBTS__OP_KIND_GPOS_FEATURES,
   KBTS__OP_KIND_POST_GPOS_FIXUP,
+  KBTS__OP_KIND_AAT_POSITION,
   KBTS__OP_KIND_STCH_POSTPASS,
   KBTS__OP_KIND_BEGIN_CLUSTER,
   KBTS__OP_KIND_END_CLUSTER,
   KBTS__OP_KIND_END_SYLLABLE,
+  KBTS__OP_KIND_AAT,
+  KBTS__OP_KIND_AAT_POST,
   KBTS__OP_KIND_COUNT,
 };
 typedef struct kbts__feature_stage
@@ -4495,6 +4565,26 @@ static kbts__op_kind kbts__Ops_Default[] = {
   KBTS__OP_KIND_GPOS_METRICS,
   KBTS__OP_KIND_GPOS_FEATURES,
   KBTS__OP_KIND_POST_GPOS_FIXUP,
+  KBTS__OP_KIND_AAT_POSITION,
+};
+static kbts__op_kind kbts__Ops_ArabicAAT[] =
+{
+  KBTS__OP_KIND_NORMALIZE,
+  KBTS__OP_KIND_AAT,
+  KBTS__OP_KIND_AAT_POST,
+};
+static kbts__feature_stage kbts__FeatureStages_ArabicAAT[] =
+{
+  {0, {{0ull, 0ull, 0ull, 0ull}}},
+};
+
+static kbts__op_list kbts__OpList_ArabicAAT =
+{
+  0,
+  KBTS__ARRAY_LENGTH(kbts__FeatureStages_ArabicAAT),
+  kbts__FeatureStages_ArabicAAT,
+  KBTS__ARRAY_LENGTH(kbts__Ops_ArabicAAT),
+  kbts__Ops_ArabicAAT
 };
 static kbts__feature_stage kbts__FeatureStages_Default[] = {
   {1, {{0ull, 0ull, 0ull, 0ull | KBTS__FEATURE_FLAG3(rvrn)}}},
@@ -13362,6 +13452,11 @@ struct kbts_glyph_config
 
   kbts__enabled_lookup *NonBinaryEnabledLookups;
   kbts_u32 NonBinaryEnabledLookupCount;
+
+  /* AAT feature overrides are run-level controls, so retain the original
+   * tag/value pairs as well as the OpenType lookup bitsets. */
+  kbts_feature_override *AATFeatureOverrides;
+  kbts_u32 AATFeatureOverrideCount;
 };
 
 typedef struct kbts__arena_block
@@ -19443,6 +19538,5410 @@ static kbts_b32 kbts__DoSingleAdjustment(kbts_shape_scratchpad *Scratchpad, kbts
   KBTS_INSTRUMENT_FUNCTION_END;
   return Result;
 }
+static kbts_b32
+kbts__AATMorxIsRTL(kbts_direction Direction)
+{
+  return Direction == KBTS_DIRECTION_RTL;
+}
+
+static kbts_u16
+kbts__AATReadU16(const kbts_u8 *Base, kbts_u32 Length, kbts_u32 Offset)
+{
+  if(Offset > Length || Length - Offset < 2)
+    return 0;
+
+  return (kbts_u16)(((kbts_u16)Base[Offset] << 8) |
+                    ((kbts_u16)Base[Offset + 1]));
+}
+
+static kbts_s16
+kbts__AATReadS16(const kbts_u8 *Base, kbts_u32 Length, kbts_u32 Offset)
+{
+  return (kbts_s16)kbts__AATReadU16(Base, Length, Offset);
+}
+
+static kbts_u32
+kbts__AATReadU32(const kbts_u8 *Base, kbts_u32 Length, kbts_u32 Offset)
+{
+  if(Offset > Length || Length - Offset < 4)
+    return 0;
+
+  return ((kbts_u32)Base[Offset] << 24) |
+         ((kbts_u32)Base[Offset + 1] << 16) |
+         ((kbts_u32)Base[Offset + 2] << 8) |
+         ((kbts_u32)Base[Offset + 3]);
+}
+
+static kbts_b32
+kbts__AATRangeValid(kbts_u32 Length, kbts_u32 Offset, kbts_u32 Size)
+{
+  return Offset <= Length && Size <= Length - Offset;
+}
+
+static kbts_u32
+kbts__AATTableTagToId(kbts_u32 Tag)
+{
+  switch(Tag)
+  {
+    case KBTS_FOURCC('m','o','r','t'): return KBTS_BLOB_TABLE_ID_MORT;
+    case KBTS_FOURCC('m','o','r','x'): return KBTS_BLOB_TABLE_ID_MORX;
+    case KBTS_FOURCC('k','e','r','n'): return KBTS_BLOB_TABLE_ID_KERN;
+    case KBTS_FOURCC('k','e','r','x'): return KBTS_BLOB_TABLE_ID_KERX;
+    case KBTS_FOURCC('f','e','a','t'): return KBTS_BLOB_TABLE_ID_FEAT;
+    case KBTS_FOURCC('p','r','o','p'): return KBTS_BLOB_TABLE_ID_PROP;
+    case KBTS_FOURCC('a','n','k','r'): return KBTS_BLOB_TABLE_ID_ANKR;
+    case KBTS_FOURCC('j','u','s','t'): return KBTS_BLOB_TABLE_ID_JUST;
+    case KBTS_FOURCC('o','p','b','d'): return KBTS_BLOB_TABLE_ID_OPBD;
+    case KBTS_FOURCC('t','r','a','k'): return KBTS_BLOB_TABLE_ID_TRAK;
+  }
+
+  return KBTS_BLOB_TABLE_ID_NONE;
+}
+
+static const kbts_u8 *
+kbts__AATGetTable(kbts_font *Font, kbts_u32 TableId, kbts_u32 *Length)
+{
+  if(!Font || !Font->Blob)
+    return 0;
+
+  if(TableId >= KBTS_BLOB_TABLE_ID_COUNT)
+    return 0;
+
+  kbts_blob_table *Table = &Font->Blob->Tables[TableId];
+
+  if(!Table->Length)
+    return 0;
+
+  if(Table->OffsetFromStartOfFile > Font->Blob->Tables[KBTS_BLOB_TABLE_ID_HEAD].OffsetFromStartOfFile)
+  {
+    /* no-op; retained to avoid assumptions about table ordering */
+  }
+
+  if(Length)
+    *Length = Table->Length;
+
+  return KBTS__POINTER_OFFSET(const kbts_u8, Font->Blob, Table->OffsetFromStartOfFile);
+}
+
+static kbts_u32
+kbts__AATLookupFormat0(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultValue)
+{
+  kbts_u32 P;
+
+  /*
+   * Lookup format 0 is a plain array indexed directly by glyph ID.
+   * There is no count field in the format-0 payload.
+   */
+  if(!kbts__AATRangeValid(Length,Offset,2))
+    return DefaultValue;
+
+  P=Offset+2+(kbts_u32)Glyph*2;
+
+  if(!kbts__AATRangeValid(Length,P,2))
+    return DefaultValue;
+
+  return kbts__AATReadU16(Base,Length,P);
+}
+
+static kbts_u32
+kbts__AATLookupFormat2(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultValue)
+{
+  kbts_u16 UnitSize;
+  kbts_u16 NUnits;
+  kbts_u32 Lo;
+  kbts_u32 Hi;
+
+  if(!kbts__AATRangeValid(Length,Offset,10))
+    return DefaultValue;
+
+  UnitSize=kbts__AATReadU16(Base,Length,Offset+2);
+  NUnits=kbts__AATReadU16(Base,Length,Offset+4);
+
+  if(UnitSize<6 || !NUnits)
+    return DefaultValue;
+
+  Lo=0;
+  Hi=NUnits;
+
+  while(Lo<Hi)
+  {
+    kbts_u32 Mid=Lo+(Hi-Lo)/2;
+    kbts_u32 P;
+
+    if(Mid>(Length-Offset-12)/UnitSize)
+      return DefaultValue;
+
+    P=Offset+12+Mid*UnitSize;
+    kbts_u16 Last;
+    kbts_u16 First;
+
+    if(!kbts__AATRangeValid(Length,P,UnitSize))
+      return DefaultValue;
+
+    Last=kbts__AATReadU16(Base,Length,P);
+    First=kbts__AATReadU16(Base,Length,P+2);
+
+    if(Glyph<First)
+      Hi=Mid;
+    else if(Glyph>Last)
+      Lo=Mid+1;
+    else
+      return kbts__AATReadU16(Base,Length,P+4);
+  }
+
+  return DefaultValue;
+}
+
+static kbts_u32
+kbts__AATLookupFormat4(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultValue)
+{
+  kbts_u16 UnitSize;
+  kbts_u16 NUnits;
+  kbts_u32 Lo;
+  kbts_u32 Hi;
+
+  if(!kbts__AATRangeValid(Length,Offset,10))
+    return DefaultValue;
+
+  UnitSize=kbts__AATReadU16(Base,Length,Offset+2);
+  NUnits=kbts__AATReadU16(Base,Length,Offset+4);
+
+  if(UnitSize<6 || !NUnits)
+    return DefaultValue;
+
+  Lo=0;
+  Hi=NUnits;
+
+  while(Lo<Hi)
+  {
+    kbts_u32 Mid=Lo+(Hi-Lo)/2;
+    kbts_u32 P;
+
+    if(Mid>(Length-Offset-12)/UnitSize)
+      return DefaultValue;
+
+    P=Offset+12+Mid*UnitSize;
+    kbts_u16 Last;
+    kbts_u16 First;
+    kbts_u16 ValueOffset;
+    kbts_u32 Target;
+
+    if(!kbts__AATRangeValid(Length,P,UnitSize))
+      return DefaultValue;
+
+    Last=kbts__AATReadU16(Base,Length,P);
+    First=kbts__AATReadU16(Base,Length,P+2);
+
+    if(Glyph<First)
+      Hi=Mid;
+    else if(Glyph>Last)
+      Lo=Mid+1;
+    else
+    {
+      ValueOffset=kbts__AATReadU16(Base,Length,P+4);
+
+      if(ValueOffset>Length-Offset)
+        return DefaultValue;
+
+      Target=Offset+ValueOffset;
+
+      if(Glyph-First>(Length-Target)/2)
+        return DefaultValue;
+
+      Target+=(kbts_u32)(Glyph-First)*2;
+
+      if(!kbts__AATRangeValid(Length,Target,2))
+        return DefaultValue;
+
+      return kbts__AATReadU16(Base,Length,Target);
+    }
+  }
+
+  return DefaultValue;
+}
+
+static kbts_u32
+kbts__AATLookupFormat6(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultValue)
+{
+  kbts_u16 UnitSize;
+  kbts_u16 NUnits;
+  kbts_u32 Lo;
+  kbts_u32 Hi;
+
+  if(!kbts__AATRangeValid(Length,Offset,10))
+    return DefaultValue;
+
+  UnitSize=kbts__AATReadU16(Base,Length,Offset+2);
+  NUnits=kbts__AATReadU16(Base,Length,Offset+4);
+
+  if(UnitSize<4 || !NUnits)
+    return DefaultValue;
+
+  Lo=0;
+  Hi=NUnits;
+
+  while(Lo<Hi)
+  {
+    kbts_u32 Mid=Lo+(Hi-Lo)/2;
+    kbts_u32 P;
+
+    if(Mid>(Length-Offset-12)/UnitSize)
+      return DefaultValue;
+
+    P=Offset+12+Mid*UnitSize;
+    kbts_u16 G;
+
+    if(!kbts__AATRangeValid(Length,P,UnitSize))
+      return DefaultValue;
+
+    G=kbts__AATReadU16(Base,Length,P);
+
+    if(Glyph<G)
+      Hi=Mid;
+    else if(Glyph>G)
+      Lo=Mid+1;
+    else
+      return kbts__AATReadU16(Base,Length,P+2);
+  }
+
+  return DefaultValue;
+}
+
+static kbts_u32
+kbts__AATLookupFormat8(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultValue)
+{
+  kbts_u16 First;
+  kbts_u16 Count;
+  kbts_u32 P;
+
+  if(!kbts__AATRangeValid(Length,Offset,6))
+    return DefaultValue;
+
+  First=kbts__AATReadU16(Base,Length,Offset+2);
+  Count=kbts__AATReadU16(Base,Length,Offset+4);
+
+  if(Glyph<First ||
+     Glyph-(kbts_u32)First>=Count)
+    return DefaultValue;
+
+  P=Offset+6+(kbts_u32)(Glyph-First)*2;
+
+  if(!kbts__AATRangeValid(Length,P,2))
+    return DefaultValue;
+
+  return kbts__AATReadU16(Base,Length,P);
+}
+
+static kbts_u32
+kbts__AATLookupFormat10(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultValue)
+{
+  kbts_u16 ValueSize;
+  kbts_u16 First;
+  kbts_u16 Count;
+  kbts_u32 P;
+  kbts_u32 I;
+  kbts_u32 Value=0;
+
+  if(!kbts__AATRangeValid(Length,Offset,8))
+    return DefaultValue;
+
+  ValueSize=kbts__AATReadU16(Base,Length,Offset+2);
+  First=kbts__AATReadU16(Base,Length,Offset+4);
+  Count=kbts__AATReadU16(Base,Length,Offset+6);
+
+  if(!ValueSize ||
+     ValueSize>4 ||
+     Glyph<First ||
+     Glyph-(kbts_u32)First>=Count)
+    return DefaultValue;
+
+  P=Offset+8+(kbts_u32)(Glyph-First)*ValueSize;
+
+  if(!kbts__AATRangeValid(Length,P,ValueSize))
+    return DefaultValue;
+
+  for(I=0;I<ValueSize;++I)
+    Value=(Value<<8)|Base[P+I];
+
+  return Value;
+}
+
+static kbts_u16
+kbts__AATLookup(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultValue)
+{
+  kbts_u16 Format;
+
+  if(!kbts__AATRangeValid(Length,Offset,2))
+    return DefaultValue;
+
+  Format=kbts__AATReadU16(Base,Length,Offset);
+
+  switch(Format)
+  {
+    case 0:
+      return (kbts_u16)kbts__AATLookupFormat0(
+        Base,Length,Offset,Glyph,DefaultValue);
+
+    case 2:
+      return (kbts_u16)kbts__AATLookupFormat2(
+        Base,Length,Offset,Glyph,DefaultValue);
+
+    case 4:
+      return (kbts_u16)kbts__AATLookupFormat4(
+        Base,Length,Offset,Glyph,DefaultValue);
+
+    case 6:
+      return (kbts_u16)kbts__AATLookupFormat6(
+        Base,Length,Offset,Glyph,DefaultValue);
+
+    case 8:
+      return (kbts_u16)kbts__AATLookupFormat8(
+        Base,Length,Offset,Glyph,DefaultValue);
+
+    case 10:
+      return (kbts_u16)kbts__AATLookupFormat10(
+        Base,Length,Offset,Glyph,DefaultValue);
+  }
+
+  return DefaultValue;
+}
+
+static kbts_u16
+kbts__AATLookupClass(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 Offset,
+  kbts_u16 Glyph,
+  kbts_u16 DefaultClass)
+{
+  kbts_u16 Format;
+
+  if(!kbts__AATRangeValid(Length,Offset,2))
+    return DefaultClass;
+
+  Format=kbts__AATReadU16(
+    Base,Length,Offset);
+
+  switch(Format)
+  {
+    case 0:
+    {
+      kbts_u32 P;
+
+      /*
+       * Lookup format 0 is a direct glyph-indexed array.  It does not
+       * contain a glyph-count field; the table length is the bound.
+       */
+      if(!kbts__AATRangeValid(Length,Offset,2))
+        return DefaultClass;
+
+      P=Offset+2+(kbts_u32)Glyph*2;
+
+      if(!kbts__AATRangeValid(Length,P,2))
+        return DefaultClass;
+
+      return kbts__AATReadU16(Base,Length,P);
+    }
+
+    case 2:
+    {
+      kbts_u16 UnitSize;
+      kbts_u16 NUnits;
+      kbts_u32 Lo;
+      kbts_u32 Hi;
+
+      if(!kbts__AATRangeValid(Length,Offset,12))
+        return DefaultClass;
+
+      UnitSize=kbts__AATReadU16(Base,Length,Offset+2);
+      NUnits=kbts__AATReadU16(Base,Length,Offset+4);
+
+      if(UnitSize<6 || !NUnits)
+        return DefaultClass;
+
+      Lo=0;
+      Hi=NUnits;
+
+      while(Lo<Hi)
+      {
+        kbts_u32 Mid=Lo+(Hi-Lo)/2;
+        kbts_u32 P;
+
+        if(Mid>(Length-Offset-12)/UnitSize)
+          return DefaultClass;
+
+        P=Offset+12+(kbts_u32)Mid*UnitSize;
+        kbts_u16 Last;
+        kbts_u16 First;
+        kbts_u16 Class;
+
+        if(!kbts__AATRangeValid(Length,P,UnitSize))
+          return DefaultClass;
+
+        Last=kbts__AATReadU16(Base,Length,P);
+        First=kbts__AATReadU16(Base,Length,P+2);
+
+        if(Glyph<First)
+          Hi=Mid;
+        else if(Glyph>Last)
+          Lo=Mid+1;
+        else
+        {
+          Class=kbts__AATReadU16(Base,Length,P+4);
+          return Class;
+        }
+      }
+    }
+    break;
+
+    case 8:
+    {
+      kbts_u16 First;
+      kbts_u16 Count;
+
+      if(!kbts__AATRangeValid(
+           Length,Offset,6))
+        return DefaultClass;
+
+      First=kbts__AATReadU16(
+        Base,Length,Offset+2);
+
+      Count=kbts__AATReadU16(
+        Base,Length,Offset+4);
+
+      if(Glyph<First ||
+         Glyph-(kbts_u32)First>=Count)
+        return DefaultClass;
+
+      if(!kbts__AATRangeValid(
+           Length,
+           Offset+6+
+           (kbts_u32)(Glyph-First)*2,
+           2))
+        return DefaultClass;
+
+      return kbts__AATReadU16(
+        Base,Length,
+        Offset+6+
+        (kbts_u32)(Glyph-First)*2);
+    }
+
+    case 6:
+    {
+      kbts_u16 UnitSize;
+      kbts_u16 NUnits;
+      kbts_u32 Lo;
+      kbts_u32 Hi;
+
+      if(!kbts__AATRangeValid(
+           Length,Offset,10))
+        return DefaultClass;
+
+      UnitSize=kbts__AATReadU16(
+        Base,Length,Offset+2);
+
+      NUnits=kbts__AATReadU16(
+        Base,Length,Offset+4);
+
+      if(UnitSize<4 || !NUnits)
+        return DefaultClass;
+
+      Lo=0;
+      Hi=NUnits;
+
+      while(Lo<Hi)
+      {
+        kbts_u32 Mid=
+          Lo+(Hi-Lo)/2;
+
+        kbts_u32 P=
+          Offset+12+
+          (kbts_u32)Mid*UnitSize;
+
+        kbts_u16 G;
+
+        if(!kbts__AATRangeValid(
+             Length,P,UnitSize))
+          return DefaultClass;
+
+        G=kbts__AATReadU16(
+          Base,Length,P);
+
+        if(Glyph<G)
+          Hi=Mid;
+        else if(Glyph>G)
+          Lo=Mid+1;
+        else
+          return kbts__AATReadU16(
+            Base,Length,P+2);
+      }
+    }
+    break;
+  }
+
+  return DefaultClass;
+}
+
+static kbts_b32
+kbts__AATMorxShouldReverse(kbts_u32 Coverage,
+                           kbts_direction RunDirection)
+{
+  kbts_b32 Backwards = !!(Coverage & 0x40000000);
+  kbts_b32 Logical = !!(Coverage & 0x10000000);
+
+  if(Logical)
+    return Backwards;
+
+  return Backwards != kbts__AATMorxIsRTL(RunDirection);
+}
+
+static kbts_b32
+kbts__AATMorxGetLookup(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 LookupListOffset,
+  kbts_u32 LookupIndex,
+  kbts_u32 *LookupOffset)
+{
+  kbts_u32 P;
+  kbts_u32 Offset;
+
+  if(!LookupOffset)
+    return 0;
+
+  if(LookupIndex > 0x3FFFFFFF)
+    return 0;
+
+  if(LookupIndex > (0xFFFFFFFFu - LookupListOffset) / 4)
+    return 0;
+
+  P = LookupListOffset + LookupIndex * 4;
+
+  if(!kbts__AATRangeValid(Length, P, 4))
+    return 0;
+
+  Offset = kbts__AATReadU32(Base, Length, P);
+
+  if(Offset > Length - LookupListOffset)
+    return 0;
+
+  Offset += LookupListOffset;
+
+  if(!kbts__AATRangeValid(Length, Offset, 2))
+    return 0;
+
+  *LookupOffset = Offset;
+  return 1;
+}
+
+static kbts_b32
+kbts__AATMorxLookupGlyph(
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 LookupListOffset,
+  kbts_u32 LookupIndex,
+  kbts_u16 GlyphId,
+  kbts_u16 *NewGlyphId)
+{
+  kbts_u32 LookupOffset;
+  kbts_u16 Value;
+
+  if(!NewGlyphId)
+    return 0;
+
+  if(!kbts__AATMorxGetLookup(
+       Base,
+       Length,
+       LookupListOffset,
+       LookupIndex,
+       &LookupOffset))
+    return 0;
+
+  Value=
+    kbts__AATLookup(
+      Base,
+      Length,
+      LookupOffset,
+      GlyphId,
+      GlyphId);
+
+  /*
+   * In MORX lookup tables:
+   *
+   *   0      = no substitution
+   *   otherwise = replacement glyph
+   */
+  if(Value==0 ||
+     Value==GlyphId)
+    return 0;
+
+  *NewGlyphId=Value;
+  return 1;
+}
+
+static kbts_b32
+kbts__AATExtendedStateInit(
+  kbts__aat_driver *D,
+  kbts_font *Font,
+  kbts_glyph_storage *Storage,
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 StateHeaderOffset,
+  kbts_b32 Reverse)
+{
+  kbts_u32 ClassCount;
+  kbts_u32 ClassOffset;
+  kbts_u32 StateOffset;
+  kbts_u32 EntryOffset;
+
+  if(!D)
+    return 0;
+
+  if(!kbts__AATRangeValid(
+       Length,
+       StateHeaderOffset,
+       16))
+    return 0;
+
+  /*
+   * MORX/STXHeader:
+   *
+   *   uint32 nClasses
+   *   uint32 classTableOffset
+   *   uint32 stateArrayOffset
+   *   uint32 entryTableOffset
+   *
+   * All offsets are relative to this header.
+   */
+  ClassCount=kbts__AATReadU32(
+    Base,Length,StateHeaderOffset);
+
+  ClassOffset=kbts__AATReadU32(
+    Base,Length,StateHeaderOffset+4);
+
+  StateOffset=kbts__AATReadU32(
+    Base,Length,StateHeaderOffset+8);
+
+  EntryOffset=kbts__AATReadU32(
+    Base,Length,StateHeaderOffset+12);
+
+  if(ClassCount<4 ||
+     ClassCount>0xFFFFu)
+    return 0;
+
+  if(StateHeaderOffset>Length ||
+     ClassOffset>Length-StateHeaderOffset ||
+     StateOffset>Length-StateHeaderOffset ||
+     EntryOffset>Length-StateHeaderOffset)
+    return 0;
+
+  D->Font=Font;
+  D->Storage=Storage;
+  D->Base=Base;
+  D->Length=Length;
+  D->StateHeader=StateHeaderOffset;
+  D->ClassCount=(kbts_u16)ClassCount;
+  D->ClassTable=StateHeaderOffset+ClassOffset;
+  D->StateArray=StateHeaderOffset+StateOffset;
+  D->EntryTable=StateHeaderOffset+EntryOffset;
+  D->Reverse=Reverse;
+  D->State=0;
+  D->Current=0;
+  D->Mark=0;
+  D->StackCount=0;
+  D->DontAdvance=0;
+
+  return
+    kbts__AATRangeValid(
+      Length,D->ClassTable,2) &&
+    kbts__AATRangeValid(
+      Length,D->StateArray,2) &&
+    kbts__AATRangeValid(
+      Length,D->EntryTable,2);
+}
+
+static kbts_b32
+kbts__AATStateInit(
+  kbts__aat_driver *D,
+  kbts_font *Font,
+  kbts_glyph_storage *Storage,
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 StateHeaderOffset,
+  kbts_b32 Reverse)
+{
+  /*
+   * Kept as the legacy/original state-table initializer for MORT.
+   * MORX must use kbts__AATExtendedStateInit().
+   */
+  kbts_u16 StateSize;
+  kbts_u16 ClassOffset;
+  kbts_u16 StateOffset;
+  kbts_u16 EntryOffset;
+
+  if(!D ||
+     !kbts__AATRangeValid(
+       Length,
+       StateHeaderOffset,
+       8))
+    return 0;
+
+  StateSize=kbts__AATReadU16(
+    Base,Length,StateHeaderOffset);
+
+  ClassOffset=kbts__AATReadU16(
+    Base,Length,StateHeaderOffset+2);
+
+  StateOffset=kbts__AATReadU16(
+    Base,Length,StateHeaderOffset+4);
+
+  EntryOffset=kbts__AATReadU16(
+    Base,Length,StateHeaderOffset+6);
+
+  if(StateSize<4)
+    return 0;
+
+  D->Font=Font;
+  D->Storage=Storage;
+  D->Base=Base;
+  D->Length=Length;
+  D->StateHeader=StateHeaderOffset;
+  D->ClassCount=StateSize;
+  D->ClassTable=StateHeaderOffset+ClassOffset;
+  D->StateArray=StateHeaderOffset+StateOffset;
+  D->EntryTable=StateHeaderOffset+EntryOffset;
+  D->Reverse=Reverse;
+  D->State=0;
+  D->Current=0;
+  D->Mark=0;
+  D->StackCount=0;
+  D->DontAdvance=0;
+
+  return
+    kbts__AATRangeValid(
+      Length,D->ClassTable,4) &&
+    kbts__AATRangeValid(
+      Length,D->StateArray,1) &&
+    kbts__AATRangeValid(
+      Length,D->EntryTable,2);
+}
+
+static kbts_u16
+kbts__AATStateClass(
+  kbts__aat_driver *D,
+  kbts_u16 Glyph)
+{
+  return kbts__AATLookupClass(
+    D->Base,
+    D->Length,
+    D->ClassTable,
+    Glyph,
+    1);
+}
+
+
+static kbts_u16
+kbts__AATStateEntryIndex(kbts__aat_driver *D,
+                         kbts_u16 State,
+                         kbts_u16 Class)
+{
+  kbts_u16 StateSize = (kbts_u16)(D->ClassCount * 2);
+  kbts_u16 StateOffset;
+
+  if(Class >= D->ClassCount)
+    Class = 0;
+
+  StateOffset =
+    kbts__AATReadU16(
+      D->Base,
+      D->Length,
+      D->StateArray + State * StateSize + Class * 2);
+
+  /*
+   * MORX extended state-array entries are already zero-based UInt16
+   * entry-table indices.  They are NOT byte offsets and must not be
+   * divided by two.
+   */
+  return StateOffset;
+}
+
+static kbts_u16
+kbts__AATMorxStateEntryIndex(
+  kbts__aat_driver *D,
+  kbts_u16 State,
+  kbts_u16 Class)
+{
+  kbts_u32 RowSize;
+  kbts_u32 P;
+
+  if(!D ||
+     D->ClassCount<4 ||
+     Class>=D->ClassCount ||
+     D->StateArray>D->Length)
+    return 0xFFFF;
+
+  RowSize=(kbts_u32)D->ClassCount*2;
+
+  if(!RowSize ||
+     D->StateArray> D->Length ||
+     State>(D->Length-D->StateArray)/RowSize)
+    return 0xFFFF;
+
+  P=D->StateArray+(kbts_u32)State*RowSize;
+
+  if(Class>(D->Length-P-2)/2)
+    return 0xFFFF;
+
+  P+=(kbts_u32)Class*2;
+
+  if(!kbts__AATRangeValid(D->Length,P,2))
+    return 0xFFFF;
+
+  return kbts__AATReadU16(
+    D->Base,
+    D->Length,
+    P);
+}
+
+static kbts__aat_state_entry
+kbts__AATStateEntry(kbts__aat_driver *D,
+                    kbts_u16 EntryIndex)
+{
+  kbts__aat_state_entry Result = KBTS__ZERO;
+  kbts_u32 P;
+
+  if(!D || D->EntryTable>D->Length ||
+     EntryIndex>(D->Length-D->EntryTable)/6)
+    return Result;
+
+  P = D->EntryTable + (kbts_u32)EntryIndex * 6;
+
+  if(kbts__AATRangeValid(D->Length, P, 6))
+  {
+    Result.NewState = kbts__AATReadU16(D->Base, D->Length, P);
+    Result.Flags = kbts__AATReadU16(D->Base, D->Length, P + 2);
+    Result.Extra = kbts__AATReadU16(D->Base, D->Length, P + 4);
+  }
+
+  return Result;
+}
+
+static void
+kbts__AATSetGlyphId(kbts_glyph *Glyph, kbts_u16 Id)
+{
+  if(Glyph)
+  {
+    Glyph->Id = Id;
+  }
+}
+
+static void
+kbts__AATMergeGlyphUserIds(kbts_glyph *A, kbts_glyph *B)
+{
+  if(!A || !B)
+    return;
+
+  if(B->UserIdOrCodepointIndex < A->UserIdOrCodepointIndex)
+    A->UserIdOrCodepointIndex = B->UserIdOrCodepointIndex;
+}
+
+static kbts_glyph *
+kbts__AATAllocGlyph(kbts_glyph_storage *Storage)
+{
+  kbts_glyph *Glyph;
+
+  Glyph = kbts__PushType(&Storage->Arena, kbts_glyph);
+
+  if(Glyph)
+    KBTS_MEMSET(Glyph, 0, sizeof(*Glyph));
+
+  return Glyph;
+}
+
+static kbts_glyph *
+kbts__AATInsertBefore(kbts_glyph_storage *Storage,
+                      kbts_glyph *Before,
+                      kbts_glyph *Template)
+{
+  kbts_glyph *Glyph = kbts__AATAllocGlyph(Storage);
+
+  if(!Glyph)
+  {
+    Storage->Error = 1;
+    return 0;
+  }
+
+  *Glyph = *Template;
+
+  Glyph->Prev = Before->Prev;
+  Glyph->Next = Before;
+
+  Before->Prev->Next = Glyph;
+  Before->Prev = Glyph;
+
+  return Glyph;
+}
+
+static void
+kbts__AATRemoveGlyph(kbts_glyph_storage *Storage,
+                     kbts_glyph *Glyph)
+{
+  if(!Glyph ||
+     !Glyph->Prev ||
+     !Glyph->Next)
+    return;
+
+  Glyph->Prev->Next = Glyph->Next;
+  Glyph->Next->Prev = Glyph->Prev;
+
+  Glyph->Prev = 0;
+  Glyph->Next = 0;
+
+  KBTS__UNUSED(Storage);
+}
+
+static kbts_u32
+kbts__AATGlyphCount(kbts_glyph_storage *Storage)
+{
+  kbts_u32 Count = 0;
+  kbts_glyph *At = Storage->GlyphSentinel.Next;
+
+  while(At != &Storage->GlyphSentinel)
+  {
+    ++Count;
+    At = At->Next;
+  }
+
+  return Count;
+}
+
+static kbts_glyph *
+kbts__AATNext(kbts_glyph_storage *Storage,
+              kbts_glyph *Glyph,
+              kbts_b32 Reverse)
+{
+  if(!Glyph)
+    return 0;
+
+  if(Reverse)
+  {
+    if(Glyph->Prev == &Storage->GlyphSentinel)
+      return 0;
+
+    return Glyph->Prev;
+  }
+
+  if(Glyph->Next == &Storage->GlyphSentinel)
+    return 0;
+
+  return Glyph->Next;
+}
+
+static void
+kbts__AATAdvanceGlyph(kbts__aat_driver *D)
+{
+  if(D->Reverse)
+    D->Current = D->Current ? D->Current->Prev : 0;
+  else
+    D->Current = D->Current ? D->Current->Next : 0;
+}
+
+static kbts_b32
+kbts__AATGlyphIsSentinel(kbts_glyph_storage *Storage,
+                         kbts_glyph *Glyph)
+{
+  return !Glyph || Glyph == &Storage->GlyphSentinel;
+}
+
+
+static void
+kbts__AATReverseStorage(kbts_glyph_storage *Storage)
+{
+  kbts_glyph *At;
+
+  if(!Storage)
+    return;
+
+  At=&Storage->GlyphSentinel;
+
+  do
+  {
+    kbts_glyph *Next=At->Next;
+    At->Next=At->Prev;
+    At->Prev=Next;
+    At=Next;
+  }
+  while(At != &Storage->GlyphSentinel);
+}
+
+
+#ifndef KBTS_AAT_MAX_LIGATURE_COMPONENTS
+#define KBTS_AAT_MAX_LIGATURE_COMPONENTS 256
+#endif
+
+static void
+kbts__AATMorxRearrange(
+  kbts__aat_driver *D,
+  kbts_u8 Verb)
+{
+  kbts_glyph *Glyphs[KBTS_AAT_MAX_REARRANGE];
+  kbts_glyph *Output[KBTS_AAT_MAX_REARRANGE];
+  kbts_glyph *At;
+  kbts_glyph *Before;
+  kbts_glyph *After;
+  kbts_u32 Count=0;
+  kbts_u32 I;
+
+  if(!D ||
+     !D->Storage ||
+     !D->Mark ||
+     !D->Current ||
+     D->Mark==&D->Storage->GlyphSentinel ||
+     D->Current==&D->Storage->GlyphSentinel)
+    return;
+
+  /*
+   * MORX is applied to a glyph buffer in processing order.  Reverse
+   * subtables are handled by kbts__AATApplyMorxChain(), which reverses
+   * the linked list before entering the state machine.  Therefore this
+   * routine must always see the selected range in normal Next order.
+   */
+  At=D->Mark;
+  while(At!=&D->Storage->GlyphSentinel &&
+        Count<KBTS_AAT_MAX_REARRANGE)
+  {
+    Glyphs[Count++]=At;
+    if(At==D->Current)
+      break;
+    At=At->Next;
+  }
+
+  if(!Count || Glyphs[Count-1]!=D->Current)
+    return;
+
+  for(I=0; I<Count; ++I)
+    Output[I]=Glyphs[I];
+
+  /* This is the exact Apple/HarfBuzz 16-verb map. */
+  switch(Verb&0x0F)
+  {
+    case 0: break;
+    case 1:
+      if(Count>=2)
+      {
+        for(I=0; I+1<Count; ++I) Output[I]=Glyphs[I+1];
+        Output[Count-1]=Glyphs[0];
+      }
+      break;
+    case 2:
+      if(Count>=2)
+      {
+        Output[0]=Glyphs[Count-1];
+        for(I=1; I<Count; ++I) Output[I]=Glyphs[I-1];
+      }
+      break;
+    case 3:
+      if(Count>=2)
+      {
+        Output[0]=Glyphs[Count-1];
+        for(I=1; I+1<Count; ++I) Output[I]=Glyphs[I];
+        Output[Count-1]=Glyphs[0];
+      }
+      break;
+    case 4:
+      if(Count>=3)
+      {
+        for(I=0; I+2<Count; ++I) Output[I]=Glyphs[I+2];
+        Output[Count-2]=Glyphs[0];
+        Output[Count-1]=Glyphs[1];
+      }
+      break;
+    case 5:
+      if(Count>=3)
+      {
+        for(I=0; I+2<Count; ++I) Output[I]=Glyphs[I+2];
+        Output[Count-2]=Glyphs[1];
+        Output[Count-1]=Glyphs[0];
+      }
+      break;
+    case 6:
+      if(Count>=3)
+      {
+        Output[0]=Glyphs[Count-2];
+        Output[1]=Glyphs[Count-1];
+        for(I=2; I<Count; ++I) Output[I]=Glyphs[I-2];
+      }
+      break;
+    case 7:
+      if(Count>=3)
+      {
+        Output[0]=Glyphs[Count-1];
+        Output[1]=Glyphs[Count-2];
+        for(I=2; I<Count; ++I) Output[I]=Glyphs[I-2];
+      }
+      break;
+    case 8:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-2];
+        Output[1]=Glyphs[Count-1];
+        for(I=2; I+1<Count; ++I) Output[I]=Glyphs[I-1];
+        Output[Count-1]=Glyphs[0];
+      }
+      break;
+    case 9:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-1];
+        Output[1]=Glyphs[Count-2];
+        for(I=2; I+1<Count; ++I) Output[I]=Glyphs[I-1];
+        Output[Count-1]=Glyphs[0];
+      }
+      break;
+    case 10:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-1];
+        Output[1]=Glyphs[0];
+        Output[2]=Glyphs[1];
+        for(I=3; I<Count; ++I) Output[I]=Glyphs[I-1];
+      }
+      break;
+    case 11:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-1];
+        Output[1]=Glyphs[1];
+        Output[2]=Glyphs[0];
+        for(I=3; I<Count; ++I) Output[I]=Glyphs[I-1];
+      }
+      break;
+    case 12:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-2];
+        Output[1]=Glyphs[Count-1];
+        for(I=2; I+2<Count; ++I) Output[I]=Glyphs[I];
+        Output[Count-2]=Glyphs[0];
+        Output[Count-1]=Glyphs[1];
+      }
+      break;
+    case 13:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-2];
+        Output[1]=Glyphs[Count-1];
+        for(I=2; I+2<Count; ++I) Output[I]=Glyphs[I];
+        Output[Count-2]=Glyphs[1];
+        Output[Count-1]=Glyphs[0];
+      }
+      break;
+    case 14:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-1];
+        Output[1]=Glyphs[Count-2];
+        for(I=2; I+2<Count; ++I) Output[I]=Glyphs[I];
+        Output[Count-2]=Glyphs[0];
+        Output[Count-1]=Glyphs[1];
+      }
+      break;
+    case 15:
+      if(Count>=4)
+      {
+        Output[0]=Glyphs[Count-1];
+        Output[1]=Glyphs[Count-2];
+        for(I=2; I+2<Count; ++I) Output[I]=Glyphs[I];
+        Output[Count-2]=Glyphs[1];
+        Output[Count-1]=Glyphs[0];
+      }
+      break;
+  }
+
+  Before=Glyphs[0]->Prev;
+  After=Glyphs[Count-1]->Next;
+  if(!Before || !After)
+    return;
+
+  Output[0]->Prev=Before;
+  Before->Next=Output[0];
+  for(I=1; I<Count; ++I)
+  {
+    Output[I-1]->Next=Output[I];
+    Output[I]->Prev=Output[I-1];
+  }
+  Output[Count-1]->Next=After;
+  After->Prev=Output[Count-1];
+}
+
+static void
+kbts__AATMorxRearrangementApply(
+  kbts__aat_driver *D,
+  kbts_u16 Flags)
+{
+  if(!D ||
+     !D->Current ||
+     D->Current == &D->Storage->GlyphSentinel)
+  {
+    return;
+  }
+
+  if(Flags & 0x8000)
+    D->Mark = D->Current;
+
+  if((Flags & 0x2000) &&
+     D->Mark &&
+     D->Mark != &D->Storage->GlyphSentinel)
+  {
+    kbts__AATMorxRearrange(
+      D,
+      (kbts_u8)(Flags & 0x000F));
+  }
+}
+
+static void
+kbts__AATMorxContextual(
+  kbts__aat_driver *D,
+  kbts_u16 Flags,
+  kbts_u32 LookupListOffset,
+  kbts_u16 MarkIndex,
+  kbts_u16 CurrentIndex)
+{
+  kbts_u16 NewId;
+
+  if(!D || !D->Storage)
+    return;
+
+  /* CoreText/HarfBuzz do not apply current/marked substitutions at
+   * end-of-text when no mark has ever been established. */
+  if((!D->Current ||
+      D->Current==&D->Storage->GlyphSentinel) &&
+     !D->Mark)
+    return;
+
+  if(D->Mark &&
+     D->Mark!=&D->Storage->GlyphSentinel &&
+     MarkIndex!=0xFFFF &&
+     kbts__AATMorxLookupGlyph(
+       D->Base,D->Length,LookupListOffset,
+       MarkIndex,D->Mark->Id,&NewId))
+  {
+    kbts__AATSetGlyphId(D->Mark,NewId);
+  }
+
+  if(D->Current &&
+     D->Current!=&D->Storage->GlyphSentinel &&
+     CurrentIndex!=0xFFFF &&
+     kbts__AATMorxLookupGlyph(
+       D->Base,D->Length,LookupListOffset,
+       CurrentIndex,D->Current->Id,&NewId))
+  {
+    kbts__AATSetGlyphId(D->Current,NewId);
+  }
+
+  /* Apple specifies that setMark occurs after the substitutions. */
+  if((Flags&0x8000) &&
+     D->Current &&
+     D->Current!=&D->Storage->GlyphSentinel)
+    D->Mark=D->Current;
+}
+
+static void
+kbts__AATMorxNonContextual(
+  kbts__aat_driver *D,
+  kbts_u32 LookupOffset)
+{
+  kbts_u16 NewId;
+
+  if(!D ||
+     !D->Current ||
+     D->Current == &D->Storage->GlyphSentinel)
+  {
+    return;
+  }
+
+  NewId =
+    kbts__AATLookup(
+      D->Base,
+      D->Length,
+      LookupOffset,
+      D->Current->Id,
+      0);
+
+  if(NewId &&
+     NewId != 0xFFFF)
+  {
+    kbts__AATSetGlyphId(
+      D->Current,
+      NewId);
+  }
+}
+
+static void
+kbts__AATMorxLigature(
+  kbts__aat_driver *D,
+  kbts_u32 SubtableOffset,
+  kbts_u32 LigActionOffset,
+  kbts_u32 ComponentOffset,
+  kbts_u32 LigatureOffset,
+  kbts_u16 Flags,
+  kbts_u16 ActionIndex,
+  kbts_glyph **Components,
+  kbts_u32 *ComponentCount)
+{
+  kbts_u32 ActionOffset;
+  kbts_u32 Cursor;
+  kbts_u32 Count;
+  kbts_u32 Cumulated=0;
+  kbts_b32 Last=0;
+
+  KBTS__UNUSED(SubtableOffset);
+
+  if(!D ||
+     !Components ||
+     !ComponentCount)
+    return;
+
+  if(Flags&0x8000)
+  {
+    if(D->Current &&
+       D->Current!=&D->Storage->GlyphSentinel)
+    {
+      if(*ComponentCount &&
+         Components[*ComponentCount-1]==D->Current)
+        --(*ComponentCount);
+
+      if(*ComponentCount<
+         KBTS_AAT_MAX_LIGATURE_COMPONENTS)
+      {
+        Components[*ComponentCount]=D->Current;
+        ++*ComponentCount;
+      }
+    }
+  }
+
+  if(!(Flags&0x2000))
+    return;
+
+  Count=*ComponentCount;
+
+  if(!Count ||
+     D->Current==&D->Storage->GlyphSentinel ||
+     !D->Current)
+    return;
+
+  if(LigActionOffset>D->Length ||
+     ActionIndex>(D->Length-LigActionOffset)/4)
+  {
+    *ComponentCount=0;
+    return;
+  }
+
+  ActionOffset=
+    LigActionOffset+
+    (kbts_u32)ActionIndex*4;
+
+  Cursor=Count;
+
+  while(Cursor)
+  {
+    kbts_u32 Action;
+    kbts_u32 UOffset;
+    kbts_s32 Offset;
+    kbts_s64 ComponentIndex;
+    kbts_u32 ComponentByteOffset;
+    kbts_u16 ComponentValue;
+    kbts_u32 LigatureByteOffset;
+    kbts_u16 Ligature;
+    kbts_glyph *Glyph;
+
+    if(!kbts__AATRangeValid(
+         D->Length,
+         ActionOffset,
+         4))
+      break;
+
+    --Cursor;
+
+    Glyph=Components[Cursor];
+
+    if(!Glyph ||
+       Glyph==&D->Storage->GlyphSentinel)
+      break;
+
+    Action=kbts__AATReadU32(
+      D->Base,
+      D->Length,
+      ActionOffset);
+
+    ActionOffset+=4;
+
+    UOffset=Action&0x3FFFFFFF;
+
+    if(UOffset&0x20000000)
+      UOffset|=0xC0000000;
+
+    Offset=(kbts_s32)UOffset;
+
+    ComponentIndex=
+      (kbts_s64)Glyph->Id+
+      (kbts_s64)Offset;
+
+    if(ComponentIndex<0)
+      break;
+
+    if(ComponentOffset>D->Length)
+      break;
+
+    if((kbts_u64)ComponentIndex>
+       (kbts_u64)((D->Length-ComponentOffset)/2))
+      break;
+
+    ComponentByteOffset=
+      ComponentOffset+
+      (kbts_u32)ComponentIndex*2;
+
+    if(!kbts__AATRangeValid(
+         D->Length,
+         ComponentByteOffset,
+         2))
+      break;
+
+    ComponentValue=
+      kbts__AATReadU16(
+        D->Base,
+        D->Length,
+        ComponentByteOffset);
+
+    if(Cumulated>
+       0xFFFFFFFFu-ComponentValue)
+      break;
+
+    Cumulated+=ComponentValue;
+
+    if(Action&0xC0000000)
+    {
+      if(LigatureOffset>D->Length ||
+         Cumulated>
+         (D->Length-LigatureOffset)/2)
+        break;
+
+      LigatureByteOffset=
+        LigatureOffset+
+        Cumulated*2;
+
+      if(!kbts__AATRangeValid(
+           D->Length,
+           LigatureByteOffset,
+           2))
+        break;
+
+      Ligature=
+        kbts__AATReadU16(
+          D->Base,
+          D->Length,
+          LigatureByteOffset);
+
+      kbts__AATMergeGlyphUserIds(
+        Glyph,
+        Components[Count-1]);
+
+      Glyph->Id=Ligature;
+
+      /* The ligature replaces the currently-popped component.  Keep the
+       * state-machine cursor on that surviving glyph; the outer driver will
+       * either leave it there for DontAdvance or advance past the ligature. */
+      D->Current=Glyph;
+
+      while(Count-1>Cursor)
+      {
+        kbts_glyph *Dead=
+          Components[Count-1];
+
+        if(Dead &&
+           Dead!=Glyph)
+        {
+          if(D->Mark==Dead)
+            D->Mark=Glyph;
+
+          kbts__AATMergeGlyphUserIds(
+            Glyph,
+            Dead);
+
+          kbts__AATRemoveGlyph(
+            D->Storage,
+            Dead);
+        }
+
+        --Count;
+      }
+    }
+
+    if(Action&0x80000000)
+    {
+      Last=1;
+      break;
+    }
+  }
+
+  if(Last)
+    *ComponentCount=0;
+  else
+    *ComponentCount=Count;
+}
+
+static kbts_glyph *
+kbts__AATMorxInsertOne(
+  kbts__aat_driver *D,
+  kbts_glyph *Reference,
+  kbts_u16 Id,
+  kbts_b32 Before)
+{
+  kbts_glyph Template;
+  kbts_glyph *Inserted;
+
+  if(!D ||
+     !D->Storage ||
+     !Reference ||
+     Reference==&D->Storage->GlyphSentinel)
+    return 0;
+
+  Template=*Reference;
+
+  Template.Prev=0;
+  Template.Next=0;
+  Template.Id=Id;
+
+  Template.Codepoint=0;
+  Template.OffsetX=0;
+  Template.OffsetY=0;
+  Template.AttachGlyph=0;
+  Template.Decomposition=0;
+
+  if(Before)
+  {
+    Inserted=kbts__AATInsertBefore(
+      D->Storage,
+      Reference,
+      &Template);
+
+    return Inserted;
+  }
+
+  if(!Reference->Next)
+    return 0;
+
+  Inserted=kbts__AATInsertBefore(
+    D->Storage,
+    Reference->Next,
+    &Template);
+
+  return Inserted;
+}
+
+static kbts_s32
+kbts__AATGlyphAdvanceX(kbts_font *Font,
+                       kbts_u16 GlyphId)
+{
+  kbts__hea *Hea;
+  kbts_u16 *Mtx;
+  kbts__long_mtx *LongMetrics;
+
+  if(!Font ||
+     !Font->Blob)
+    return 0;
+
+  Hea =
+    kbts__BlobTableDataType(
+      Font->Blob,
+      KBTS_BLOB_TABLE_ID_HHEA,
+      kbts__hea);
+
+  Mtx =
+    kbts__BlobTableDataType(
+      Font->Blob,
+      KBTS_BLOB_TABLE_ID_HMTX,
+      kbts_u16);
+
+  if(!Hea ||
+     !Mtx ||
+     !Hea->MetricCount)
+    return 0;
+
+  LongMetrics=(kbts__long_mtx *)Mtx;
+
+  if(GlyphId < Hea->MetricCount)
+    return LongMetrics[GlyphId].Advance;
+
+  return LongMetrics[Hea->MetricCount-1].Advance;
+}
+static void
+kbts__AATRefreshGlyphMetrics(
+  kbts_font *Font,
+  kbts_glyph_storage *Storage)
+{
+  kbts_glyph *Glyph;
+
+  if(!Font ||
+     !Storage)
+    return;
+
+  Glyph=Storage->GlyphSentinel.Next;
+
+  while(Glyph!=&Storage->GlyphSentinel)
+  {
+    Glyph->AdvanceX=
+      kbts__AATGlyphAdvanceX(
+        Font,
+        Glyph->Id);
+
+    Glyph=Glyph->Next;
+  }
+}
+
+static void
+kbts__AATMorxInsert(
+  kbts__aat_driver *D,
+  kbts_u32 InsertionOffset,
+  kbts_u16 Flags,
+  kbts_u16 CurrentIndex,
+  kbts_u16 MarkIndex)
+{
+  kbts_u32 CurrentCount=(Flags&0x03E0)>>5;
+  kbts_u32 MarkCount=Flags&0x001F;
+  kbts_b32 CurrentBefore=!!(Flags&0x0800);
+  kbts_b32 MarkBefore=!!(Flags&0x0400);
+  kbts_glyph *OriginalNext;
+  kbts_glyph *FirstInserted=0;
+  kbts_u32 I;
+
+  if(!D || !D->Storage)
+    return;
+
+  /* The AAT insertion state machine writes marked insertions first. */
+  if(MarkCount &&
+     D->Mark &&
+     D->Mark!=&D->Storage->GlyphSentinel &&
+     MarkIndex!=0xFFFF)
+  {
+    kbts_glyph *Reference=D->Mark;
+    for(I=MarkCount; I>0; --I)
+    {
+      kbts_u32 Index=(kbts_u32)MarkIndex+I-1;
+      kbts_u32 P;
+      kbts_u16 Id;
+      kbts_glyph *Inserted;
+
+      if(InsertionOffset>D->Length ||
+         Index>(D->Length-InsertionOffset)/2)
+        break;
+      P=InsertionOffset+Index*2;
+      if(!kbts__AATRangeValid(D->Length,P,2))
+        break;
+      Id=kbts__AATReadU16(D->Base,D->Length,P);
+      Inserted=kbts__AATMorxInsertOne(D,Reference,Id,MarkBefore);
+      if(!Inserted)
+        break;
+    }
+  }
+
+  /* setMark records the position after the marked insertion action. */
+  if((Flags&0x8000) &&
+     D->Current &&
+     D->Current!=&D->Storage->GlyphSentinel)
+    D->Mark=D->Current;
+
+  if(!CurrentCount ||
+     !D->Current ||
+     D->Current==&D->Storage->GlyphSentinel ||
+     CurrentIndex==0xFFFF)
+    return;
+
+  OriginalNext=D->Current->Next;
+
+  for(I=CurrentCount; I>0; --I)
+  {
+    kbts_u32 Index=(kbts_u32)CurrentIndex+I-1;
+    kbts_u32 P;
+    kbts_u16 Id;
+    kbts_glyph *Inserted;
+
+    if(InsertionOffset>D->Length ||
+       Index>(D->Length-InsertionOffset)/2)
+      break;
+    P=InsertionOffset+Index*2;
+    if(!kbts__AATRangeValid(D->Length,P,2))
+      break;
+
+    Id=kbts__AATReadU16(D->Base,D->Length,P);
+    Inserted=kbts__AATMorxInsertOne(D,D->Current,Id,CurrentBefore);
+    if(!Inserted)
+      break;
+    if(!CurrentBefore)
+      FirstInserted=Inserted;
+  }
+
+  /*
+   * The subtle part of insertion: DontAdvance means "do not advance the
+   * input cursor", but an insertion made after Current becomes the next
+   * glyph visible to the state machine.  Without DontAdvance we skip all
+   * inserted glyphs and continue at the original successor.
+   */
+  if(Flags&0x4000)
+  {
+    if(!CurrentBefore && FirstInserted)
+      D->Current=FirstInserted;
+  }
+  else
+  {
+    D->Current=OriginalNext;
+  }
+}
+
+
+static void
+kbts__AATMorxDrive(
+  kbts__aat_driver *D,
+  kbts_u32 Kind,
+  kbts_u32 SubtableOffset,
+  kbts_u32 AuxiliaryOffset0,
+  kbts_u32 AuxiliaryOffset1,
+  kbts_u32 AuxiliaryOffset2)
+{
+  kbts_glyph *Components[KBTS_AAT_MAX_LIGATURE_COMPONENTS];
+  kbts_u32 ComponentCount=0;
+  kbts_u32 SafetyLimit;
+  kbts_b32 DidEndOfText=0;
+  kbts_u32 EntrySize;
+
+  if(!D || !D->Storage || D->ClassCount<4)
+    return;
+
+  switch(Kind)
+  {
+    case 0: EntrySize=4; break;
+    case 1: EntrySize=8; break;
+    case 2: EntrySize=6; break;
+    case 5: EntrySize=8; break;
+    default: return;
+  }
+
+  SafetyLimit=kbts__AATGlyphCount(D->Storage)*128+8192;
+  if(SafetyLimit<8192) SafetyLimit=8192;
+
+  D->State=0;
+  D->Current=D->Storage->GlyphSentinel.Next;
+  D->Mark=0;
+  D->StackCount=0;
+  D->DontAdvance=0;
+
+  while(SafetyLimit--)
+  {
+    kbts_b32 EndOfText=(D->Current==&D->Storage->GlyphSentinel || !D->Current);
+    kbts_u16 Class;
+    kbts_u16 EntryIndex;
+    kbts_u32 EntryOffset;
+    kbts_u16 NewState;
+    kbts_u16 Flags;
+
+    if(EndOfText)
+    {
+      if(DidEndOfText) break;
+      DidEndOfText=1;
+      Class=0; /* end-of-text */
+    }
+    else
+    {
+      Class=kbts__AATStateClass(D,D->Current->Id);
+      if(Class>=D->ClassCount) Class=1; /* out-of-bounds/deleted */
+    }
+
+    EntryIndex=kbts__AATMorxStateEntryIndex(D,D->State,Class);
+    if(EntryIndex==0xFFFF) break;
+    if(D->EntryTable>D->Length) break;
+    if(EntryIndex>(D->Length-D->EntryTable)/EntrySize) break;
+
+    EntryOffset=D->EntryTable+(kbts_u32)EntryIndex*EntrySize;
+    if(!kbts__AATRangeValid(D->Length,EntryOffset,EntrySize)) break;
+
+    NewState=kbts__AATReadU16(D->Base,D->Length,EntryOffset);
+    Flags=kbts__AATReadU16(D->Base,D->Length,EntryOffset+2);
+
+    switch(Kind)
+    {
+      case 0:
+        if(!EndOfText)
+          kbts__AATMorxRearrangementApply(D,Flags);
+        break;
+
+      case 1:
+      {
+        kbts_u16 MarkIndex;
+        kbts_u16 CurrentIndex;
+        if(!kbts__AATRangeValid(D->Length,EntryOffset,8)) break;
+        MarkIndex=kbts__AATReadU16(D->Base,D->Length,EntryOffset+4);
+        CurrentIndex=kbts__AATReadU16(D->Base,D->Length,EntryOffset+6);
+        kbts__AATMorxContextual(D,Flags,AuxiliaryOffset0,MarkIndex,CurrentIndex);
+      }
+      break;
+
+      case 2:
+      {
+        kbts_u16 ActionIndex;
+        if(!kbts__AATRangeValid(D->Length,EntryOffset,6)) break;
+        ActionIndex=kbts__AATReadU16(D->Base,D->Length,EntryOffset+4);
+        kbts__AATMorxLigature(
+          D,SubtableOffset,AuxiliaryOffset0,AuxiliaryOffset1,AuxiliaryOffset2,
+          Flags,ActionIndex,Components,&ComponentCount);
+      }
+      break;
+
+      case 5:
+      {
+        kbts_u16 CurrentIndex;
+        kbts_u16 MarkIndex;
+        if(!kbts__AATRangeValid(D->Length,EntryOffset,8)) break;
+        CurrentIndex=kbts__AATReadU16(D->Base,D->Length,EntryOffset+4);
+        MarkIndex=kbts__AATReadU16(D->Base,D->Length,EntryOffset+6);
+        kbts__AATMorxInsert(D,AuxiliaryOffset0,Flags,CurrentIndex,MarkIndex);
+      }
+      break;
+    }
+
+    D->State=NewState;
+    if(EndOfText) break;
+
+    /* Insertion computes its own next processing position because the
+     * inserted glyphs may themselves become the next glyph when
+     * dontAdvance is set.  Other subtables use the normal state-machine
+     * advancement rule. */
+    if(Kind==5)
+      continue;
+
+    if(Flags&0x4000)
+      continue;
+
+    D->Current=D->Current ? D->Current->Next : 0;
+  }
+}
+
+
+typedef struct kbts__aat_feature_mapping
+{
+  kbts_u32 Tag;
+  kbts_u16 Type;
+  kbts_u16 EnableSelector;
+  kbts_u16 DisableSelector;
+} kbts__aat_feature_mapping;
+
+static kbts__aat_feature_mapping
+kbts__AATFindFeatureMapping(kbts_u32 Tag)
+{
+  kbts__aat_feature_mapping R={0,0,0,0};
+#define KBTS__AAT_MAP(T,A,E,D) if(Tag==KBTS_FOURCC T) { R.Tag=Tag; R.Type=(A); R.EnableSelector=(E); R.DisableSelector=(D); return R; }
+  KBTS__AAT_MAP(('a','f','r','c'),11,1,0)
+  KBTS__AAT_MAP(('c','2','p','c'),38,2,0)
+  KBTS__AAT_MAP(('c','2','s','c'),38,1,0)
+  KBTS__AAT_MAP(('c','a','l','t'),36,0,1)
+  KBTS__AAT_MAP(('c','a','s','e'),33,0,1)
+  KBTS__AAT_MAP(('c','l','i','g'),1,18,19)
+  KBTS__AAT_MAP(('c','p','s','p'),33,2,3)
+  KBTS__AAT_MAP(('c','s','w','h'),36,4,5)
+  KBTS__AAT_MAP(('d','l','i','g'),1,4,5)
+  KBTS__AAT_MAP(('e','x','p','t'),20,10,16)
+  KBTS__AAT_MAP(('f','w','i','d'),22,1,7)
+  KBTS__AAT_MAP(('h','a','l','t'),22,6,7)
+  KBTS__AAT_MAP(('f','r','a','c'),11,2,0)
+  KBTS__AAT_MAP(('h','i','s','t'),1,20,21)
+  KBTS__AAT_MAP(('h','k','n','a'),34,0,1)
+  KBTS__AAT_MAP(('h','l','i','g'),1,20,21)
+  KBTS__AAT_MAP(('h','w','i','d'),22,2,7)
+  KBTS__AAT_MAP(('h','n','g','l'),23,1,0)
+  KBTS__AAT_MAP(('h','o','j','o'),20,12,16)
+  KBTS__AAT_MAP(('i','t','a','l'),32,2,3)
+  KBTS__AAT_MAP(('j','p','0','4'),20,11,16)
+  KBTS__AAT_MAP(('j','p','7','8'),20,2,16)
+  KBTS__AAT_MAP(('j','p','8','3'),20,3,16)
+  KBTS__AAT_MAP(('j','p','9','0'),20,4,16)
+  KBTS__AAT_MAP(('l','i','g','a'),1,2,3)
+  KBTS__AAT_MAP(('l','n','u','m'),21,1,2)
+  KBTS__AAT_MAP(('m','g','r','k'),15,10,11)
+  KBTS__AAT_MAP(('o','n','u','m'),21,0,2)
+  KBTS__AAT_MAP(('n','l','c','k'),20,13,16)
+  KBTS__AAT_MAP(('o','r','d','n'),10,3,0)
+  KBTS__AAT_MAP(('p','a','l','t'),22,5,7)
+  KBTS__AAT_MAP(('p','c','a','p'),37,2,0)
+  KBTS__AAT_MAP(('p','k','n','a'),22,0,7)
+  KBTS__AAT_MAP(('p','n','u','m'),6,1,4)
+  KBTS__AAT_MAP(('p','w','i','d'),22,0,7)
+  KBTS__AAT_MAP(('q','w','i','d'),22,4,7)
+  KBTS__AAT_MAP(('r','l','i','g'),1,0,1)
+  KBTS__AAT_MAP(('r','u','b','y'),28,2,3)
+  KBTS__AAT_MAP(('s','i','n','f'),10,4,0)
+  KBTS__AAT_MAP(('s','m','c','p'),37,1,0)
+  KBTS__AAT_MAP(('s','m','p','l'),20,1,16)
+  KBTS__AAT_MAP(('s','s','0','1'),35,2,3)
+  KBTS__AAT_MAP(('s','s','0','2'),35,4,5)
+  KBTS__AAT_MAP(('s','s','0','3'),35,6,7)
+  KBTS__AAT_MAP(('s','s','0','4'),35,8,9)
+  KBTS__AAT_MAP(('s','s','0','5'),35,10,11)
+  KBTS__AAT_MAP(('s','s','0','6'),35,12,13)
+  KBTS__AAT_MAP(('s','s','0','7'),35,14,15)
+  KBTS__AAT_MAP(('s','s','0','8'),35,16,17)
+  KBTS__AAT_MAP(('s','s','0','9'),35,18,19)
+  KBTS__AAT_MAP(('s','s','1','0'),35,20,21)
+  KBTS__AAT_MAP(('s','s','1','1'),35,22,23)
+  KBTS__AAT_MAP(('s','s','1','2'),35,24,25)
+  KBTS__AAT_MAP(('s','s','1','3'),35,26,27)
+  KBTS__AAT_MAP(('s','s','1','4'),35,28,29)
+  KBTS__AAT_MAP(('s','s','1','5'),35,30,31)
+  KBTS__AAT_MAP(('s','s','1','6'),35,32,33)
+  KBTS__AAT_MAP(('s','s','1','7'),35,34,35)
+  KBTS__AAT_MAP(('s','s','1','8'),35,36,37)
+  KBTS__AAT_MAP(('s','s','1','9'),35,38,39)
+  KBTS__AAT_MAP(('s','s','2','0'),35,40,41)
+  KBTS__AAT_MAP(('s','w','s','h'),36,2,3)
+  KBTS__AAT_MAP(('s','u','b','s'),10,2,0)
+  KBTS__AAT_MAP(('s','u','p','s'),10,1,0)
+  KBTS__AAT_MAP(('t','i','t','l'),19,4,0)
+  KBTS__AAT_MAP(('t','n','a','m'),20,14,16)
+  KBTS__AAT_MAP(('t','n','u','m'),6,0,4)
+  KBTS__AAT_MAP(('t','r','a','d'),20,0,16)
+  KBTS__AAT_MAP(('t','w','i','d'),22,3,7)
+  KBTS__AAT_MAP(('u','n','i','c'),3,14,15)
+  KBTS__AAT_MAP(('v','a','l','t'),22,5,7)
+  KBTS__AAT_MAP(('v','e','r','t'),4,0,1)
+  KBTS__AAT_MAP(('v','h','a','l'),22,6,7)
+  KBTS__AAT_MAP(('v','k','n','a'),34,2,3)
+  KBTS__AAT_MAP(('v','p','a','l'),22,5,7)
+  KBTS__AAT_MAP(('v','r','t','2'),4,0,1)
+  KBTS__AAT_MAP(('v','r','t','r'),4,2,3)
+  KBTS__AAT_MAP(('z','e','r','o'),14,4,5)
+#undef KBTS__AAT_MAP
+  return R;
+}
+
+static kbts_b32
+kbts__AATOverridesEqual(kbts_feature_override *A,int ACount,
+                        kbts_feature_override *B,int BCount)
+{
+  if(ACount!=BCount) return 0;
+  for(int I=0;I<ACount;++I)
+  {
+    if(A[I].Tag!=B[I].Tag || A[I].Value!=B[I].Value) return 0;
+  }
+  return 1;
+}
+
+static kbts_b32
+kbts__AATGetCommonOverrides(kbts_glyph_storage *Storage,
+                            kbts_feature_override **Overrides,
+                            int *OverrideCount)
+{
+  kbts_glyph *First;
+  kbts_feature_override *Reference=0;
+  int ReferenceCount=0;
+
+  if(Overrides) *Overrides=0;
+  if(OverrideCount) *OverrideCount=0;
+  if(!Storage) return 0;
+
+  First=Storage->GlyphSentinel.Next;
+  if(!First || First==&Storage->GlyphSentinel) return 1;
+
+  if(First->Config)
+  {
+    Reference=First->Config->AATFeatureOverrides;
+    ReferenceCount=(int)First->Config->AATFeatureOverrideCount;
+  }
+
+  for(kbts_glyph *G=First->Next;G!=&Storage->GlyphSentinel;G=G->Next)
+  {
+    kbts_feature_override *O=G->Config ? G->Config->AATFeatureOverrides : 0;
+    int C=G->Config ? (int)G->Config->AATFeatureOverrideCount : 0;
+    if(!kbts__AATOverridesEqual(Reference,ReferenceCount,O,C))
+      return 0;
+  }
+
+  if(Overrides) *Overrides=Reference;
+  if(OverrideCount) *OverrideCount=ReferenceCount;
+  return 1;
+}
+
+static kbts_u32
+kbts__AATMorxCompileFlags(const kbts_u8 *Base,
+                          kbts_u32 Length,
+                          kbts_u32 ChainOffset,
+                          kbts_u32 ChainLength,
+                          kbts_feature_override *Overrides,
+                          int OverrideCount)
+{
+  kbts_u32 Flags;
+  kbts_u32 Count;
+  kbts_u32 I;
+
+  if(!kbts__AATRangeValid(Length,ChainOffset,16) || ChainLength<16)
+    return 0;
+
+  Flags=kbts__AATReadU32(Base,Length,ChainOffset);
+  Count=kbts__AATReadU32(Base,Length,ChainOffset+8);
+  if(Count>(ChainLength-16)/12) return Flags;
+
+  for(I=0;I<Count;++I)
+  {
+    kbts_u32 P=ChainOffset+16+I*12;
+    kbts_u16 Type=kbts__AATReadU16(Base,Length,P);
+    kbts_u16 Setting=kbts__AATReadU16(Base,Length,P+2);
+    kbts_b32 Matched=0;
+
+    for(int J=0;J<OverrideCount;++J)
+    {
+      kbts__aat_feature_mapping M=kbts__AATFindFeatureMapping(Overrides[J].Tag);
+      if(!M.Tag || M.Type!=Type) continue;
+      if((Overrides[J].Value!=0 && M.EnableSelector==Setting) ||
+         (Overrides[J].Value==0 && M.DisableSelector==Setting))
+      {
+        Matched=1;
+        break;
+      }
+    }
+
+    if(Matched)
+    {
+      kbts_u32 Enable=kbts__AATReadU32(Base,Length,P+4);
+      kbts_u32 Disable=kbts__AATReadU32(Base,Length,P+8);
+      Flags&=Disable;
+      Flags|=Enable;
+    }
+  }
+
+  return Flags;
+}
+
+static void
+kbts__AATApplyMorxChain(
+  kbts_font *Font,
+  kbts_glyph_storage *Storage,
+  const kbts_u8 *Base,
+  kbts_u32 Length,
+  kbts_u32 ChainOffset,
+  kbts_u32 ChainLength,
+  kbts_direction RunDirection,
+  kbts_u32 EffectiveFlags)
+{
+  kbts_u32 DefaultFlags;
+  kbts_u32 FeatureCount;
+  kbts_u32 SubtableCount;
+  kbts_u32 FeatureBytes;
+  kbts_u32 SubtableOffset;
+  kbts_u32 ChainEnd;
+  kbts_u32 I;
+
+  if(!Font || !Storage || !Base ||
+     !kbts__AATRangeValid(Length,ChainOffset,16) ||
+     ChainLength<16 || ChainLength>Length-ChainOffset)
+    return;
+
+  ChainEnd=ChainOffset+ChainLength;
+  DefaultFlags=EffectiveFlags;
+  FeatureCount=kbts__AATReadU32(Base,Length,ChainOffset+8);
+  SubtableCount=kbts__AATReadU32(Base,Length,ChainOffset+12);
+
+  if(FeatureCount>(ChainLength-16)/12)
+    return;
+
+  FeatureBytes=FeatureCount*12;
+  if(FeatureBytes>ChainLength-16)
+    return;
+
+  SubtableOffset=ChainOffset+16+FeatureBytes;
+  if(SubtableOffset>ChainEnd)
+    return;
+
+  for(I=0; I<FeatureCount; ++I)
+  {
+    kbts_u32 FeatureOffset=ChainOffset+16+I*12;
+    if(!kbts__AATRangeValid(Length,FeatureOffset,12))
+      return;
+  }
+
+  for(I=0; I<SubtableCount; ++I)
+  {
+    kbts_u32 P=SubtableOffset;
+    kbts_u32 SubtableLength;
+    kbts_u32 Coverage;
+    kbts_u32 SubFeatureFlags;
+    kbts_u32 SubtableData;
+    kbts_u32 Format;
+    kbts_b32 Vertical;
+    kbts_b32 AllDirections;
+    kbts_b32 Reverse;
+    kbts_b32 DidReverse=0;
+
+    if(P>ChainEnd || ChainEnd-P<12 ||
+       !kbts__AATRangeValid(Length,P,12))
+      break;
+
+    SubtableLength=kbts__AATReadU32(Base,Length,P);
+    Coverage=kbts__AATReadU32(Base,Length,P+4);
+    SubFeatureFlags=kbts__AATReadU32(Base,Length,P+8);
+
+    if(SubtableLength<12 || SubtableLength>ChainEnd-P ||
+       !kbts__AATRangeValid(Length,P,SubtableLength))
+      break;
+
+    /* The processed feature mask is DefaultFlags when no AAT feature
+     * override is requested by the caller. */
+    if(!(SubFeatureFlags&DefaultFlags))
+    {
+      SubtableOffset+=SubtableLength;
+      continue;
+    }
+
+    Vertical=!!(Coverage&0x80000000);
+    AllDirections=!!(Coverage&0x20000000);
+    if(Vertical && !AllDirections)
+    {
+      SubtableOffset+=SubtableLength;
+      continue;
+    }
+
+    Reverse=kbts__AATMorxShouldReverse(Coverage,RunDirection);
+    SubtableData=P+12;
+    Format=Coverage&0xFF;
+
+    /* HarfBuzz keeps the glyph buffer in logical order and physically
+     * reverses it for reverse-processing MORX subtables.  This is not
+     * equivalent to merely walking Prev in the state machine: rearrange,
+     * ligature and insertion actions operate on the actual glyph array. */
+    if(Reverse)
+    {
+      kbts__AATReverseStorage(Storage);
+      DidReverse=1;
+    }
+
+    switch(Format)
+    {
+      case 0:
+      {
+        kbts__aat_driver D;
+        if(kbts__AATExtendedStateInit(&D,Font,Storage,Base,Length,SubtableData,0))
+          kbts__AATMorxDrive(&D,0,SubtableData,0,0,0);
+      }
+      break;
+
+      case 1:
+      {
+        kbts_u32 LookupListOffset;
+        kbts__aat_driver D;
+        if(!kbts__AATRangeValid(Length,SubtableData,20)) break;
+        {
+          kbts_u32 Relative=kbts__AATReadU32(Base,Length,SubtableData+16);
+          if(Relative>SubtableLength-12) break;
+          LookupListOffset=SubtableData+Relative;
+        }
+        if(LookupListOffset>=Length || LookupListOffset>=P+SubtableLength) break;
+        if(kbts__AATExtendedStateInit(&D,Font,Storage,Base,Length,SubtableData,0))
+          kbts__AATMorxDrive(&D,1,SubtableData,LookupListOffset,0,0);
+      }
+      break;
+
+      case 2:
+      {
+        kbts_u32 LigActionOffset;
+        kbts_u32 ComponentOffset;
+        kbts_u32 LigatureOffset;
+        kbts__aat_driver D;
+        if(!kbts__AATRangeValid(Length,SubtableData,28)) break;
+        {
+          kbts_u32 R0=kbts__AATReadU32(Base,Length,SubtableData+16);
+          kbts_u32 R1=kbts__AATReadU32(Base,Length,SubtableData+20);
+          kbts_u32 R2=kbts__AATReadU32(Base,Length,SubtableData+24);
+          if(R0>SubtableLength-12 || R1>SubtableLength-12 || R2>SubtableLength-12) break;
+          LigActionOffset=SubtableData+R0;
+          ComponentOffset=SubtableData+R1;
+          LigatureOffset=SubtableData+R2;
+        }
+        if(LigActionOffset>=Length || ComponentOffset>=Length || LigatureOffset>=Length ||
+           LigActionOffset>=P+SubtableLength || ComponentOffset>=P+SubtableLength || LigatureOffset>=P+SubtableLength)
+          break;
+        if(kbts__AATExtendedStateInit(&D,Font,Storage,Base,Length,SubtableData,0))
+          kbts__AATMorxDrive(&D,2,SubtableData,LigActionOffset,ComponentOffset,LigatureOffset);
+      }
+      break;
+
+      case 4:
+      {
+        kbts_glyph *Glyph=Storage->GlyphSentinel.Next;
+        while(Glyph!=&Storage->GlyphSentinel)
+        {
+          kbts_glyph *Next=Glyph->Next;
+          kbts_u16 NewId=kbts__AATLookup(Base,Length,SubtableData,Glyph->Id,0);
+          if(NewId) kbts__AATSetGlyphId(Glyph,NewId);
+          Glyph=Next;
+        }
+      }
+      break;
+
+      case 5:
+      {
+        kbts_u32 InsertionOffset;
+        kbts__aat_driver D;
+        if(!kbts__AATRangeValid(Length,SubtableData,20)) break;
+        {
+          kbts_u32 Relative=kbts__AATReadU32(Base,Length,SubtableData+16);
+          if(Relative>SubtableLength-12) break;
+          InsertionOffset=SubtableData+Relative;
+        }
+        if(InsertionOffset>=Length || InsertionOffset>=P+SubtableLength) break;
+        if(kbts__AATExtendedStateInit(&D,Font,Storage,Base,Length,SubtableData,0))
+          kbts__AATMorxDrive(&D,5,SubtableData,InsertionOffset,0,0);
+      }
+      break;
+    }
+
+    if(DidReverse)
+      kbts__AATReverseStorage(Storage);
+
+    SubtableOffset+=SubtableLength;
+  }
+}
+
+static void
+kbts__AATRemoveDeletedGlyphs(
+  kbts_glyph_storage *Storage)
+{
+  kbts_glyph *At;
+
+  if(!Storage)
+    return;
+
+  At=Storage->GlyphSentinel.Next;
+
+  while(At!=&Storage->GlyphSentinel)
+  {
+    kbts_glyph *Next=At->Next;
+
+    if(At->Id==0xFFFF)
+    {
+      kbts_glyph *Other=
+        Storage->GlyphSentinel.Next;
+
+      while(Other!=&Storage->GlyphSentinel)
+      {
+        if(Other->AttachGlyph==At)
+          Other->AttachGlyph=0;
+
+        Other=Other->Next;
+      }
+
+      kbts__AATRemoveGlyph(Storage,At);
+    }
+
+    At=Next;
+  }
+}
+
+static void
+kbts__AATApplyMorx(
+  kbts_font *Font,
+  kbts_glyph_storage *Storage,
+  kbts_direction RunDirection)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+  kbts_u16 Version;
+  kbts_u32 ChainCount;
+  kbts_u32 Offset;
+  kbts_u32 I;
+  kbts_feature_override *AATOverrides=0;
+  int AATOverrideCount=0;
+  kbts_b32 CommonOverrides;
+
+  if(!Font ||
+     !Storage)
+    return;
+
+  Base=kbts__AATGetTable(
+    Font,
+    KBTS_BLOB_TABLE_ID_MORX,
+    &Length);
+
+  if(!Base ||
+     !kbts__AATRangeValid(Length,0,8))
+    return;
+
+  Version=kbts__AATReadU16(
+    Base,Length,0);
+
+  if(Version!=2 &&
+     Version!=3)
+    return;
+
+  ChainCount=kbts__AATReadU32(
+    Base,Length,4);
+
+  Offset=8;
+  CommonOverrides=kbts__AATGetCommonOverrides(Storage,&AATOverrides,&AATOverrideCount);
+
+  for(I=0;I<ChainCount;++I)
+  {
+    kbts_u32 ChainLength;
+
+    if(!kbts__AATRangeValid(
+         Length,
+         Offset,
+         16))
+      break;
+
+    ChainLength=kbts__AATReadU32(
+      Base,
+      Length,
+      Offset+4);
+
+    if(ChainLength<16 ||
+       ChainLength>Length-Offset)
+      break;
+
+    kbts_u32 EffectiveFlags=kbts__AATReadU32(Base,Length,Offset);
+    if(CommonOverrides)
+    {
+      EffectiveFlags=kbts__AATMorxCompileFlags(
+        Base,Length,Offset,ChainLength,AATOverrides,AATOverrideCount);
+    }
+
+    kbts__AATApplyMorxChain(
+      Font,
+      Storage,
+      Base,
+      Length,
+      Offset,
+      ChainLength,
+      RunDirection,
+      EffectiveFlags);
+
+    Offset+=ChainLength;
+  }
+}
+
+/* ========================================================================== */
+/* MORT                                                                       */
+/* ========================================================================== */
+
+static void
+kbts__AATMortRearrange(kbts_glyph **Glyphs,
+                       kbts_u32 Count,
+                       kbts_u8 Verb)
+{
+  kbts_glyph *Temp[KBTS_AAT_MAX_REARRANGE];
+  kbts_glyph *Result[KBTS_AAT_MAX_REARRANGE];
+  kbts_u32 I;
+  kbts_u32 Out;
+  kbts_u32 Left;
+  kbts_u32 Right;
+  kbts_b32 ReverseLeft;
+  kbts_b32 ReverseRight;
+
+  /*
+   * MORT rearrangement verbs:
+   *
+   *   0x0  none
+   *   0x1  Ax -> xA
+   *   0x2  xB -> Bx
+   *   0x3  AB -> BA
+   *   0x4  Axy -> xyA
+   *   0x5  Axy -> yxA
+   *   0x6  xyB -> Bxy
+   *   0x7  xyB -> Byx
+   *   0x8  AxyB -> BxyA
+   *   0x9  AxyB -> ByxA
+   *   0xA  ABxy -> xyAB
+   *   0xB  ABxy -> yxAB
+   *   0xC  ABxy -> xyBA
+   *   0xD  ABxy -> yxBA
+   *   0xE  AxyB -> ByxA
+   *   0xF  AxyB -> B yx A
+   *
+   * The compact encoding below follows the AAT rearrangement verb map.
+   */
+  static const kbts_u8 Map[16] =
+  {
+    0x00, 0x10, 0x01, 0x11,
+    0x20, 0x30, 0x02, 0x03,
+    0x12, 0x13, 0x21, 0x31,
+    0x22, 0x32, 0x23, 0x33
+  };
+
+  if(!Glyphs ||
+     !Count ||
+     Count > KBTS_AAT_MAX_REARRANGE)
+    return;
+
+  Verb &= 0x0F;
+
+  for(I = 0; I < Count; ++I)
+    Temp[I] = Glyphs[I];
+
+  Left =
+    (kbts_u32)(Map[Verb] >> 4);
+
+  Right =
+    (kbts_u32)(Map[Verb] & 0x0F);
+
+  ReverseLeft = (Left == 3);
+  ReverseRight = (Right == 3);
+
+  if(ReverseLeft)
+    Left = 2;
+
+  if(ReverseRight)
+    Right = 2;
+
+  if(Left + Right > Count)
+  {
+    if(Left > Count)
+      Left = Count;
+
+    if(Right > Count - Left)
+      Right = Count - Left;
+  }
+
+  Out = 0;
+
+  /*
+   * Right-hand selected glyphs move to the beginning.
+   */
+  for(I = 0; I < Right; ++I)
+  {
+    kbts_u32 Index =
+      ReverseRight ?
+        Right - 1 - I :
+        I;
+
+    Result[Out++] =
+      Temp[Count - Right + Index];
+  }
+
+  /*
+   * Middle portion remains in place.
+   */
+  for(I = Left;
+      I < Count - Right;
+      ++I)
+  {
+    Result[Out++] = Temp[I];
+  }
+
+  /*
+   * Left-hand selected glyphs move to the end.
+   */
+  for(I = 0; I < Left; ++I)
+  {
+    kbts_u32 Index =
+      ReverseLeft ?
+        Left - 1 - I :
+        I;
+
+    Result[Out++] = Temp[Index];
+  }
+
+  for(I = 0; I < Count; ++I)
+    Glyphs[I] = Result[I];
+}
+
+static void
+kbts__AATMortInsertGlyphs(kbts__aat_driver *D,
+                          kbts_glyph *At,
+                          kbts_u32 ListOffset,
+                          kbts_u32 Count,
+                          kbts_b32 Before)
+{
+  kbts_u32 I;
+
+  if(!D ||
+     !D->Storage ||
+     !At ||
+     !Count)
+    return;
+
+  if(Count > KBTS_AAT_MAX_INSERTION)
+    Count = KBTS_AAT_MAX_INSERTION;
+
+  for(I = 0; I < Count; ++I)
+  {
+    kbts_u32 P =
+      ListOffset + I * 2;
+
+    kbts_u16 Id;
+    kbts_glyph Template;
+    kbts_glyph *InsertAt;
+
+    if(!kbts__AATRangeValid(
+         D->Length,
+         P,
+         2))
+      break;
+
+    Id =
+      kbts__AATReadU16(
+        D->Base,
+        D->Length,
+        P);
+
+    /*
+     * Do not copy the linked-list pointers from At.  The insertion helper
+     * will initialize those itself.
+     */
+    Template = *At;
+
+    Template.Prev = 0;
+    Template.Next = 0;
+
+    Template.Id = Id;
+
+    /*
+     * Inserted glyphs are synthetic glyphs and must not retain the source
+     * glyph's Unicode/codepoint identity.
+     */
+    Template.Codepoint = 0;
+    Template.UserIdOrCodepointIndex = 0;
+
+    Template.OffsetX = 0;
+    Template.OffsetY = 0;
+    Template.AdvanceX = 0;
+    Template.AdvanceY = 0;
+
+    Template.AttachGlyph = 0;
+    Template.Config = 0;
+    Template.Decomposition = 0;
+
+    Template.Flags = 0;
+    Template.ParentInfo = 0;
+
+    Template.Bucketed = 0;
+    Template.SortKey = 0;
+    Template.SortKeyInterval = 0;
+    Template.BucketedBucketIndex = 0;
+
+    Template.LigatureUid = 0;
+    Template.LigatureComponentIndexPlusOne = 0;
+    Template.LigatureComponentCount = 0;
+
+    Template.JoiningFeature = 0;
+    Template.JoiningType = 0;
+    Template.UnicodeFlags = 0;
+    Template.SyllabicClass = 0;
+    Template.SyllabicPosition = 0;
+    Template.UseClass = 0;
+    Template.CombiningClass = 0;
+    Template.MarkOrdering = 0;
+
+    if(Before)
+    {
+      InsertAt = At;
+    }
+    else
+    {
+      InsertAt = At->Next;
+
+      if(!InsertAt)
+        InsertAt = &D->Storage->GlyphSentinel;
+    }
+
+    kbts__AATInsertBefore(
+      D->Storage,
+      InsertAt,
+      &Template);
+  }
+}
+
+static kbts_u16
+kbts__AATMortStateClass(
+  kbts__aat_driver *D,
+  kbts_u16 Glyph)
+{
+  kbts_u16 FirstGlyph;
+  kbts_u16 GlyphCount;
+  kbts_u32 P;
+
+  if(!D ||
+     D->ClassTable>D->Length ||
+     !kbts__AATRangeValid(D->Length,D->ClassTable,4))
+    return 1;
+
+  FirstGlyph=kbts__AATReadU16(
+    D->Base,D->Length,D->ClassTable);
+
+  GlyphCount=kbts__AATReadU16(
+    D->Base,D->Length,D->ClassTable+2);
+
+  if(Glyph<FirstGlyph ||
+     Glyph-(kbts_u32)FirstGlyph>=GlyphCount)
+    return 1;
+
+  P=D->ClassTable+4+
+    (kbts_u32)(Glyph-FirstGlyph);
+
+  if(!kbts__AATRangeValid(D->Length,P,1))
+    return 1;
+
+  return D->Base[P];
+}
+
+static kbts_u16
+kbts__AATMortStateEntryIndex(
+  kbts__aat_driver *D,
+  kbts_u16 State,
+  kbts_u16 Class)
+{
+  kbts_u32 P;
+
+  if(!D ||
+     Class>=D->ClassCount ||
+     D->StateArray>D->Length)
+    return 0xFFFF;
+
+  P=D->StateArray+(kbts_u32)State+(kbts_u32)Class;
+
+  if(!kbts__AATRangeValid(D->Length,P,1))
+    return 0xFFFF;
+
+  return D->Base[P];
+}
+
+static void
+kbts__AATMortDrive(kbts__aat_driver *D,
+                   kbts_u32 Kind,
+                   kbts_u32 SubtableOffset,
+                   kbts_u32 AuxiliaryOffset0,
+                   kbts_u32 AuxiliaryOffset1,
+                   kbts_u32 AuxiliaryOffset2)
+{
+  kbts_u32 SafetyLimit;
+
+  if(!D ||
+     !D->Storage)
+    return;
+
+  D->State = 0;
+  D->Mark = 0;
+  D->StackCount = 0;
+  D->DontAdvance = 0;
+  D->EndOfText = 0;
+
+  D->Current =
+    D->Reverse ?
+      D->Storage->GlyphSentinel.Prev :
+      D->Storage->GlyphSentinel.Next;
+
+  SafetyLimit =
+    kbts__AATGlyphCount(D->Storage) * 64 + 4096;
+
+  while(D->Current &&
+        D->Current != &D->Storage->GlyphSentinel &&
+        SafetyLimit--)
+  {
+    kbts_u16 Class;
+    kbts_u16 EntryIndex;
+    kbts_u32 EntryOffset;
+    kbts_u16 NewState;
+    kbts_u16 Flags;
+
+    Class =
+      kbts__AATMortStateClass(
+        D,
+        D->Current->Id);
+
+    if(Class >= D->ClassCount)
+      Class = 1;
+
+    /*
+     * MORT uses the original AAT state-table representation:
+     *
+     *   stateArray[state + class] -> entry index
+     *
+     * Unlike MORX, the state value is a byte offset into the state array.
+     */
+    EntryIndex =
+      kbts__AATMortStateEntryIndex(
+        D,
+        D->State,
+        Class);
+
+    /*
+     * The MORT entry formats are:
+     *
+     *   rearrangement : 4 bytes
+     *   contextual    : 8 bytes
+     *   ligature      : 4 bytes
+     *   insertion     : 8 bytes
+     *
+     * Non-contextual substitution is not a state table and is handled
+     * separately by kbts__AATApplyMort().
+     */
+    {
+      kbts_u32 EntrySize;
+
+      switch(Kind)
+      {
+        case 0:
+          EntrySize = 4;
+          break;
+
+        case 1:
+          EntrySize = 8;
+          break;
+
+        case 2:
+          EntrySize = 4;
+          break;
+
+        case 5:
+          EntrySize = 8;
+          break;
+
+        default:
+          return;
+      }
+
+      EntryOffset =
+        D->EntryTable +
+        (kbts_u32)EntryIndex * EntrySize;
+
+      if(!kbts__AATRangeValid(
+           D->Length,
+           EntryOffset,
+           EntrySize))
+        break;
+
+      NewState =
+        kbts__AATReadU16(
+          D->Base,
+          D->Length,
+          EntryOffset);
+
+      Flags =
+        kbts__AATReadU16(
+          D->Base,
+          D->Length,
+          EntryOffset + 2);
+    }
+
+    switch(Kind)
+    {
+      case 0:
+      {
+        /*
+         * MORT rearrangement:
+         *
+         *   0x8000 markFirst
+         *   0x4000 dontAdvance
+         *   0x2000 markLast
+         *   0x000F verb
+         *
+         * Both marks are established before the rearrangement action.
+         */
+        kbts_b32 MarkFirst =
+          !!(Flags & 0x8000);
+
+        kbts_b32 MarkLast =
+          !!(Flags & 0x2000);
+
+        if(MarkFirst)
+          D->Mark = D->Current;
+
+        if(MarkLast)
+        {
+          if(D->Mark &&
+             D->Mark != D->Current)
+          {
+            kbts_glyph *Glyphs[
+              KBTS_AAT_MAX_REARRANGE
+            ];
+
+            kbts_u32 Count = 0;
+            kbts_glyph *G = D->Mark;
+
+            while(G &&
+                  G != &D->Storage->GlyphSentinel &&
+                  Count < KBTS_AAT_MAX_REARRANGE)
+            {
+              Glyphs[Count++] = G;
+
+              if(G == D->Current)
+                break;
+
+              G = G->Next;
+            }
+
+            if(Count &&
+               Glyphs[Count - 1] == D->Current)
+            {
+              kbts_glyph *First = Glyphs[0];
+              kbts_glyph *Last = Glyphs[Count - 1];
+              kbts_glyph *Before = First->Prev;
+              kbts_glyph *After = Last->Next;
+
+              kbts__AATMortRearrange(
+                Glyphs,
+                Count,
+                (kbts_u8)(Flags & 0x000F));
+
+              {
+                kbts_u32 I;
+
+                for(I = 0; I < Count; ++I)
+                {
+                  Glyphs[I]->Prev =
+                    I ?
+                      Glyphs[I - 1] :
+                      Before;
+
+                  Glyphs[I]->Next =
+                    (I + 1 < Count) ?
+                      Glyphs[I + 1] :
+                      After;
+                }
+              }
+
+              if(Before)
+                Before->Next = Glyphs[0];
+
+              if(After)
+                After->Prev = Glyphs[Count - 1];
+
+              if(D->Storage->GlyphSentinel.Next == First)
+                D->Storage->GlyphSentinel.Next = Glyphs[0];
+
+              if(D->Storage->GlyphSentinel.Prev == Last)
+                D->Storage->GlyphSentinel.Prev =
+                  Glyphs[Count - 1];
+
+              /*
+               * Keep the state-machine pointers attached to the same
+               * glyph objects after the rearrangement.
+               */
+              D->Mark = Glyphs[0];
+              D->Current = Glyphs[Count - 1];
+            }
+          }
+        }
+      }
+      break;
+
+      case 1:
+      {
+        kbts_u16 MarkOffset;
+        kbts_u16 CurrentOffset;
+
+        /*
+         * Contextual entry:
+         *
+         *   newState
+         *   flags
+         *   markOffset
+         *   currentOffset
+         *
+         * Offsets are byte offsets from the beginning of the state
+         * subtable, not offsets from the lookup table itself.
+         */
+        MarkOffset =
+          kbts__AATReadU16(
+            D->Base,
+            D->Length,
+            EntryOffset + 4);
+
+        CurrentOffset =
+          kbts__AATReadU16(
+            D->Base,
+            D->Length,
+            EntryOffset + 6);
+
+        if(D->Mark &&
+           MarkOffset)
+        {
+          kbts_u16 NewId =
+            kbts__AATLookup(
+              D->Base,
+              D->Length,
+              SubtableOffset + MarkOffset,
+              D->Mark->Id,
+              D->Mark->Id);
+
+          if(NewId != 0)
+            kbts__AATSetGlyphId(
+              D->Mark,
+              NewId);
+        }
+
+        if(D->Current &&
+           CurrentOffset)
+        {
+          kbts_u16 NewId =
+            kbts__AATLookup(
+              D->Base,
+              D->Length,
+              SubtableOffset + CurrentOffset,
+              D->Current->Id,
+              D->Current->Id);
+
+          if(NewId != 0)
+            kbts__AATSetGlyphId(
+              D->Current,
+              NewId);
+        }
+
+        /*
+         * setMark happens AFTER substitutions.
+         */
+        if(Flags & 0x8000)
+          D->Mark = D->Current;
+      }
+      break;
+
+      case 2:
+      {
+        /*
+         * MORT ligature:
+         *
+         *   bit 15 = setComponent
+         *   bit 14 = dontAdvance
+         *   bits 0-13 = byte offset to ligActionTable
+         */
+        kbts_b32 SetComponent =
+          !!(Flags & 0x8000);
+
+        kbts_b32 PerformAction =
+          !!(Flags & 0x2000);
+
+        kbts_u32 LigActionList;
+
+        if(SetComponent &&
+           D->StackCount <
+             KBTS_AAT_MAX_STATE_STACK)
+        {
+          D->Stack[
+            D->StackCount++
+          ] = D->Current;
+        }
+
+        if(PerformAction &&
+           D->StackCount)
+        {
+          kbts_u32 ActionIndex = 0;
+          kbts_u32 ComponentIndex = 0;
+          kbts_b32 Done = 0;
+          kbts_b32 Stored = 0;
+          kbts_u32 Safety = 64;
+
+          LigActionList =
+            SubtableOffset +
+            (Flags & 0x3FFF);
+
+          /*
+           * MORT's component stack is consumed from the most recently
+           * pushed component backwards.
+           */
+          while(D->StackCount &&
+                !Done &&
+                Safety--)
+          {
+            kbts_u32 P =
+              LigActionList +
+              ActionIndex * 4;
+
+            kbts_u32 Action;
+            kbts_s32 Offset;
+            kbts_s32 GlyphIndex;
+            kbts_u32 ComponentP;
+            kbts_u16 ComponentValue;
+
+            if(!kbts__AATRangeValid(
+                 D->Length,
+                 P,
+                 4))
+              break;
+
+            Action =
+              kbts__AATReadU32(
+                D->Base,
+                D->Length,
+                P);
+
+            Done =
+              !!(Action & 0x80000000);
+
+            Stored =
+              !!(Action & 0x40000000);
+
+            Offset =
+              (kbts_s32)
+                (Action & 0x3FFFFFFF);
+
+            if(Offset & 0x20000000)
+              Offset |= (kbts_s32)0xC0000000;
+
+            GlyphIndex =
+              (kbts_s32)
+                D->Stack[
+                  D->StackCount - 1
+                ]->Id;
+
+            GlyphIndex += Offset;
+
+            if(GlyphIndex < 0 ||
+               GlyphIndex > 0xFFFF)
+              break;
+
+            /*
+             * Component offsets are word offsets from the beginning of
+             * the state subtable.
+             */
+            ComponentP =
+              SubtableOffset +
+              AuxiliaryOffset0 +
+              (kbts_u32)GlyphIndex * 2;
+
+            if(!kbts__AATRangeValid(
+                 D->Length,
+                 ComponentP,
+                 2))
+              break;
+
+            ComponentValue =
+              kbts__AATReadU16(
+                D->Base,
+                D->Length,
+                ComponentP);
+
+            ComponentIndex += ComponentValue;
+
+            if(Stored || Done)
+            {
+              kbts_u32 LigatureP =
+                SubtableOffset +
+                AuxiliaryOffset1 +
+                ComponentIndex * 2;
+
+              kbts_u16 LigatureGlyph;
+
+              if(!kbts__AATRangeValid(
+                   D->Length,
+                   LigatureP,
+                   2))
+                break;
+
+              LigatureGlyph =
+                kbts__AATReadU16(
+                  D->Base,
+                  D->Length,
+                  LigatureP);
+
+              {
+                kbts_glyph *Keep =
+                  D->Stack[
+                    D->StackCount - 1
+                  ];
+
+                Keep->Id = LigatureGlyph;
+
+                /*
+                 * All consumed components except the glyph receiving
+                 * the ligature are removed from the active glyph list.
+                 */
+                while(D->StackCount > 1)
+                {
+                  kbts_glyph *Remove =
+                    D->Stack[
+                      D->StackCount - 2
+                    ];
+
+                  kbts__AATRemoveGlyph(
+                    D->Storage,
+                    Remove);
+
+                  --D->StackCount;
+                }
+
+                D->StackCount = 0;
+                D->Current = Keep;
+              }
+
+              ComponentIndex = 0;
+            }
+
+            ++ActionIndex;
+          }
+        }
+      }
+      break;
+
+      case 5:
+      {
+        /*
+         * MORT insertion:
+         *
+         *   0x8000 setMark
+         *   0x4000 dontAdvance
+         *   0x2000 currentIsKashidaLike
+         *   0x1000 markedIsKashidaLike
+         *   0x0800 currentInsertBefore
+         *   0x0400 markedInsertBefore
+         *   0x03E0 currentInsertCount
+         *   0x001F markedInsertCount
+         */
+        kbts_u16 CurrentInsertList;
+        kbts_u16 MarkedInsertList;
+        kbts_u32 CurrentCount;
+        kbts_u32 MarkedCount;
+
+        CurrentInsertList =
+          kbts__AATReadU16(
+            D->Base,
+            D->Length,
+            EntryOffset + 4);
+
+        MarkedInsertList =
+          kbts__AATReadU16(
+            D->Base,
+            D->Length,
+            EntryOffset + 6);
+
+        CurrentCount =
+          (Flags & 0x03E0) >> 5;
+
+        MarkedCount =
+          Flags & 0x001F;
+
+        if(D->Current &&
+           CurrentInsertList &&
+           CurrentCount)
+        {
+          kbts__AATMortInsertGlyphs(
+            D,
+            D->Current,
+            SubtableOffset +
+              CurrentInsertList,
+            CurrentCount,
+            !!(Flags & 0x0800));
+        }
+
+        if(D->Mark &&
+           MarkedInsertList &&
+           MarkedCount)
+        {
+          kbts__AATMortInsertGlyphs(
+            D,
+            D->Mark,
+            SubtableOffset +
+              MarkedInsertList,
+            MarkedCount,
+            !!(Flags & 0x0400));
+        }
+
+        if(Flags & 0x8000)
+          D->Mark = D->Current;
+      }
+      break;
+    }
+
+    /*
+     * MORT stores newState as a BYTE OFFSET from the beginning of the
+     * state subtable.
+     */
+    D->State = NewState;
+
+    D->DontAdvance =
+      !!(Flags & 0x4000);
+
+    if(!D->DontAdvance)
+      kbts__AATAdvanceGlyph(D);
+  }
+}
+
+static void
+kbts__AATApplyMort(kbts_font *Font,
+                   kbts_glyph_storage *Storage)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+  kbts_u32 Version;
+  kbts_u32 ChainCount;
+  kbts_u32 Offset;
+  kbts_u32 I;
+
+  Base =
+    kbts__AATGetTable(
+      Font,
+      KBTS_BLOB_TABLE_ID_MORT,
+      &Length);
+
+  if(!Base)
+    return;
+
+  if(!kbts__AATRangeValid(
+       Length,
+       0,
+       8))
+    return;
+
+  Version =
+    kbts__AATReadU32(
+      Base,
+      Length,
+      0);
+
+  KBTS__UNUSED(Version);
+
+  ChainCount =
+    kbts__AATReadU32(
+      Base,
+      Length,
+      4);
+
+  Offset = 8;
+
+  for(I = 0; I < ChainCount; ++I)
+  {
+    kbts_u32 DefaultFlags;
+    kbts_u32 ChainLength;
+    kbts_u16 FeatureCount;
+    kbts_u16 SubtableCount;
+    kbts_u32 ChainEnd;
+    kbts_u32 P;
+    kbts_u32 J;
+
+    /*
+     * MORT chain:
+     *
+     *   uint32 defaultFlags
+     *   uint32 chainLength
+     *   uint16 featureCount
+     *   uint16 subtableCount
+     *   FeatureEntry[featureCount]
+     *   Subtable[...]
+     */
+    if(!kbts__AATRangeValid(
+         Length,
+         Offset,
+         12))
+      break;
+
+    DefaultFlags =
+      kbts__AATReadU32(
+        Base,
+        Length,
+        Offset);
+
+    ChainLength =
+      kbts__AATReadU32(
+        Base,
+        Length,
+        Offset + 4);
+
+    FeatureCount =
+      kbts__AATReadU16(
+        Base,
+        Length,
+        Offset + 8);
+
+    SubtableCount =
+      kbts__AATReadU16(
+        Base,
+        Length,
+        Offset + 10);
+
+    if(ChainLength < 12 ||
+       !kbts__AATRangeValid(
+         Length,
+         Offset,
+         ChainLength))
+      break;
+
+    ChainEnd =
+      Offset + ChainLength;
+
+    /*
+     * Each MORT feature entry is 12 bytes.
+     */
+    P =
+      Offset +
+      12 +
+      (kbts_u32)FeatureCount * 12;
+
+    if(P > ChainEnd)
+      break;
+
+    for(J = 0;
+        J < SubtableCount;
+        ++J)
+    {
+      kbts_u16 Length16;
+      kbts_u16 Coverage;
+      kbts_u32 SubFeatureFlags;
+      kbts_u16 Format;
+      kbts_u32 SubtableBase;
+
+      if(P > ChainEnd ||
+         ChainEnd - P < 8 ||
+         !kbts__AATRangeValid(
+           Length,
+           P,
+           8))
+        break;
+
+      Length16 =
+        kbts__AATReadU16(
+          Base,
+          Length,
+          P);
+
+      Coverage =
+        kbts__AATReadU16(
+          Base,
+          Length,
+          P + 2);
+
+      SubFeatureFlags =
+        kbts__AATReadU32(
+          Base,
+          Length,
+          P + 4);
+
+      if(Length16 < 8 ||
+         P > ChainEnd ||
+         Length16 > ChainEnd - P ||
+         !kbts__AATRangeValid(
+           Length,
+           P,
+           Length16))
+        break;
+
+      Format =
+        (kbts_u16)(Coverage & 0x0007);
+
+      SubtableBase = P + 8;
+
+      /*
+       * MORT subtable types:
+       *
+       *   0 = rearrangement
+       *   1 = contextual substitution
+       *   2 = ligature substitution
+       *   4 = non-contextual substitution
+       *   5 = insertion
+       *
+       * Type 3 is reserved.
+       */
+      switch(Format)
+      {
+        case 0:
+        {
+          kbts__aat_driver D;
+
+          /*
+           * A MORT subtable is active when its feature mask intersects
+           * the chain's currently active/default feature flags.
+           */
+          if((SubFeatureFlags & DefaultFlags) == 0)
+            break;
+
+          if(kbts__AATStateInit(
+               &D,
+               Font,
+               Storage,
+               Base,
+               Length,
+               SubtableBase,
+               !!(Coverage & 0x4000)))
+          {
+            kbts__AATMortDrive(
+              &D,
+              0,
+              SubtableBase,
+              0,
+              0,
+              0);
+          }
+        }
+        break;
+
+        case 1:
+        {
+          kbts__aat_driver D;
+
+          if((SubFeatureFlags & DefaultFlags) == 0)
+            break;
+
+          if(kbts__AATStateInit(
+               &D,
+               Font,
+               Storage,
+               Base,
+               Length,
+               SubtableBase,
+               !!(Coverage & 0x4000)))
+          {
+            kbts__AATMortDrive(
+              &D,
+              1,
+              SubtableBase,
+              0,
+              0,
+              0);
+          }
+        }
+        break;
+
+        case 2:
+        {
+          kbts__aat_driver D;
+          kbts_u16 LigActionOffset;
+          kbts_u16 ComponentOffset;
+          kbts_u16 LigatureOffset;
+
+          if((SubFeatureFlags & DefaultFlags) == 0)
+            break;
+
+          /*
+           * Ligature subtable:
+           *
+           *   state table header       8 bytes
+           *   ligActionOffset          2 bytes
+           *   componentOffset          2 bytes
+           *   ligatureOffset           2 bytes
+           */
+          if(Length16 < 14 ||
+             !kbts__AATRangeValid(
+               Length,
+               SubtableBase,
+               14))
+            break;
+
+          LigActionOffset =
+            kbts__AATReadU16(
+              Base,
+              Length,
+              SubtableBase + 8);
+
+          ComponentOffset =
+            kbts__AATReadU16(
+              Base,
+              Length,
+              SubtableBase + 10);
+
+          LigatureOffset =
+            kbts__AATReadU16(
+              Base,
+              Length,
+              SubtableBase + 12);
+
+          if(kbts__AATStateInit(
+               &D,
+               Font,
+               Storage,
+               Base,
+               Length,
+               SubtableBase,
+               !!(Coverage & 0x4000)))
+          {
+            kbts__AATMortDrive(
+              &D,
+              2,
+              SubtableBase,
+              ComponentOffset,
+              LigatureOffset,
+              LigActionOffset);
+          }
+        }
+        break;
+
+        case 4:
+        {
+          kbts__aat_driver D;
+
+          if((SubFeatureFlags & DefaultFlags) == 0)
+            break;
+
+          /*
+           * MORT type 4 is NOT a state table.
+           *
+           * The data immediately following the 8-byte subtable header
+           * is an AAT LookupTable.
+           */
+          if(kbts__AATStateInit(
+               &D,
+               Font,
+               Storage,
+               Base,
+               Length,
+               SubtableBase,
+               !!(Coverage & 0x4000)))
+          {
+            D.Current =
+              D.Reverse ?
+                Storage->GlyphSentinel.Prev :
+                Storage->GlyphSentinel.Next;
+
+            D.Mark = 0;
+            D.DontAdvance = 0;
+
+            while(D.Current &&
+                  D.Current !=
+                    &Storage->GlyphSentinel)
+            {
+              kbts_u16 NewId;
+
+              NewId =
+                kbts__AATLookup(
+                  Base,
+                  Length,
+                  SubtableBase,
+                  D.Current->Id,
+                  D.Current->Id);
+
+              if(NewId != 0)
+                kbts__AATSetGlyphId(
+                  D.Current,
+                  NewId);
+
+              kbts__AATAdvanceGlyph(&D);
+            }
+          }
+        }
+        break;
+
+        case 5:
+        {
+          kbts__aat_driver D;
+
+          /*
+           * Insertion uses the normal state-table format, with the
+           * two insertion-list offsets stored in every entry.
+           */
+          if((SubFeatureFlags & DefaultFlags) == 0)
+            break;
+
+          if(kbts__AATStateInit(
+               &D,
+               Font,
+               Storage,
+               Base,
+               Length,
+               SubtableBase,
+               !!(Coverage & 0x4000)))
+          {
+            kbts__AATMortDrive(
+              &D,
+              5,
+              SubtableBase,
+              0,
+              0,
+              0);
+          }
+        }
+        break;
+
+        default:
+          break;
+      }
+
+      P += Length16;
+    }
+
+    Offset += ChainLength;
+  }
+}
+
+
+/* ========================================================================== */
+/* KERX                                                                       */
+/* ========================================================================== */
+
+static kbts_b32
+kbts__AATGetAnchor(kbts_font *Font,
+                   kbts_u16 GlyphId,
+                   kbts_u16 AnchorIndex,
+                   kbts_s16 *X,
+                   kbts_s16 *Y);
+
+static kbts_s32
+kbts__AATScaleFUnit(kbts_font *Font,
+                    kbts_s32 Value)
+{
+  KBTS__UNUSED(Font);
+  return Value;
+}
+
+static kbts_s32
+kbts__AATAddS32(kbts_s32 A,
+               kbts_s32 B)
+{
+  kbts_s64 Sum = (kbts_s64)A + (kbts_s64)B;
+
+  if(Sum > 0x7FFFFFFFll)
+    return (kbts_s32)0x7FFFFFFF;
+
+  if(Sum < -0x80000000ll)
+    return (kbts_s32)0x80000000u;
+
+  return (kbts_s32)Sum;
+}
+
+static void
+kbts__AATApplyKerningValue(kbts_glyph *Glyph,
+                           kbts_s32 Value,
+                           kbts_b32 CrossStream,
+                           kbts_b32 Vertical)
+{
+  if(!Glyph || Value == 0)
+    return;
+
+  if(Vertical)
+  {
+    if(CrossStream)
+      Glyph->OffsetX = kbts__AATAddS32(Glyph->OffsetX, Value);
+    else
+      Glyph->AdvanceY = kbts__AATAddS32(Glyph->AdvanceY, Value);
+  }
+  else
+  {
+    if(CrossStream)
+      Glyph->OffsetY = kbts__AATAddS32(Glyph->OffsetY, Value);
+    else
+      Glyph->AdvanceX = kbts__AATAddS32(Glyph->AdvanceX, Value);
+  }
+}
+
+static kbts_s32
+kbts__AATKerxFormat0Value(const kbts_u8 *Base,
+                          kbts_u32 Length,
+                          kbts_u32 Offset,
+                          kbts_u32 PairCount,
+                          kbts_u16 Left,
+                          kbts_u16 Right,
+                          kbts_u32 TupleCount)
+{
+  kbts_u32 Lo = 0;
+  kbts_u32 Hi = PairCount;
+  kbts_u32 Key = ((kbts_u32)Left << 16) | Right;
+
+  while(Lo < Hi)
+  {
+    kbts_u32 Mid = Lo + (Hi - Lo) / 2;
+    kbts_u32 P = Offset + Mid * 6;
+    kbts_u32 Pair;
+    kbts_u16 Raw;
+
+    if(!kbts__AATRangeValid(Length, P, 6)) return 0;
+
+    Pair = ((kbts_u32)kbts__AATReadU16(Base, Length, P) << 16) |
+           kbts__AATReadU16(Base, Length, P + 2);
+
+    if(Key < Pair) Hi = Mid;
+    else if(Key > Pair) Lo = Mid + 1;
+    else
+    {
+      Raw = kbts__AATReadU16(Base, Length, P + 4);
+      if(TupleCount == 0)
+        return (kbts_s16)Raw;
+
+      /* In variable kerx tables the pair field is an offset to a tuple
+       * vector.  The first FWord is the default value. */
+      if(Raw >= Length || !kbts__AATRangeValid(Length, Raw, 2))
+        return 0;
+      return kbts__AATReadS16(Base, Length, Raw);
+    }
+  }
+
+  return 0;
+}
+
+static void
+kbts__AATKerxFormat0(kbts_font *Font,
+                     kbts_glyph_storage *Storage,
+                     const kbts_u8 *Base,
+                     kbts_u32 Length,
+                     kbts_u32 Offset,
+                     kbts_u32 SubtableLength,
+                     kbts_u32 Coverage,
+                     kbts_u32 TupleCount)
+{
+  kbts_u32 PairCount;
+  kbts_u32 P;
+  kbts_glyph *Left;
+  kbts_glyph *Right;
+
+  if(!kbts__AATRangeValid(Length, Offset, 28)) return;
+  if(SubtableLength < 28) return;
+
+  PairCount = kbts__AATReadU32(Base, Length, Offset + 12);
+  if(PairCount > (SubtableLength - 28) / 6)
+    PairCount = (SubtableLength - 28) / 6;
+  P = Offset + 28;
+
+  Left = Storage->GlyphSentinel.Next;
+  while(Left != &Storage->GlyphSentinel)
+  {
+    Right = Left->Next;
+    if(Right != &Storage->GlyphSentinel)
+    {
+      kbts_s32 Value = kbts__AATKerxFormat0Value(
+        Base, Length, P, PairCount, Left->Id, Right->Id, TupleCount);
+      if(Value)
+        kbts__AATApplyKerningValue(
+          Left, kbts__AATScaleFUnit(Font, Value),
+          !!(Coverage & 0x40000000u), !!(Coverage & 0x80000000u));
+    }
+    Left = Left->Next;
+  }
+}
+
+static void
+kbts__AATKerxFormat2(kbts_font *Font,
+                     kbts_glyph_storage *Storage,
+                     const kbts_u8 *Base,
+                     kbts_u32 Length,
+                     kbts_u32 Offset,
+                     kbts_u32 SubtableLength,
+                     kbts_u32 Coverage,
+                     kbts_u32 TupleCount)
+{
+  kbts_u32 RowWidth;
+  kbts_u32 LeftClassOffset;
+  kbts_u32 RightClassOffset;
+  kbts_u32 ArrayOffset;
+  kbts_glyph *Left;
+
+  if(SubtableLength < 28 || !kbts__AATRangeValid(Length, Offset, 28)) return;
+
+  RowWidth = kbts__AATReadU32(Base, Length, Offset + 12);
+  LeftClassOffset = Offset + kbts__AATReadU32(Base, Length, Offset + 16);
+  RightClassOffset = Offset + kbts__AATReadU32(Base, Length, Offset + 20);
+  ArrayOffset = Offset + kbts__AATReadU32(Base, Length, Offset + 24);
+
+  if(RowWidth < 2 ||
+     LeftClassOffset < Offset || LeftClassOffset >= Length ||
+     RightClassOffset < Offset || RightClassOffset >= Length ||
+     ArrayOffset < Offset || ArrayOffset >= Length)
+    return;
+
+  Left = Storage->GlyphSentinel.Next;
+  while(Left != &Storage->GlyphSentinel)
+  {
+    kbts_glyph *Right = Left->Next;
+    if(Right != &Storage->GlyphSentinel)
+    {
+      kbts_u16 LC = kbts__AATLookup(Base, Length, LeftClassOffset, Left->Id, 0);
+      kbts_u16 RC = kbts__AATLookup(Base, Length, RightClassOffset, Right->Id, 0);
+      if((kbts_u32)LC > Length - ArrayOffset ||
+         (kbts_u32)RC > Length - ArrayOffset - (kbts_u32)LC)
+      {
+        Left = Left->Next;
+        continue;
+      }
+
+      kbts_u32 P = ArrayOffset + (kbts_u32)LC + (kbts_u32)RC;
+
+      if(P < Length && kbts__AATRangeValid(Length, P, 2))
+      {
+        kbts_u16 Raw = kbts__AATReadU16(Base, Length, P);
+        kbts_s32 Value;
+        if(TupleCount)
+        {
+          if(Raw >= Length || !kbts__AATRangeValid(Length, Raw, 2))
+            Value = 0;
+          else
+            Value = kbts__AATReadS16(Base, Length, Raw);
+        }
+        else
+          Value = (kbts_s16)Raw;
+
+        if(Value)
+          kbts__AATApplyKerningValue(
+            Left, kbts__AATScaleFUnit(Font, Value),
+            !!(Coverage & 0x40000000u), !!(Coverage & 0x80000000u));
+      }
+    }
+    Left = Left->Next;
+  }
+}
+
+static void
+kbts__AATKerxFormat6(kbts_font *Font,
+                     kbts_glyph_storage *Storage,
+                     const kbts_u8 *Base,
+                     kbts_u32 Length,
+                     kbts_u32 Offset,
+                     kbts_u32 SubtableLength,
+                     kbts_u32 Coverage,
+                     kbts_u32 TupleCount)
+{
+  kbts_u16 RowCount;
+  kbts_u16 ColumnCount;
+  kbts_u32 RowIndexOffset;
+  kbts_u32 ColumnIndexOffset;
+  kbts_u32 ArrayOffset;
+  kbts_b32 LongValues;
+  kbts_glyph *Left;
+
+  if(SubtableLength < 32 || !kbts__AATRangeValid(Length, Offset, 32)) return;
+
+  RowCount = kbts__AATReadU16(Base, Length, Offset + 16);
+  ColumnCount = kbts__AATReadU16(Base, Length, Offset + 18);
+  RowIndexOffset = Offset + kbts__AATReadU32(Base, Length, Offset + 20);
+  ColumnIndexOffset = Offset + kbts__AATReadU32(Base, Length, Offset + 24);
+  ArrayOffset = Offset + kbts__AATReadU32(Base, Length, Offset + 28);
+  LongValues = !!(kbts__AATReadU32(Base, Length, Offset + 12) & 1);
+
+  if(!RowCount || !ColumnCount || RowIndexOffset >= Length ||
+     ColumnIndexOffset >= Length || ArrayOffset >= Length)
+    return;
+
+  Left = Storage->GlyphSentinel.Next;
+  while(Left != &Storage->GlyphSentinel)
+  {
+    kbts_glyph *Right = Left->Next;
+    if(Right != &Storage->GlyphSentinel)
+    {
+      kbts_u32 LC = kbts__AATLookup(Base, Length, RowIndexOffset, Left->Id, 0);
+      kbts_u32 RC = kbts__AATLookup(Base, Length, ColumnIndexOffset, Right->Id, 0);
+      if(LC < RowCount && RC < ColumnCount)
+      {
+        kbts_u32 Index = LC * (kbts_u32)ColumnCount + RC;
+        kbts_u32 ValueWidth = LongValues ? 4u : 2u;
+        kbts_u32 P;
+        kbts_s32 Value = 0;
+
+        if(Index > (Length - ArrayOffset) / ValueWidth)
+        {
+          Left = Left->Next;
+          continue;
+        }
+        P = ArrayOffset + Index * ValueWidth;
+
+        if(LongValues)
+        {
+          if(kbts__AATRangeValid(Length, P, 4))
+          {
+            kbts_u32 Raw = kbts__AATReadU32(Base, Length, P);
+            Value = (kbts_s32)Raw;
+          }
+        }
+        else if(kbts__AATRangeValid(Length, P, 2))
+        {
+          kbts_u16 Raw = kbts__AATReadU16(Base, Length, P);
+          if(TupleCount)
+          {
+            if(Raw < Length && kbts__AATRangeValid(Length, Raw, 2))
+              Value = kbts__AATReadS16(Base, Length, Raw);
+          }
+          else
+            Value = (kbts_s16)Raw;
+        }
+
+        if(Value)
+          kbts__AATApplyKerningValue(
+            Left, kbts__AATScaleFUnit(Font, Value),
+            !!(Coverage & 0x40000000u), !!(Coverage & 0x80000000u));
+      }
+    }
+    Left = Left->Next;
+  }
+}
+
+static void
+kbts__AATKerxFormat1(kbts_font *Font,
+                     kbts_glyph_storage *Storage,
+                     const kbts_u8 *Base,
+                     kbts_u32 Length,
+                     kbts_u32 Offset,
+                     kbts_u32 SubtableLength,
+                     kbts_u32 Coverage,
+                     kbts_u32 TupleCount)
+{
+  kbts_u32 Header = Offset + 12;
+  kbts_u32 ClassCount;
+  kbts_u32 ClassTable;
+  kbts_u32 StateArray;
+  kbts_u32 EntryTable;
+  kbts_u32 ValueTable;
+  kbts_u32 State;
+  kbts_u32 StateSize;
+  kbts_u32 Safety;
+  kbts_glyph *Current;
+  kbts_glyph *Stack[8];
+  kbts_u32 StackCount = 0;
+  kbts_b32 Reverse = !!(Coverage & 0x10000000u);
+
+  if(SubtableLength < 32 || !kbts__AATRangeValid(Length, Header, 20)) return;
+
+  ClassCount = kbts__AATReadU32(Base, Length, Header);
+  ClassTable = Header + kbts__AATReadU32(Base, Length, Header + 4);
+  StateArray = Header + kbts__AATReadU32(Base, Length, Header + 8);
+  EntryTable = Header + kbts__AATReadU32(Base, Length, Header + 12);
+  ValueTable = Header + kbts__AATReadU32(Base, Length, Header + 16);
+  StateSize = ClassCount * 2;
+
+  if(ClassCount < 4 || ClassCount > 0xFFFFu ||
+     ClassTable >= Length || StateArray >= Length || EntryTable >= Length ||
+     ValueTable >= Length)
+    return;
+
+  Current = Reverse ? Storage->GlyphSentinel.Prev : Storage->GlyphSentinel.Next;
+  State = 0;
+  Safety = kbts__AATGlyphCount(Storage) * 64 + 4096;
+
+  while(Current && Current != &Storage->GlyphSentinel && Safety--)
+  {
+    kbts_u16 Class = kbts__AATLookup(Base, Length, ClassTable, Current->Id, 1);
+    kbts_u32 P;
+    kbts_u16 EntryIndex;
+    kbts_u32 EntryOffset;
+    kbts_u16 NewState;
+    kbts_u16 Flags;
+    kbts_u16 ActionIndex;
+
+    if(Class >= ClassCount) Class = 1;
+    if(State > (Length - StateArray) / StateSize) break;
+    P = StateArray + State * StateSize;
+    if(Class > (Length - P - 2) / 2) break;
+    P += (kbts_u32)Class * 2;
+    if(!kbts__AATRangeValid(Length, P, 2)) break;
+    EntryIndex = kbts__AATReadU16(Base, Length, P);
+    EntryOffset = EntryTable + (kbts_u32)EntryIndex * 6;
+    if(!kbts__AATRangeValid(Length, EntryOffset, 6)) break;
+
+    NewState = kbts__AATReadU16(Base, Length, EntryOffset);
+    Flags = kbts__AATReadU16(Base, Length, EntryOffset + 2);
+    ActionIndex = kbts__AATReadU16(Base, Length, EntryOffset + 4);
+
+    if(Flags & 0x2000) StackCount = 0;
+    if(Flags & 0x8000)
+    {
+      if(StackCount < 8) Stack[StackCount++] = Current;
+      else StackCount = 0;
+    }
+
+    if(ActionIndex != 0xFFFF && StackCount)
+    {
+      if(ActionIndex > Length - Header)
+        break;
+      kbts_u32 ActionP = Header + ActionIndex;
+      kbts_u32 TupleStride = TupleCount ? TupleCount : 1;
+      kbts_b32 Last = 0;
+
+      while(StackCount && !Last)
+      {
+        kbts_glyph *Target = Stack[--StackCount];
+        kbts_u16 Raw;
+        kbts_s16 Value;
+        if(!kbts__AATRangeValid(Length, ActionP, 2)) break;
+        Raw = kbts__AATReadU16(Base, Length, ActionP);
+        Value = (kbts_s16)(Raw & 0xFFFE);
+        Last = !!(Raw & 1);
+        ActionP += 2 * TupleStride;
+
+        if(Value == (kbts_s16)0x8000) Value = (kbts_s16)-0x8000;
+        if(Target)
+          kbts__AATApplyKerningValue(
+            Target, kbts__AATScaleFUnit(Font, Value),
+            !!(Coverage & 0x40000000u), !!(Coverage & 0x80000000u));
+      }
+    }
+
+    State = NewState;
+    if(!(Flags & 0x4000))
+      Current = Reverse ? Current->Prev : Current->Next;
+  }
+}
+
+static void
+kbts__AATKerxFormat4(kbts_font *Font,
+                     kbts_glyph_storage *Storage,
+                     const kbts_u8 *Base,
+                     kbts_u32 Length,
+                     kbts_u32 Offset,
+                     kbts_u32 SubtableLength,
+                     kbts_u32 Coverage)
+{
+  kbts_u32 Header = Offset + 12;
+  kbts_u32 ClassCount;
+  kbts_u32 ClassTable;
+  kbts_u32 StateArray;
+  kbts_u32 EntryTable;
+  kbts_u32 ActionTable;
+  kbts_u32 StateSize;
+  kbts_u32 State = 0;
+  kbts_u32 Safety;
+  kbts_glyph *Current;
+  kbts_glyph *Mark = 0;
+  kbts_b32 Reverse = !!(Coverage & 0x10000000u);
+  kbts_u32 ActionType;
+
+  if(SubtableLength < 32 || !kbts__AATRangeValid(Length, Header, 20)) return;
+
+  ClassCount = kbts__AATReadU32(Base, Length, Header);
+  ClassTable = Header + kbts__AATReadU32(Base, Length, Header + 4);
+  StateArray = Header + kbts__AATReadU32(Base, Length, Header + 8);
+  EntryTable = Header + kbts__AATReadU32(Base, Length, Header + 12);
+  ActionTable = Header + (kbts__AATReadU32(Base, Length, Header + 16) & 0x00FFFFFFu);
+  ActionType = (kbts__AATReadU32(Base, Length, Header + 16) >> 30) & 3;
+  StateSize = ClassCount * 2;
+
+  if(ClassCount < 4 || ClassCount > 0xFFFFu ||
+     ClassTable >= Length || StateArray >= Length || EntryTable >= Length ||
+     ActionTable >= Length)
+    return;
+
+  Current = Reverse ? Storage->GlyphSentinel.Prev : Storage->GlyphSentinel.Next;
+  Safety = kbts__AATGlyphCount(Storage) * 64 + 4096;
+
+  while(Current && Current != &Storage->GlyphSentinel && Safety--)
+  {
+    kbts_u16 Class = kbts__AATLookup(Base, Length, ClassTable, Current->Id, 1);
+    kbts_u32 P;
+    kbts_u16 EntryIndex;
+    kbts_u32 EntryOffset;
+    kbts_u16 NewState;
+    kbts_u16 Flags;
+    kbts_u16 ActionIndex;
+
+    if(Class >= ClassCount) Class = 1;
+    if(State > (Length - StateArray) / StateSize) break;
+    P = StateArray + State * StateSize;
+    if(Class > (Length - P - 2) / 2) break;
+    P += (kbts_u32)Class * 2;
+    if(!kbts__AATRangeValid(Length, P, 2)) break;
+    EntryIndex = kbts__AATReadU16(Base, Length, P);
+    EntryOffset = EntryTable + (kbts_u32)EntryIndex * 6;
+    if(!kbts__AATRangeValid(Length, EntryOffset, 6)) break;
+
+    NewState = kbts__AATReadU16(Base, Length, EntryOffset);
+    Flags = kbts__AATReadU16(Base, Length, EntryOffset + 2);
+    ActionIndex = kbts__AATReadU16(Base, Length, EntryOffset + 4);
+
+    if(Mark && ActionIndex != 0xFFFF)
+    {
+      kbts_u32 ActionP;
+      kbts_s16 MarkX = 0, MarkY = 0, CurrX = 0, CurrY = 0;
+      kbts_b32 OK = 0;
+
+      if(ActionType == 0)
+      {
+        /* Control-point actions require glyph outline access, which this
+         * header intentionally does not expose.  Do not guess coordinates. */
+        OK = 0;
+      }
+      else if(ActionType == 1)
+      {
+        ActionP = ActionTable + (kbts_u32)ActionIndex * 4;
+        if(kbts__AATRangeValid(Length, ActionP, 4))
+        {
+          kbts_u16 MarkAnchor = kbts__AATReadU16(Base, Length, ActionP);
+          kbts_u16 CurrAnchor = kbts__AATReadU16(Base, Length, ActionP + 2);
+          OK = kbts__AATGetAnchor(Font, Mark->Id, MarkAnchor, &MarkX, &MarkY) &&
+               kbts__AATGetAnchor(Font, Current->Id, CurrAnchor, &CurrX, &CurrY);
+        }
+      }
+      else if(ActionType == 2)
+      {
+        ActionP = ActionTable + (kbts_u32)ActionIndex * 8;
+        if(kbts__AATRangeValid(Length, ActionP, 8))
+        {
+          MarkX = kbts__AATReadS16(Base, Length, ActionP);
+          MarkY = kbts__AATReadS16(Base, Length, ActionP + 2);
+          CurrX = kbts__AATReadS16(Base, Length, ActionP + 4);
+          CurrY = kbts__AATReadS16(Base, Length, ActionP + 6);
+          OK = 1;
+        }
+      }
+
+      if(OK)
+      {
+        Current->OffsetX += kbts__AATScaleFUnit(Font, (kbts_s32)MarkX - CurrX);
+        Current->OffsetY += kbts__AATScaleFUnit(Font, (kbts_s32)MarkY - CurrY);
+      }
+    }
+
+    if(Flags & 0x8000) Mark = Current;
+    State = NewState;
+    if(!(Flags & 0x4000))
+      Current = Reverse ? Current->Prev : Current->Next;
+  }
+}
+
+static void
+kbts__AATApplyKerx(kbts_font *Font,
+                   kbts_glyph_storage *Storage)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+  kbts_u16 Version;
+  kbts_u32 TableCount;
+  kbts_u32 Offset;
+  kbts_u32 I;
+
+  if(!Font || !Storage)
+    return;
+
+  Base = kbts__AATGetTable(Font, KBTS_BLOB_TABLE_ID_KERX, &Length);
+  if(!Base || !kbts__AATRangeValid(Length, 0, 8)) return;
+
+  Version = kbts__AATReadU16(Base, Length, 0);
+  TableCount = kbts__AATReadU32(Base, Length, 4);
+  Offset = 8;
+
+  for(I = 0; I < TableCount; ++I)
+  {
+    kbts_u32 SubtableLength;
+    kbts_u32 Coverage;
+    kbts_u32 Format;
+    kbts_u32 TupleCount;
+
+    if(!kbts__AATRangeValid(Length, Offset, 12)) break;
+    SubtableLength = kbts__AATReadU32(Base, Length, Offset);
+    Coverage = kbts__AATReadU32(Base, Length, Offset + 4);
+    TupleCount = (Version >= 4) ? kbts__AATReadU32(Base, Length, Offset + 8) : 0;
+    Format = Coverage & 0xFF;
+
+    if(SubtableLength < 12 || !kbts__AATRangeValid(Length, Offset, SubtableLength)) break;
+
+    switch(Format)
+    {
+      case 0:
+        kbts__AATKerxFormat0(Font, Storage, Base, Length, Offset,
+                             SubtableLength, Coverage, TupleCount);
+        break;
+      case 1:
+        kbts__AATKerxFormat1(Font, Storage, Base, Length, Offset,
+                             SubtableLength, Coverage, TupleCount);
+        break;
+      case 2:
+        kbts__AATKerxFormat2(Font, Storage, Base, Length, Offset,
+                             SubtableLength, Coverage, TupleCount);
+        break;
+      case 4:
+        kbts__AATKerxFormat4(Font, Storage, Base, Length, Offset,
+                             SubtableLength, Coverage);
+        break;
+      case 6:
+        kbts__AATKerxFormat6(Font, Storage, Base, Length, Offset,
+                             SubtableLength, Coverage, TupleCount);
+        break;
+    }
+
+    if(SubtableLength > Length - Offset)
+      break;
+    Offset += SubtableLength;
+  }
+}
+
+
+/* ========================================================================== */
+/* Legacy KERN                                                                 */
+/* ========================================================================== */
+
+static kbts_s16
+kbts__AATKernFormat0Value(const kbts_u8 *Base,
+                          kbts_u32 Length,
+                          kbts_u32 Offset,
+                          kbts_u16 PairCount,
+                          kbts_u16 Left,
+                          kbts_u16 Right)
+{
+  kbts_u32 Lo = 0;
+  kbts_u32 Hi = PairCount;
+  kbts_u32 Key =
+    ((kbts_u32)Left << 16) | Right;
+
+  while(Lo < Hi)
+  {
+    kbts_u32 Mid = Lo + (Hi - Lo) / 2;
+    kbts_u32 P = Offset + Mid * 6;
+    kbts_u32 Pair;
+
+    if(!kbts__AATRangeValid(Length, P, 6))
+      return 0;
+
+    Pair =
+      ((kbts_u32)kbts__AATReadU16(Base, Length, P) << 16) |
+      kbts__AATReadU16(Base, Length, P + 2);
+
+    if(Key < Pair)
+      Hi = Mid;
+    else if(Key > Pair)
+      Lo = Mid + 1;
+    else
+      return kbts__AATReadS16(Base, Length, P + 4);
+  }
+
+  return 0;
+}
+
+static kbts_s16
+kbts__AATKernFormat2Value(const kbts_u8 *Base,
+                          kbts_u32 Length,
+                          kbts_u32 SubtableOffset,
+                          kbts_u16 Left,
+                          kbts_u16 Right)
+{
+  kbts_u16 RowWidth;
+  kbts_u16 LeftOffset;
+  kbts_u16 RightOffset;
+  kbts_u16 ArrayOffset;
+  kbts_u16 FirstGlyph;
+  kbts_u16 GlyphCount;
+  kbts_u32 P;
+  kbts_u32 LeftP;
+  kbts_u32 RightP;
+  kbts_u32 ValueP;
+
+  if(!kbts__AATRangeValid(Length, SubtableOffset, 14))
+    return 0;
+
+  RowWidth = kbts__AATReadU16(Base, Length, SubtableOffset + 6);
+  LeftOffset = kbts__AATReadU16(Base, Length, SubtableOffset + 8);
+  RightOffset = kbts__AATReadU16(Base, Length, SubtableOffset + 10);
+  ArrayOffset = kbts__AATReadU16(Base, Length, SubtableOffset + 12);
+
+  if(RowWidth < 2 ||
+     ArrayOffset >= 0xFFFFu)
+    return 0;
+
+  /* Each class table is:
+   *   firstGlyph, nGlyphs, UInt16 offsets[]
+   * Left offsets are absolute offsets to the row; right offsets are
+   * offsets within the row.  Uncovered glyphs default to array / zero. */
+  LeftP = SubtableOffset + LeftOffset;
+  RightP = SubtableOffset + RightOffset;
+  P = SubtableOffset + ArrayOffset;
+
+  if(!kbts__AATRangeValid(Length, P, 2))
+    return 0;
+
+  if(kbts__AATRangeValid(Length, LeftP, 4))
+  {
+    FirstGlyph = kbts__AATReadU16(Base, Length, LeftP);
+    GlyphCount = kbts__AATReadU16(Base, Length, LeftP + 2);
+
+    if(Left >= FirstGlyph &&
+       (kbts_u32)Left - FirstGlyph < GlyphCount &&
+       kbts__AATRangeValid(Length, LeftP + 4 + ((kbts_u32)Left - FirstGlyph) * 2, 2))
+    {
+      P = SubtableOffset +
+          kbts__AATReadU16(Base, Length,
+                           LeftP + 4 + ((kbts_u32)Left - FirstGlyph) * 2);
+    }
+  }
+
+  if(kbts__AATRangeValid(Length, RightP, 4))
+  {
+    FirstGlyph = kbts__AATReadU16(Base, Length, RightP);
+    GlyphCount = kbts__AATReadU16(Base, Length, RightP + 2);
+
+    if(Right >= FirstGlyph &&
+       (kbts_u32)Right - FirstGlyph < GlyphCount &&
+       kbts__AATRangeValid(Length, RightP + 4 + ((kbts_u32)Right - FirstGlyph) * 2, 2))
+    {
+      ValueP = P +
+        kbts__AATReadU16(Base, Length,
+                         RightP + 4 + ((kbts_u32)Right - FirstGlyph) * 2);
+    }
+    else
+      ValueP = P;
+  }
+  else
+    ValueP = P;
+
+  /* A covered left glyph has an absolute row offset; an uncovered glyph
+   * uses the array base.  A covered right glyph adds its byte offset. */
+  if(ValueP < SubtableOffset ||
+     ValueP > Length - 2 ||
+     !kbts__AATRangeValid(Length, ValueP, 2))
+    return 0;
+
+  KBTS__UNUSED(RowWidth);
+  return kbts__AATReadS16(Base, Length, ValueP);
+}
+
+static kbts_s16
+kbts__AATKernFormat3Value(const kbts_u8 *Base,
+                          kbts_u32 Length,
+                          kbts_u32 Offset,
+                          kbts_u16 GlyphCount,
+                          kbts_u8 KernValueCount,
+                          kbts_u8 LeftClassCount,
+                          kbts_u8 RightClassCount,
+                          kbts_u16 Left,
+                          kbts_u16 Right)
+{
+  kbts_u32 P = Offset + 6;
+  kbts_u32 ValueOffset;
+  kbts_u32 LeftClassOffset;
+  kbts_u32 RightClassOffset;
+  kbts_u32 IndexOffset;
+  kbts_u8 LC;
+  kbts_u8 RC;
+  kbts_u8 KI;
+
+  ValueOffset = P;
+  LeftClassOffset = ValueOffset + (kbts_u32)KernValueCount * 2;
+  RightClassOffset = LeftClassOffset + GlyphCount;
+  IndexOffset = RightClassOffset + GlyphCount;
+
+  if(Left >= GlyphCount || Right >= GlyphCount ||
+     !kbts__AATRangeValid(Length, ValueOffset, (kbts_u32)KernValueCount * 2) ||
+     !kbts__AATRangeValid(Length, LeftClassOffset, GlyphCount) ||
+     !kbts__AATRangeValid(Length, RightClassOffset, GlyphCount) ||
+     !kbts__AATRangeValid(Length, IndexOffset,
+                          (kbts_u32)LeftClassCount * RightClassCount))
+    return 0;
+
+  LC = Base[LeftClassOffset + Left];
+  RC = Base[RightClassOffset + Right];
+
+  if(LC >= LeftClassCount || RC >= RightClassCount)
+    return 0;
+
+  KI = Base[IndexOffset + (kbts_u32)LC * RightClassCount + RC];
+
+  if(KI >= KernValueCount)
+    return 0;
+
+  return kbts__AATReadS16(Base, Length, ValueOffset + (kbts_u32)KI * 2);
+}
+
+static void
+kbts__AATApplyKernFormat2Or3(kbts_font *Font,
+                             kbts_glyph_storage *Storage,
+                             const kbts_u8 *Base,
+                             kbts_u32 Length,
+                             kbts_u32 Offset,
+                             kbts_u32 SubtableLength,
+                             kbts_u16 Coverage,
+                             kbts_b32 NewHeader)
+{
+  kbts_glyph *Left;
+
+  if(NewHeader)
+  {
+    kbts_u32 DataOffset = Offset + 8;
+    kbts_u32 Format = Coverage & 0xFF;
+
+    if(Format == 2)
+    {
+      /* New Apple 'kern' uses the same format-2 payload as the legacy
+       * table, but with the modern 8-byte subtable header. */
+      Left = Storage->GlyphSentinel.Next;
+      while(Left != &Storage->GlyphSentinel)
+      {
+        kbts_glyph *Right = Left->Next;
+        if(Right != &Storage->GlyphSentinel)
+        {
+          kbts_s16 Value = kbts__AATKernFormat2Value(
+            Base, Length, DataOffset, Left->Id, Right->Id);
+          if(Value)
+            kbts__AATApplyKerningValue(
+              Left, kbts__AATScaleFUnit(Font, Value),
+              !!(Coverage & 0x4000), !!(Coverage & 0x8000));
+        }
+        Left = Left->Next;
+      }
+    }
+    else if(Format == 3)
+    {
+      kbts_u16 GlyphCount;
+      kbts_u8 KernValueCount;
+      kbts_u8 LeftClassCount;
+      kbts_u8 RightClassCount;
+
+      if(SubtableLength < 14 ||
+         !kbts__AATRangeValid(Length, DataOffset, 6))
+        return;
+
+      GlyphCount = kbts__AATReadU16(Base, Length, DataOffset);
+      KernValueCount = Base[DataOffset + 2];
+      LeftClassCount = Base[DataOffset + 3];
+      RightClassCount = Base[DataOffset + 4];
+
+      Left = Storage->GlyphSentinel.Next;
+      while(Left != &Storage->GlyphSentinel)
+      {
+        kbts_glyph *Right = Left->Next;
+        if(Right != &Storage->GlyphSentinel)
+        {
+          kbts_s16 Value = kbts__AATKernFormat3Value(
+            Base, Length, DataOffset, GlyphCount,
+            KernValueCount, LeftClassCount, RightClassCount,
+            Left->Id, Right->Id);
+          if(Value)
+            kbts__AATApplyKerningValue(
+              Left, kbts__AATScaleFUnit(Font, Value),
+              !!(Coverage & 0x4000), !!(Coverage & 0x8000));
+        }
+        Left = Left->Next;
+      }
+    }
+  }
+  else
+  {
+    kbts_u32 Format = (Coverage >> 8) & 0xFF;
+
+    if(Format == 2)
+    {
+      /* Legacy format-2 payload starts immediately after the 6-byte
+       * legacy subtable header. */
+      kbts_u32 DataOffset = Offset + 6;
+      kbts_u16 RowWidth;
+      kbts_u16 LeftOffset;
+      kbts_u16 RightOffset;
+      kbts_u16 ArrayOffset;
+
+      if(SubtableLength < 14 ||
+         !kbts__AATRangeValid(Length, DataOffset, 8))
+        return;
+
+      RowWidth = kbts__AATReadU16(Base, Length, DataOffset);
+      LeftOffset = kbts__AATReadU16(Base, Length, DataOffset + 2);
+      RightOffset = kbts__AATReadU16(Base, Length, DataOffset + 4);
+      ArrayOffset = kbts__AATReadU16(Base, Length, DataOffset + 6);
+
+      Left = Storage->GlyphSentinel.Next;
+      while(Left != &Storage->GlyphSentinel)
+      {
+        kbts_glyph *Right = Left->Next;
+        kbts_u32 LeftP = DataOffset + LeftOffset;
+        kbts_u32 RightP = DataOffset + RightOffset;
+        kbts_u32 ValueP = DataOffset + ArrayOffset;
+
+        if(Right != &Storage->GlyphSentinel && RowWidth >= 2 &&
+           kbts__AATRangeValid(Length, LeftP, 4) &&
+           kbts__AATRangeValid(Length, RightP, 4))
+        {
+          kbts_u16 First = kbts__AATReadU16(Base, Length, LeftP);
+          kbts_u16 Count = kbts__AATReadU16(Base, Length, LeftP + 2);
+          if(Left->Id >= First && (kbts_u32)Left->Id - First < Count &&
+             kbts__AATRangeValid(Length, LeftP + 4 + ((kbts_u32)Left->Id - First) * 2, 2))
+            ValueP = DataOffset + kbts__AATReadU16(
+              Base, Length, LeftP + 4 + ((kbts_u32)Left->Id - First) * 2);
+
+          First = kbts__AATReadU16(Base, Length, RightP);
+          Count = kbts__AATReadU16(Base, Length, RightP + 2);
+          if(Right->Id >= First && (kbts_u32)Right->Id - First < Count &&
+             kbts__AATRangeValid(Length, RightP + 4 + ((kbts_u32)Right->Id - First) * 2, 2))
+            ValueP += kbts__AATReadU16(
+              Base, Length, RightP + 4 + ((kbts_u32)Right->Id - First) * 2);
+
+          if(kbts__AATRangeValid(Length, ValueP, 2))
+          {
+            kbts_s16 Value = kbts__AATReadS16(Base, Length, ValueP);
+            if(Value)
+              kbts__AATApplyKerningValue(
+                Left, kbts__AATScaleFUnit(Font, Value),
+                !!(Coverage & 4), !(Coverage & 1));
+          }
+        }
+        Left = Left->Next;
+      }
+    }
+    else if(Format == 3)
+    {
+      kbts_u32 DataOffset = Offset + 6;
+      kbts_u16 GlyphCount;
+      kbts_u8 KernValueCount, LeftClassCount, RightClassCount;
+
+      if(SubtableLength < 12 || !kbts__AATRangeValid(Length, DataOffset, 6))
+        return;
+
+      GlyphCount = kbts__AATReadU16(Base, Length, DataOffset);
+      KernValueCount = Base[DataOffset + 2];
+      LeftClassCount = Base[DataOffset + 3];
+      RightClassCount = Base[DataOffset + 4];
+
+      Left = Storage->GlyphSentinel.Next;
+      while(Left != &Storage->GlyphSentinel)
+      {
+        kbts_glyph *Right = Left->Next;
+        if(Right != &Storage->GlyphSentinel)
+        {
+          kbts_s16 Value = kbts__AATKernFormat3Value(
+            Base, Length, DataOffset, GlyphCount,
+            KernValueCount, LeftClassCount, RightClassCount,
+            Left->Id, Right->Id);
+          if(Value)
+            kbts__AATApplyKerningValue(
+              Left, kbts__AATScaleFUnit(Font, Value),
+              !!(Coverage & 4), !(Coverage & 1));
+        }
+        Left = Left->Next;
+      }
+    }
+  }
+}
+
+static void
+kbts__AATApplyKernState(kbts_font *Font,
+                        kbts_glyph_storage *Storage,
+                        const kbts_u8 *Base,
+                        kbts_u32 Length,
+                        kbts_u32 SubtableOffset,
+                        kbts_u32 SubtableLength,
+                        kbts_u16 Coverage,
+                        kbts_b32 Extended,
+                        kbts_b32 CrossStream,
+                        kbts_b32 Vertical)
+{
+  kbts_u32 Header = SubtableOffset + (Extended ? 8 : 6);
+  kbts_u32 ClassTable;
+  kbts_u32 StateArray;
+  kbts_u32 EntryTable;
+  kbts_u32 ValueTable;
+  kbts_u32 ClassCount;
+  kbts_u32 StateSize;
+  kbts_u32 EntrySize;
+  kbts_u32 State;
+  kbts_u32 Safety;
+  kbts_glyph *Current;
+  kbts_glyph *Stack[KBTS_AAT_MAX_STATE_STACK];
+  kbts_u32 StackCount = 0;
+
+  if(Extended)
+  {
+    if(!kbts__AATRangeValid(Length, Header, 20)) return;
+    ClassCount = kbts__AATReadU32(Base, Length, Header);
+    ClassTable = Header + kbts__AATReadU32(Base, Length, Header + 4);
+    StateArray = Header + kbts__AATReadU32(Base, Length, Header + 8);
+    EntryTable = Header + kbts__AATReadU32(Base, Length, Header + 12);
+    ValueTable = Header + kbts__AATReadU32(Base, Length, Header + 16);
+    StateSize = ClassCount * 2;
+    EntrySize = 6;
+  }
+  else
+  {
+    if(!kbts__AATRangeValid(Length, Header, 10)) return;
+    ClassCount = kbts__AATReadU16(Base, Length, Header);
+    ClassTable = Header + kbts__AATReadU16(Base, Length, Header + 2);
+    StateArray = Header + kbts__AATReadU16(Base, Length, Header + 4);
+    EntryTable = Header + kbts__AATReadU16(Base, Length, Header + 6);
+    ValueTable = Header + kbts__AATReadU16(Base, Length, Header + 8);
+    StateSize = ClassCount;
+    EntrySize = 4;
+  }
+
+  if(ClassCount < 4 || ClassCount > 0xFFFFu ||
+     ClassTable >= Length || StateArray >= Length || EntryTable >= Length ||
+     ValueTable >= Length)
+    return;
+
+  State = 0;
+  Current = Storage->GlyphSentinel.Next;
+  Safety = kbts__AATGlyphCount(Storage) * 64 + 4096;
+
+  while(Current && Current != &Storage->GlyphSentinel && Safety--)
+  {
+    kbts_u16 Class;
+    kbts_u16 EntryIndex;
+    kbts_u32 EntryOffset;
+    kbts_u16 NewState;
+    kbts_u16 Flags;
+    kbts_u16 ActionIndex;
+
+    if(Extended)
+      Class = kbts__AATLookup(Base, Length, ClassTable, Current->Id, 1);
+    else
+    {
+      Class = 1;
+      if(kbts__AATRangeValid(Length, ClassTable, 4))
+      {
+        kbts_u16 First = kbts__AATReadU16(Base, Length, ClassTable);
+        kbts_u16 Count = kbts__AATReadU16(Base, Length, ClassTable + 2);
+        if(Current->Id >= First && (kbts_u32)Current->Id - First < Count &&
+           kbts__AATRangeValid(Length, ClassTable + 4 + ((kbts_u32)Current->Id - First), 1))
+          Class = Base[ClassTable + 4 + ((kbts_u32)Current->Id - First)];
+      }
+    }
+
+    if(Class >= ClassCount) Class = 1;
+
+    if(Extended)
+    {
+      kbts_u32 P = StateArray + State * StateSize + Class * 2;
+      if(!kbts__AATRangeValid(Length, P, 2)) break;
+      EntryIndex = kbts__AATReadU16(Base, Length, P);
+    }
+    else
+    {
+      kbts_u32 P = StateArray + State + Class;
+      if(!kbts__AATRangeValid(Length, P, 1)) break;
+      EntryIndex = Base[P];
+    }
+
+    EntryOffset = EntryTable + (kbts_u32)EntryIndex * EntrySize;
+    if(!kbts__AATRangeValid(Length, EntryOffset, EntrySize)) break;
+
+    NewState = kbts__AATReadU16(Base, Length, EntryOffset);
+    Flags = kbts__AATReadU16(Base, Length, EntryOffset + 2);
+    ActionIndex = Extended ? kbts__AATReadU16(Base, Length, EntryOffset + 4) : 0xFFFF;
+
+    if(Flags & 0x2000)
+      StackCount = 0;
+
+    if(Flags & 0x8000)
+    {
+      if(StackCount < KBTS_AAT_MAX_STATE_STACK)
+        Stack[StackCount++] = Current;
+      else
+        StackCount = 0;
+    }
+
+    if((Extended ? ActionIndex != 0xFFFF : (Flags & 0x3FFF) != 0) && StackCount)
+    {
+      kbts_u32 P;
+      if(Extended)
+        P = Header + (kbts_u32)ActionIndex;
+      else
+        P = SubtableOffset + (Flags & 0x3FFF);
+
+      /* Extended kerx uses byte offsets into the value table/state machine;
+       * legacy kern uses a byte offset from the subtable. */
+      if(P < ValueTable || P >= Length) { StackCount = 0; }
+      else
+      {
+        kbts_b32 Last = 0;
+        while(StackCount && !Last)
+        {
+          kbts_glyph *Target = Stack[--StackCount];
+          kbts_s16 Value;
+          kbts_u16 Raw;
+
+          if(!kbts__AATRangeValid(Length, P, 2)) break;
+          Raw = kbts__AATReadU16(Base, Length, P);
+          Value = (kbts_s16)(Raw & 0xFFFE);
+          Last = !!(Raw & 1);
+          P += 2;
+
+          if(Value == (kbts_s16)0x8000)
+            Value = (kbts_s16)-0x8000;
+
+          if(Target && (Value != 0 || Last))
+            kbts__AATApplyKerningValue(
+              Target,
+              kbts__AATScaleFUnit(Font, Value),
+              CrossStream,
+              Vertical);
+        }
+      }
+    }
+
+    if(Extended)
+    {
+      /* Extended state entries store the zero-based state row index. */
+      State = NewState;
+    }
+    else
+    {
+      /* Legacy entries store a byte offset from the state table header. */
+      if(NewState < (StateArray - Header))
+        break;
+      State = (kbts_u32)NewState - (StateArray - Header);
+    }
+
+    if(!(Flags & 0x4000))
+      Current = Current->Next;
+  }
+
+  KBTS__UNUSED(SubtableLength);
+  KBTS__UNUSED(Coverage);
+}
+
+static void
+kbts__AATApplyKern(kbts_font *Font,
+                   kbts_glyph_storage *Storage)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+  kbts_u16 Version;
+  kbts_u16 SubtableCount;
+  kbts_u32 Offset;
+  kbts_u32 I;
+
+  if(!Font || !Storage)
+    return;
+
+  Base = kbts__AATGetTable(Font, KBTS_BLOB_TABLE_ID_KERN, &Length);
+  if(!Base || !kbts__AATRangeValid(Length, 0, 4)) return;
+
+  Version = kbts__AATReadU16(Base, Length, 0);
+
+  if(Version == 1)
+  {
+    kbts_u32 Count = kbts__AATReadU32(Base, Length, 4);
+    Offset = 8;
+
+    for(I = 0; I < Count; ++I)
+    {
+      kbts_u32 Length32;
+      kbts_u16 Coverage;
+      kbts_u32 Format;
+
+      if(!kbts__AATRangeValid(Length, Offset, 8)) break;
+      Length32 = kbts__AATReadU32(Base, Length, Offset);
+      Coverage = kbts__AATReadU16(Base, Length, Offset + 4);
+      Format = Coverage & 0xFF;
+      if(Length32 < 8 || !kbts__AATRangeValid(Length, Offset, Length32)) break;
+
+      if(Format == 0 && Length32 >= 16)
+      {
+        kbts_u16 PairCount = kbts__AATReadU16(Base, Length, Offset + 8);
+        kbts_u32 PairOffset = Offset + 16;
+        kbts_u32 MaxPairs = (Length32 - 16) / 6;
+        if((kbts_u32)PairCount > MaxPairs) PairCount = (kbts_u16)MaxPairs;
+        kbts_glyph *Left = Storage->GlyphSentinel.Next;
+        while(Left != &Storage->GlyphSentinel)
+        {
+          kbts_glyph *Right = Left->Next;
+          if(Right != &Storage->GlyphSentinel)
+          {
+            kbts_s16 Value = kbts__AATKernFormat0Value(
+              Base, Length, PairOffset, PairCount, Left->Id, Right->Id);
+            if(Value)
+              kbts__AATApplyKerningValue(
+                Left, kbts__AATScaleFUnit(Font, Value),
+                !!(Coverage & 0x4000), !!(Coverage & 0x8000));
+          }
+          Left = Left->Next;
+        }
+      }
+      else if(Format == 1)
+      {
+        kbts__AATApplyKernState(Font, Storage, Base, Length, Offset,
+                                Length32, Coverage, 0,
+                                !!(Coverage & 0x4000), !!(Coverage & 0x8000));
+      }
+      else if(Format == 2 || Format == 3)
+      {
+        kbts__AATApplyKernFormat2Or3(Font, Storage, Base, Length,
+                                     Offset, Length32, Coverage, 1);
+      }
+
+      if(Length32 > Length - Offset) break;
+      Offset += Length32;
+    }
+  }
+  else
+  {
+    /* Legacy Microsoft/Apple kern header.  In this representation the
+     * subtable format lives in coverage bits 8..15, not bits 0..7. */
+    SubtableCount = kbts__AATReadU16(Base, Length, 2);
+    Offset = 4;
+
+    for(I = 0; I < SubtableCount; ++I)
+    {
+      kbts_u16 Length16;
+      kbts_u16 Coverage;
+      kbts_u32 Format;
+
+      if(!kbts__AATRangeValid(Length, Offset, 6)) break;
+      Length16 = kbts__AATReadU16(Base, Length, Offset + 2);
+      Coverage = kbts__AATReadU16(Base, Length, Offset + 4);
+      Format = (Coverage >> 8) & 0xFF;
+      if(Length16 < 6 || !kbts__AATRangeValid(Length, Offset, Length16)) break;
+
+      /* Minimum tables are not ordinary kerning tables. */
+      if(!(Coverage & 0x0002))
+      {
+        if(Format == 0 && Length16 >= 14)
+        {
+          kbts_u16 PairCount = kbts__AATReadU16(Base, Length, Offset + 6);
+          kbts_u32 PairOffset = Offset + 14;
+          kbts_u32 MaxPairs = (Length16 - 14) / 6;
+          if((kbts_u32)PairCount > MaxPairs) PairCount = (kbts_u16)MaxPairs;
+          kbts_glyph *Left = Storage->GlyphSentinel.Next;
+          while(Left != &Storage->GlyphSentinel)
+          {
+            kbts_glyph *Right = Left->Next;
+            if(Right != &Storage->GlyphSentinel)
+            {
+              kbts_s16 Value = kbts__AATKernFormat0Value(
+                Base, Length, PairOffset, PairCount, Left->Id, Right->Id);
+              if(Value)
+                kbts__AATApplyKerningValue(
+                  Left, kbts__AATScaleFUnit(Font, Value),
+                  !!(Coverage & 0x0004), !(Coverage & 0x0001));
+            }
+            Left = Left->Next;
+          }
+        }
+        else if(Format == 1)
+        {
+          kbts__AATApplyKernState(Font, Storage, Base, Length, Offset,
+                                  Length16, Coverage, 0,
+                                  !!(Coverage & 0x0004), !(Coverage & 0x0001));
+        }
+        else if(Format == 2 || Format == 3)
+        {
+          kbts__AATApplyKernFormat2Or3(Font, Storage, Base, Length,
+                                       Offset, Length16, Coverage, 0);
+        }
+      }
+
+      if(Length16 > Length - Offset) break;
+      Offset += Length16;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* AAT anchor table                                                           */
+/* ========================================================================== */
+
+static kbts_b32
+kbts__AATGetAnchor(kbts_font *Font,
+                   kbts_u16 GlyphId,
+                   kbts_u16 AnchorIndex,
+                   kbts_s16 *X,
+                   kbts_s16 *Y)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+  kbts_u32 LookupOffset;
+  kbts_u32 GlyphDataOffset;
+  kbts_u32 AnchorOffset;
+  kbts_u16 Relative;
+  kbts_u32 NumPoints;
+
+  Base =
+    kbts__AATGetTable(
+      Font,
+      KBTS_BLOB_TABLE_ID_ANKR,
+      &Length);
+
+  if(!Base ||
+     !kbts__AATRangeValid(Length, 0, 12))
+    return 0;
+
+  LookupOffset =
+    kbts__AATReadU32(Base, Length, 4);
+
+  GlyphDataOffset =
+    kbts__AATReadU32(Base, Length, 8);
+
+  if(LookupOffset >= Length ||
+     GlyphDataOffset >= Length)
+    return 0;
+
+  /* ankr lookup values are 16-bit offsets from the beginning of the
+   * glyph-data table, not from the lookup table itself.  Zero is a
+   * valid glyph-data offset, so lookup failure must use 0xFFFF. */
+  Relative =
+    kbts__AATLookup(
+      Base,
+      Length,
+      LookupOffset,
+      GlyphId,
+      0xFFFF);
+
+  if(Relative == 0xFFFF)
+    return 0;
+
+  if(Relative > Length - GlyphDataOffset)
+    return 0;
+
+  AnchorOffset =
+    GlyphDataOffset + Relative;
+
+  if(!kbts__AATRangeValid(Length, AnchorOffset, 4))
+    return 0;
+
+  NumPoints =
+    kbts__AATReadU32(Base, Length, AnchorOffset);
+
+  AnchorOffset += 4;
+
+  if(AnchorIndex >= NumPoints ||
+     AnchorIndex > (Length - AnchorOffset) / 4)
+    return 0;
+
+  AnchorOffset +=
+    (kbts_u32)AnchorIndex * 4;
+
+  if(!kbts__AATRangeValid(Length, AnchorOffset, 4))
+    return 0;
+
+  if(X)
+    *X = kbts__AATReadS16(Base, Length, AnchorOffset);
+
+  if(Y)
+    *Y = kbts__AATReadS16(Base, Length, AnchorOffset + 2);
+
+  return 1;
+}
+
+
+/* ========================================================================== */
+/* AAT feature flags                                                          */
+/* ========================================================================== */
+
+typedef struct kbts__aat_feature_flags
+{
+  kbts_u32 Enable;
+  kbts_u32 Disable;
+} kbts__aat_feature_flags;
+
+static kbts__aat_feature_flags
+kbts__AATDefaultFeatureFlags(void)
+{
+  kbts__aat_feature_flags Result = KBTS__ZERO;
+
+  Result.Enable = 0xFFFFFFFFu;
+  Result.Disable = 0;
+
+  return Result;
+}
+
+static void
+kbts__AATApplyFeatureOverrides(
+  kbts_shape_config *Config,
+  kbts__aat_feature_flags *Flags)
+{
+  /*
+   * Standard OpenType-to-AAT compatibility mapping.
+   *
+   * The AAT feature registry uses featureType/featureSetting rather
+   * than four-character tags.  These mappings cover the features
+   * that matter to layout compatibility.
+   */
+
+  KBTS__UNUSED(Config);
+  KBTS__UNUSED(Flags);
+}
+
+
+/* ========================================================================== */
+/* AAT property table                                                         */
+/* ========================================================================== */
+
+static kbts_u16
+kbts__AATGlyphProperties(kbts_font *Font,
+                         kbts_u16 GlyphId)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+
+  Base =
+    kbts__AATGetTable(
+      Font,
+      KBTS_BLOB_TABLE_ID_PROP,
+      &Length);
+
+  if(!Base)
+    return 0;
+
+  if(!kbts__AATRangeValid(Length, 0, 8))
+    return 0;
+
+  {
+    kbts_u32 LookupOffset =
+      kbts__AATReadU32(Base, Length, 4);
+
+    return kbts__AATLookup(
+      Base,
+      Length,
+      LookupOffset,
+      GlyphId,
+      0);
+  }
+}
+
+
+/* ========================================================================== */
+/* AAT mark attachment                                                        */
+/* ========================================================================== */
+
+static void
+kbts__AATAttachMarks(kbts_font *Font,
+                     kbts_glyph_storage *Storage)
+{
+  kbts_glyph *At =
+    Storage->GlyphSentinel.Next;
+
+  while(At != &Storage->GlyphSentinel)
+  {
+    kbts_u16 Properties =
+      kbts__AATGlyphProperties(Font, At->Id);
+
+    if((Properties & 0x0001) ||
+       At->Classes.Class == KBTS__GLYPH_CLASS_MARK)
+    {
+      kbts_glyph *Base =
+        At->Prev;
+
+      while(Base != &Storage->GlyphSentinel)
+      {
+        kbts_u16 BaseProperties =
+          kbts__AATGlyphProperties(Font, Base->Id);
+
+        if(!(BaseProperties & 0x0001) &&
+           Base->Classes.Class != KBTS__GLYPH_CLASS_MARK)
+        {
+          At->AttachGlyph = Base;
+          break;
+        }
+
+        Base = Base->Prev;
+      }
+    }
+
+    At = At->Next;
+  }
+}
+
+
+/* ========================================================================== */
+/* AAT optical bounds                                                         */
+/* ========================================================================== */
+
+static void
+kbts__AATApplyOpbd(kbts_font *Font,
+                   kbts_glyph_storage *Storage)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+
+  Base =
+    kbts__AATGetTable(
+      Font,
+      KBTS_BLOB_TABLE_ID_OPBD,
+      &Length);
+
+  if(!Base)
+    return;
+
+  if(!kbts__AATRangeValid(Length, 0, 8))
+    return;
+
+  {
+    kbts_u32 LookupOffset =
+      kbts__AATReadU32(Base, Length, 4);
+
+    kbts_glyph *At =
+      Storage->GlyphSentinel.Next;
+
+    while(At != &Storage->GlyphSentinel)
+    {
+      kbts_u16 Relative =
+        kbts__AATLookup(
+          Base,
+          Length,
+          LookupOffset,
+          At->Id,
+          0xFFFF);
+
+      if(Relative != 0xFFFF)
+      {
+        kbts_u32 P =
+          LookupOffset + Relative;
+
+        if(kbts__AATRangeValid(Length, P, 8))
+        {
+          kbts_s16 Left =
+            kbts__AATReadS16(Base, Length, P);
+
+          kbts_s16 Right =
+            kbts__AATReadS16(Base, Length, P + 2);
+
+          At->OffsetX += Left;
+          At->AdvanceX -= Left;
+          At->AdvanceX += Right;
+        }
+      }
+
+      At = At->Next;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* AAT tracking                                                               */
+/* ========================================================================== */
+
+static void
+kbts__AATApplyTrak(kbts_font *Font,
+                   kbts_glyph_storage *Storage,
+                   kbts_s32 Tracking)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+
+  Base =
+    kbts__AATGetTable(
+      Font,
+      KBTS_BLOB_TABLE_ID_TRAK,
+      &Length);
+
+  if(!Base || !Tracking)
+    return;
+
+  {
+    kbts_glyph *At =
+      Storage->GlyphSentinel.Next;
+
+    while(At != &Storage->GlyphSentinel)
+    {
+      At->AdvanceX += Tracking;
+      At = At->Next;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* AAT justification                                                          */
+/* ========================================================================== */
+
+static void
+kbts__AATApplyJust(kbts_font *Font,
+                   kbts_glyph_storage *Storage,
+                   kbts_s32 ExtraWidth)
+{
+  kbts_u32 Length;
+  const kbts_u8 *Base;
+  kbts_glyph *At;
+  kbts_u32 Count;
+  kbts_s32 PerGlyph;
+
+  Base =
+    kbts__AATGetTable(
+      Font,
+      KBTS_BLOB_TABLE_ID_JUST,
+      &Length);
+
+  if(!Base || !ExtraWidth)
+    return;
+
+  Count = kbts__AATGlyphCount(Storage);
+
+  if(!Count)
+    return;
+
+  PerGlyph = ExtraWidth / (kbts_s32)Count;
+
+  At = Storage->GlyphSentinel.Next;
+
+  while(At != &Storage->GlyphSentinel)
+  {
+    At->AdvanceX += PerGlyph;
+    At = At->Next;
+  }
+
+  KBTS__UNUSED(Length);
+}
+
+
+/* ========================================================================== */
+/* AAT main entry point                                                       */
+/* ========================================================================== */
+
+static kbts_b32
+kbts__AATFontHasMorx(kbts_font *Font)
+{
+  return Font &&
+         Font->Blob &&
+         Font->Blob->Tables[KBTS_BLOB_TABLE_ID_MORX].Length != 0;
+}
+
+static kbts_b32
+kbts__AATFontHasMort(kbts_font *Font)
+{
+  return Font &&
+         Font->Blob &&
+         Font->Blob->Tables[KBTS_BLOB_TABLE_ID_MORT].Length != 0;
+}
+
+static kbts_b32
+kbts__AATFontHasKerx(kbts_font *Font)
+{
+  return Font &&
+         Font->Blob &&
+         Font->Blob->Tables[KBTS_BLOB_TABLE_ID_KERX].Length != 0;
+}
+
+static kbts_b32
+kbts__AATFontHasKern(kbts_font *Font)
+{
+  return Font &&
+         Font->Blob &&
+         Font->Blob->Tables[KBTS_BLOB_TABLE_ID_KERN].Length != 0;
+}
+
+static kbts_b32
+kbts__AATFontIsAAT(kbts_font *Font)
+{
+  return kbts__AATFontHasMorx(Font) ||
+         kbts__AATFontHasMort(Font) ||
+         kbts__AATFontHasKerx(Font);
+}
+
+static void
+kbts__AATReverseGlyphs(
+  kbts_glyph_storage *Storage)
+{
+  kbts_glyph *First;
+  kbts_glyph *Last;
+  kbts_glyph *Glyph;
+  kbts_glyph *Next;
+
+  if(!Storage)
+    return;
+
+  First=Storage->GlyphSentinel.Next;
+
+  if(!First ||
+     First==&Storage->GlyphSentinel)
+    return;
+
+  Last=Storage->GlyphSentinel.Prev;
+
+  if(!Last ||
+     Last==&Storage->GlyphSentinel ||
+     First==Last)
+    return;
+
+  Glyph=First;
+
+  while(Glyph &&
+        Glyph!=&Storage->GlyphSentinel)
+  {
+    Next=Glyph->Next;
+
+    Glyph->Next=Glyph->Prev;
+    Glyph->Prev=Next;
+
+    Glyph=Next;
+  }
+
+  Storage->GlyphSentinel.Next=Last;
+  Storage->GlyphSentinel.Prev=First;
+}
+
+static void
+kbts__AATApply(
+  kbts_shape_config *Config,
+  kbts_glyph_storage *Storage,
+  kbts_direction RunDirection)
+{
+  kbts_font *Font;
+
+  if(!Config ||
+     !Storage)
+    return;
+
+  Font=Config->Font;
+
+  if(!Font)
+    return;
+
+  if(kbts__AATFontHasMorx(Font))
+  {
+    kbts__AATApplyMorx(
+      Font,
+      Storage,
+      RunDirection);
+
+    kbts__AATRemoveDeletedGlyphs(
+      Storage);
+
+    kbts__AATRefreshGlyphMetrics(
+      Font,
+      Storage);
+  }
+  else if(kbts__AATFontHasMort(Font))
+  {
+    kbts__AATApplyMort(
+      Font,
+      Storage);
+
+    kbts__AATRemoveDeletedGlyphs(
+      Storage);
+
+    kbts__AATRefreshGlyphMetrics(
+      Font,
+      Storage);
+  }
+
+  if(kbts__AATFontHasKerx(Font))
+  {
+    kbts__AATApplyKerx(
+      Font,
+      Storage);
+  }
+  else if(kbts__AATFontHasKern(Font))
+  {
+    kbts__AATApplyKern(
+      Font,
+      Storage);
+  }
+
+  kbts__AATAttachMarks(
+    Font,
+    Storage);
+
+  kbts__AATApplyOpbd(
+    Font,
+    Storage);
+
+  kbts__AATApplyTrak(
+    Font,
+    Storage,
+    0);
+
+  /* AAT processes the glyph array in display/layout order.  This shaping
+   * pipeline keeps its active glyph list in logical order while shaping,
+   * so restore the visual RTL order at the AAT boundary. */
+  if(RunDirection==KBTS_DIRECTION_RTL)
+  {
+    kbts__AATReverseGlyphs(
+      Storage);
+  }
+}
 
 typedef kbts_u32 kbts__mcm_sequence_state;
 enum kbts__mcm_sequence_state_enum
@@ -20186,6 +25685,31 @@ static void kbts__FreeGlyphBucket(kbts_shape_scratchpad *Scratchpad, kbts_un Seq
   }
 }
 
+static void
+kbts__ExecuteAAT(
+  kbts_shape_scratchpad *Scratchpad,
+  kbts_glyph_storage *Storage)
+{
+  if(!Scratchpad ||
+     !Storage ||
+     !Scratchpad->Config)
+  {
+    return;
+  }
+
+  if(!kbts__GlyphIsValid(
+       Storage,
+       Storage->GlyphSentinel.Next))
+  {
+    return;
+  }
+
+  kbts__AATApply(
+    Scratchpad->Config,
+    Storage,
+    Scratchpad->RunDirection);
+}
+
 static void kbts__ExecuteOp(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storage *Storage)
 {
   KBTS_INSTRUMENT_FUNCTION_BEGIN;
@@ -20331,6 +25855,51 @@ static void kbts__ExecuteOp(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storag
 
       KBTS_INSTRUMENT_BLOCK_END(PRE_NORMALIZE_DOTTED_CIRCLES);
     } break;
+    case KBTS__OP_KIND_AAT:
+    {
+      kbts__ExecuteAAT(
+        Scratchpad,
+        Storage);
+    }
+    break;
+
+    case KBTS__OP_KIND_AAT_POST:
+    {
+      if(Scratchpad->Config &&
+        kbts__AATFontIsAAT(Scratchpad->Config->Font))
+      {
+        kbts__AATAttachMarks(
+          Scratchpad->Config->Font,
+          Storage);
+      }
+    }
+    break;
+
+    case KBTS__OP_KIND_AAT_POSITION:
+    {
+      if(Scratchpad->Config &&
+         Storage &&
+         Scratchpad->Config->Font)
+      {
+        kbts_font *Font = Scratchpad->Config->Font;
+
+        /* HarfBuzz treats AAT positioning as a positioning stage, not as
+         * an Arabic-only operation.  kerx has precedence over kern. */
+        if(kbts__AATFontHasKerx(Font))
+        {
+          kbts__AATApplyKerx(
+            Font,
+            Storage);
+        }
+        else if(kbts__AATFontHasKern(Font))
+        {
+          kbts__AATApplyKern(
+            Font,
+            Storage);
+        }
+      }
+    }
+    break;
 
     case KBTS__OP_KIND_NORMALIZE:
     {
@@ -23342,7 +28911,11 @@ static kbts_shape_config *kbts__PlaceShapeConfig(kbts_font *Font, kbts_script Sc
       }
     }
 
-    if((Config.Shaper == KBTS_SHAPER_ARABIC) && !Rclt)
+    if((Script == KBTS_SCRIPT_ARABIC) &&
+      kbts__AATFontIsAAT(Font))
+    {
+      Config.OpList = kbts__OpList_ArabicAAT;
+    } else if((Config.Shaper == KBTS_SHAPER_ARABIC) && !Rclt)
     {
       Config.OpList = kbts__OpList_ArabicNoRclt;
     }
@@ -24049,6 +29622,10 @@ KBTS_EXPORT kbts_glyph *kbts_PushGlyph(kbts_glyph_storage *Storage, kbts_font *F
 KBTS_EXPORT int kbts_SizeOfGlyphConfig(kbts_shape_config *ShapeConfig, kbts_feature_override *Overrides, int OverrideCount)
 {
   kbts_un NonBinaryOverrideCount = 0;
+
+  if(OverrideCount < 0 ||
+     (OverrideCount && !Overrides))
+    return 0;
   KBTS__FOR(OverrideIndex, 0, (kbts_un)OverrideCount)
   {
     kbts_feature_override *Override = &Overrides[OverrideIndex];
@@ -24066,6 +29643,7 @@ KBTS_EXPORT int kbts_SizeOfGlyphConfig(kbts_shape_config *ShapeConfig, kbts_feat
 
   kbts_un Result = sizeof(kbts_glyph_config) +
                    NonBinaryOverrideCount * sizeof(kbts__enabled_lookup) +
+                   (kbts_un)KBTS__MAX(OverrideCount,0) * sizeof(kbts_feature_override) +
                    MatrixRowSizeInBytes * 2;
   return (int)Result;
 }
@@ -24073,11 +29651,25 @@ KBTS_EXPORT int kbts_SizeOfGlyphConfig(kbts_shape_config *ShapeConfig, kbts_feat
 KBTS_EXPORT kbts_glyph_config *kbts_PlaceGlyphConfig(kbts_shape_config *ShapeConfig, kbts_feature_override *Overrides, int OverrideCount, void *Memory)
 {
   kbts__pointer_bump_allocator Bump = kbts__PointerBumpAllocator(Memory);
+
+  if(OverrideCount < 0 ||
+     (OverrideCount && !Overrides))
+    return 0;
   kbts_glyph_config *Result = kbts__PointerPushType(&Bump, kbts_glyph_config);
 
   if(ShapeConfig && Memory)
   {
     KBTS_MEMSET(Result, 0, sizeof(*Result));
+
+    if(OverrideCount>0 && Overrides)
+    {
+      Result->AATFeatureOverrides=
+        kbts__PointerPushArray(&Bump,kbts_feature_override,(kbts_un)OverrideCount);
+      if(!Result->AATFeatureOverrides) return Result;
+      KBTS_MEMCPY(Result->AATFeatureOverrides,Overrides,
+                   sizeof(*Overrides)*(kbts_un)OverrideCount);
+      Result->AATFeatureOverrideCount=(kbts_u32)OverrideCount;
+    }
 
     kbts_un SequentialLookupCount = kbts__SequentialLookupCount(ShapeConfig);
     kbts_un LastSequentialLookupIndex = (SequentialLookupCount) ? (SequentialLookupCount - 1) : 0;
@@ -24825,6 +30417,13 @@ static void kbts__ShapeDirect(kbts_shape_scratchpad *Scratchpad, kbts_glyph_stor
       }
     }
 
+    // if(kbts__AATFontIsAAT(Scratchpad->Config->Font))
+    // {
+    //   kbts__ExecuteAAT(
+    //     Scratchpad,
+    //     Storage);
+    //     KBTS_INSTRUMENT_FUNCTION_END;
+    // }
     KBTS_INSTRUMENT_BLOCK_BEGIN(ReadOpLoop0);
 
     // For simple shapers, all of the shaping happens in this single loop.
@@ -24936,7 +30535,10 @@ static void kbts__ShapeDirect(kbts_shape_scratchpad *Scratchpad, kbts_glyph_stor
       }
     }
   }
-
+  /* Keep the glyph storage in logical order.  The consumer uses the run
+   * direction to place RTL glyphs; reversing the final list here would turn
+   * an RTL run into visual/LTR order.  MORX subtables that require reverse
+   * processing are reversed temporarily inside kbts__AATApplyMorxChain(). */
   KBTS_INSTRUMENT_FUNCTION_END;
 }
 
@@ -25420,27 +31022,51 @@ KBTS_EXPORT int kbts_FontCount(void *Data, int Size)
   return Result;
 }
 
-static kbts__cmap_subtable_pointer kbts__SelectCmapSubtable(kbts_blob_header *Header, kbts_blob_table *CmapTable, kbts__cmap_14 **Cmap14, kbts_u16 *ResultFormat)
+static int
+kbts_CmapPriority(kbts_u16 PlatformId, kbts_u16 EncodingId)
+{
+    if (PlatformId == 3 && EncodingId == 10) return 400; // Unicode full
+    if (PlatformId == 3 && EncodingId == 1)  return 300; // Unicode BMP
+    if (PlatformId == 0)                     return 200; // Unicode
+    if (PlatformId == 1)                     return 100; // Macintosh
+    return 0;
+}
+
+static kbts__cmap_subtable_pointer
+kbts__SelectCmapSubtable(kbts_blob_header *Header,
+                         kbts_blob_table *CmapTable,
+                         kbts__cmap_14 **Cmap14,
+                         kbts_u16 *ResultFormat)
 {
   kbts__cmap_subtable_pointer Result = KBTS__ZERO;
 
   if(CmapTable->Length >= sizeof(kbts__cmap))
   {
-    char *TableEnd = KBTS__POINTER_OFFSET(char, Header, CmapTable->OffsetFromStartOfFile + CmapTable->Length);
-    kbts__cmap *Cmap = KBTS__POINTER_OFFSET(kbts__cmap, Header, CmapTable->OffsetFromStartOfFile);
+    char *TableEnd =
+      KBTS__POINTER_OFFSET(char, Header,
+                            CmapTable->OffsetFromStartOfFile +
+                            CmapTable->Length);
+
+    kbts__cmap *Cmap =
+      KBTS__POINTER_OFFSET(kbts__cmap, Header,
+                           CmapTable->OffsetFromStartOfFile);
 
     kbts_u16 PreferredFormat = 1;
+
     KBTS__FOR(It, 0, Cmap->TableCount)
     {
-      kbts__cmap_subtable_pointer Subtable = kbts__GetCmapSubtable(Cmap, It);
+      kbts__cmap_subtable_pointer Subtable =
+        kbts__GetCmapSubtable(Cmap, It);
+
       if((char *)(Subtable.Subtable + 1) <= TableEnd)
       {
-        kbts_u16 Format = kbts__ReadU16Unaligned(Subtable.Subtable);
+        kbts_u16 Format =
+          kbts__ReadU16Unaligned(Subtable.Subtable);
 
-        // This is kind of iffy, but the statelessness is useful for selecting
-        // the cmap from an already-prepared blob without having to deal with
-        // the byteswap context.
-        if((Format > 0xFF) && 
+        // This is kind of iffy, but the statelessness is useful for
+        // selecting the cmap from an already-prepared blob without
+        // having to deal with the byteswap context.
+        if((Format > 0xFF) &&
            ((Format >> 8) <= 14))
         {
           Format = kbts__ByteSwap16(Format);
@@ -25449,7 +31075,8 @@ static kbts__cmap_subtable_pointer kbts__SelectCmapSubtable(kbts_blob_header *He
 
         if(Format == 14)
         {
-          if((char *)(Subtable.Subtable + sizeof(kbts__cmap_14)) <= TableEnd)
+          if((char *)(Subtable.Subtable +
+                      sizeof(kbts__cmap_14)) <= TableEnd)
           {
             if(Cmap14)
             {
@@ -25457,18 +31084,67 @@ static kbts__cmap_subtable_pointer kbts__SelectCmapSubtable(kbts_blob_header *He
             }
           }
         }
-        else if(!Result.Subtable)
+        else
         {
-          Result = Subtable;
-        }
-        else if(Format < KBTS__ARRAY_LENGTH(kbts__CmapFormatPrecedence))
-        {
-          kbts_u16 Precedence = kbts__CmapFormatPrecedence[Format];
-          kbts_u16 PreferredPrecedence = kbts__CmapFormatPrecedence[PreferredFormat];
+          int IsBetter = 0;
 
-          if((Precedence > PreferredPrecedence) || ((Precedence == PreferredPrecedence) && (Subtable.PlatformId == 3)))
+          if(!Result.Subtable)
+          {
+            IsBetter = 1;
+          }
+          else if(Format < KBTS__ARRAY_LENGTH(kbts__CmapFormatPrecedence))
+          {
+            kbts_u16 Precedence =
+              kbts__CmapFormatPrecedence[Format];
+
+            kbts_u16 PreferredPrecedence =
+              kbts__CmapFormatPrecedence[PreferredFormat];
+
+            if(Precedence > PreferredPrecedence)
+            {
+              IsBetter = 1;
+            }
+            else if(Precedence == PreferredPrecedence)
+            {
+              /*
+                 Prefer Unicode cmap subtables over Macintosh Roman.
+
+                 Platform 0 is Unicode. Platform 3 with encoding 1
+                 or 10 is also Unicode. Platform 1 is Macintosh Roman.
+              */
+              int SubtableIsUnicode =
+                (Subtable.PlatformId == 0) ||
+                ((Subtable.PlatformId == 3) &&
+                 ((Subtable.EncodingId == 1) ||
+                  (Subtable.EncodingId == 10)));
+
+              int ResultIsUnicode =
+                (Result.PlatformId == 0) ||
+                ((Result.PlatformId == 3) &&
+                 ((Result.EncodingId == 1) ||
+                  (Result.EncodingId == 10)));
+
+              if(SubtableIsUnicode && !ResultIsUnicode)
+              {
+                IsBetter = 1;
+              }
+              else if(SubtableIsUnicode == ResultIsUnicode)
+              {
+                // Retain the original tie-break preference for platform 3.
+                if(Subtable.PlatformId == 3 &&
+                   Result.PlatformId != 3)
+                {
+                  IsBetter = 1;
+                }
+              }
+            }
+          }
+
+          if(IsBetter)
           {
             Result = Subtable;
+            PreferredFormat = Format;
+
             if(ResultFormat)
             {
               *ResultFormat = Format;
@@ -25554,6 +31230,41 @@ KBTS_EXPORT kbts_load_font_error kbts_LoadFont(kbts_font *Font, kbts_load_font_s
             case KBTS_FOURCC('m', 'a', 'x', 'p'): TableId = KBTS_BLOB_TABLE_ID_MAXP; break;
             case KBTS_FOURCC('O', 'S', '/', '2'): TableId = KBTS_BLOB_TABLE_ID_OS2;  break;
             case KBTS_FOURCC('n', 'a', 'm', 'e'): TableId = KBTS_BLOB_TABLE_ID_NAME; break;
+            case KBTS_FOURCC('m','o','r','x'):
+              TableId = KBTS_BLOB_TABLE_ID_MORX;
+              break;
+
+            case KBTS_FOURCC('k','e','r','n'):
+              TableId = KBTS_BLOB_TABLE_ID_KERN;
+              break;
+
+            case KBTS_FOURCC('k','e','r','x'):
+              TableId = KBTS_BLOB_TABLE_ID_KERX;
+              break;
+
+            case KBTS_FOURCC('f','e','a','t'):
+              TableId = KBTS_BLOB_TABLE_ID_FEAT;
+              break;
+
+            case KBTS_FOURCC('p','r','o','p'):
+              TableId = KBTS_BLOB_TABLE_ID_PROP;
+              break;
+
+            case KBTS_FOURCC('a','n','k','r'):
+              TableId = KBTS_BLOB_TABLE_ID_ANKR;
+              break;
+
+            case KBTS_FOURCC('j','u','s','t'):
+              TableId = KBTS_BLOB_TABLE_ID_JUST;
+              break;
+
+            case KBTS_FOURCC('o','p','b','d'):
+              TableId = KBTS_BLOB_TABLE_ID_OPBD;
+              break;
+
+            case KBTS_FOURCC('t','r','a','k'):
+              TableId = KBTS_BLOB_TABLE_ID_TRAK;
+              break;
             }
 
             if(TableId)

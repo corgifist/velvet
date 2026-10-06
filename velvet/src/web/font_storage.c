@@ -18,9 +18,10 @@ vl_web_font_storage_record_t *vl_web_font_storage_query(vl_web_font_storage_t *s
         }
     }
     vl_web_font_storage_record_t record = {0};
-    record.path = VL_STRING_INIT(path);
     record.data = vl_io_read_file(path);
     if (record.data) record.len = VL_DA_LENGTH(record.data);
+    else return NULL;
+    record.path = VL_STRING_INIT(path);
     return VL_DA_APPEND(storage->records, record);
 }
 

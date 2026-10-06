@@ -92,7 +92,7 @@ vl_result_t vl_font_shaper_univesal_process(vl_font_shaper_t *shaper, const char
             fonts_count++;
         }
     }
-    kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_DONT_KNOW);
+    kbts_ShapeBegin(s->context, KBTS_DIRECTION_DONT_KNOW, KBTS_LANGUAGE_ARABIC);
     kbts_ShapeUtf8(s->context, text, text_length, KBTS_USER_ID_GENERATION_MODE_CODEPOINT_INDEX);
     kbts_ShapeEnd(s->context);
     for (int i = 0; i < fonts_count; i++) {

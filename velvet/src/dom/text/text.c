@@ -194,7 +194,7 @@ static void try_add_web_family(vl_web_t *web, const char *name, vl_dom_element_t
             }
         }
         if (end < 0) end = VL_DA_LENGTH(blueprint->font_family);
-        if (start < 0) break;
+        if (start < 0) continue;
         for (int i = start; i < end; i++) {
             vl_web_sized_font_t *a = blueprint->font_family[i];
             for (int j = start; j < end; j++) {
@@ -207,6 +207,9 @@ static void try_add_web_family(vl_web_t *web, const char *name, vl_dom_element_t
             }
         }
     }
+    // for (int i = 0; i < VL_DA_LENGTH(blueprint->font_family); i++) {
+    //     printf("%s %i\n", blueprint->font_family[i]->font->name, blueprint->font_family[i]->priority);
+    // }
     VL_DA(vl_web_sized_font_t*) used_fonts = calculate_used_fonts(blueprint);
     VL_DA_FREE(blueprint->font_family);
     blueprint->font_family = used_fonts;
@@ -329,13 +332,6 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
         float line_height = sized_font->ascent - sized_font->descent + sized_font->line_gap + 2;
         float span_position = element->layout.span_x_cursor;
         while (vl_font_shaper_iterate(run, &shaper_glyph)) {
-            // int current_break = 0;
-            // for (int i = 0; i < VL_DA_LENGTH(word_breaks); i++) {
-            //     if (src_pos >= word_breaks[i].begin && src_pos < word_breaks[i].end) {
-            //         current_break = i;
-            //         break;
-            //     }
-            // }
             bool can_break = false;
             for (int i = 0; i < VL_DA_LENGTH(breaks); i++) {
                 if (breaks[i].end - 1 == shaper_glyph.codepoint_index) {
@@ -348,7 +344,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             text_glyph.codepoint = shaper_glyph.codepoint;
             text_glyph.font = sized_font->owner;
             vl_web_font_atlas_codepoint_t web_codepoint = {0};
-            vl_web_fonts_find_glyph_id_with_font_and_font_index(&web->fonts, &web_codepoint, sized_font->owner, text_glyph.id, sized_font->index);
+            vl_web_fonts_find_glyph_id_with_font_and_font_index(&web->fonts, &web_codepoint, sized_font->owner, shaper_glyph.id, sized_font->index);
             vl_font_atlas_codepoint_t *atlas_codepoint = fonts->atlases[web_codepoint.atlas_index].atlas.codepoints + web_codepoint.codepoint_index;
             text_glyph.uv = atlas_codepoint->uv;
             text_glyph.brush = fonts->atlases[web_codepoint.atlas_index].brush;
@@ -365,6 +361,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             segment_y += shaper_glyph.advance_y;
             VL_DA_APPEND(segment.glyphs, text_glyph);
             line->width = VL_MAX(line->width, base_x + segment_x);
+            // printf("glyph id: %i advance x: %f\n", shaper_glyph.id, shaper_glyph.advance_x);
             if (can_break || shaper_glyph.last) {
                 if (span_position + base_x + segment.width > element->layout.span_x_area && VL_DA_LENGTH(line->segments) > 0) {
                     // printf("breaking %c: %s\n", shaper_glyph.codepoint, layout->blueprint.text);

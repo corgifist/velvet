@@ -35,6 +35,7 @@ font_root font_root_name(const char *description, size_t description_size) {
         const char *text;
         size_t len;
     } suffixes[] = {
+        STR_LEN("Regular"),
         STR_LEN("Italic"),
         STR_LEN("Bold"),
         STR_LEN("Condensed"),

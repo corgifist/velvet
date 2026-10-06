@@ -7,12 +7,14 @@
 #include "velvet/support/result.h"
 #include "velvet/platform/context.h"
 #include "velvet/font/atlas.h"
+#include "velvet/support/string.h"
 
 struct vl_font;
 struct vl_font_info {
     struct vl_font *owner;
     float ascent, descent, line_gap;
     int index;
+    VL_STRING name;
 };
 typedef struct vl_font_info vl_font_info_t;
 
