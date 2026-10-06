@@ -1755,7 +1755,7 @@ void styling_test() {
         <p>Ελληνικά, 中文, 日本語</p>
         <p>العربية, हिन्दी</p>
         <p>Kerning: VA AV</p>
-        <p style="font-family: Zapfinos">Zapfino!</p>
+        <p style="font-family: Zapfino">Zapfino!</p>
         <p style="font-family: Skia; margin-top: 3em">
             AVATAR WAY WA To Te<br>
             office ffi ff fi fl<br>
