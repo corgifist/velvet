@@ -1690,11 +1690,14 @@ void styling_test() {
                 Hello, <span>World World World World World World World World World World World World World World World</span>
         </p>
 
-            <h2>Subfonts</h2>
-            <p style="font-size: 3em; font-weight: light">Hello 日本語</p>
-            <p style="font-size: 3em; font-weight: normal">Hello 日本語</p>
-            <p style="font-size: 3em; font-weight: bold">Hello 日本語</p>
-            <p style="font-size: 3em; font-weight: extrablack">Hello 日本語</p>
+        <h2>Subfonts</h2>
+        <p style="font-size: 3em; font-weight: light">Hello 日本語</p>
+        <p style="font-size: 3em; font-weight: normal">Hello 日本語</p>
+        <p style="font-size: 3em; font-weight: bold">Hello 日本語</p>
+        <p style="font-size: 3em; font-weight: extrablack">Hello 日本語</p>
+
+        <p style="font-family: Zapfino">Zapfino!</p>
+
         Xinside spanX<br>
         X<span>inside span</span>X
         </body>

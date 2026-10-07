@@ -319,10 +319,8 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
     float segment_x = 0;
     float segment_y = 0;
     vl_dom_element_text_segment_t segment = new_segment();
-    int src_pos = 0;
-    int runi = 0;
+    float max_line_height = 0;
     while (vl_font_shaper_shape(fonts->shaper, run)) {
-        runi++;
         if (run->hard_line_break) {
             base_x = 0;
             base_y += segment.height;
@@ -332,7 +330,8 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
         vl_font_info_t *sized_font = (vl_font_info_t*) run->font;
         // printf("%s %s %i %i %i %p %p %p\n", font_info->owner->name, sized_fat_font->font->name, font_info->owner->height, sized_fat_font->font->height, font_info->index, font_info, sized_fat_font, sized_font);
         if (!sized_font) continue;
-        float line_height = sized_font->ascent - sized_font->descent + sized_font->line_gap + 2;
+        float line_height = sized_font->ascent - sized_font->descent + sized_font->line_gap;
+        max_line_height = VL_MAX(line_height, max_line_height);
         float span_position = element->layout.span_x_cursor;
         while (vl_font_shaper_iterate(run, &shaper_glyph)) {
             bool can_break = false;
@@ -355,11 +354,11 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             text_glyph.y1 = segment_y + atlas_codepoint->y1 - shaper_glyph.y;
             text_glyph.x2 = text_glyph.x1 + atlas_codepoint->w;
             text_glyph.y2 = text_glyph.y1 + atlas_codepoint->h;
-            line->gap = VL_MAX(line->gap, sized_font->line_gap);
             // printf("text_glyph.y1 = %c %f\n", shaper_glyph.codepoint, atlas_codepoint->y2 - sized_font->font->ascent);
             segment.width = VL_MAX(segment.width, segment_x + VL_MAX(atlas_codepoint->x2, shaper_glyph.advance_x));
-            segment.height = VL_MAX(segment.height, line_height);
+            segment.height = VL_MAX(segment.height, VL_MAX(line_height, atlas_codepoint->h));
             segment.span_offset = VL_MAX(segment.span_offset, -sized_font->descent);
+            line->gap = VL_MAX(line->gap, sized_font->line_gap);
             segment_x += shaper_glyph.advance_x;
             segment_y += shaper_glyph.advance_y;
             VL_DA_APPEND(segment.glyphs, text_glyph);
@@ -370,12 +369,13 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
                     // printf("breaking %c: %s\n", shaper_glyph.codepoint, layout->blueprint.text);
                     line->wrapped = true;
                     base_x = 0;
-                    base_y += sized_font->ascent - sized_font->descent + sized_font->line_gap;
+                    base_y += max_line_height;
                     for (int i = 0; i < VL_DA_LENGTH(line->segments); i++) {
                         line->segments[i].x += span_position;
                     }
                     span_position = 0;
                     line = push_new_line(&layout->lines);
+                    max_line_height = 0;
                 }
                 segment.x = base_x;
                 segment.y = base_y;
@@ -386,7 +386,6 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
                 VL_DA_APPEND(line->segments, segment);
                 segment = new_segment();
             }
-            src_pos += U8_LENGTH(shaper_glyph.codepoint);
         }
     }
     VL_DA_FREE(segment.glyphs);
