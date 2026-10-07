@@ -4,7 +4,7 @@
 #include "support/result.h"
 #include "velvet/font/shaper.h"
 #include "velvet/support/memory.h"
-#include "velvet/platform/universal/kb_text_shape.h"
+#include "velvet/platform/universal/vl_text_shape.h"
 
 struct vl_font_shaper_universal {
     vl_font_shaper_t base;

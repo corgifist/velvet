@@ -1613,93 +1613,93 @@ void styling_test() {
     //     </body>
     //     </html>
     // );
-//     const char *input = VL_STRINGIFY(
-//         <!doctype html>
-// <html lang="en">
-// <head>
-//   <meta charset="UTF-8">
-//   <meta name="viewport" content="width=device-width, initial-scale=1">
-//   <title>Text Wrapping Test</title>
-//   <style>
-//         body {
-//             --velvet-element-highlight: highlight-green;
-//         }
-//   </style>
-// </head>
-// <body style="font-family: serif">
-//   <h1>Text Wrapping Test Page</h1>
+    const char *input = VL_STRINGIFY(
+        <!doctype html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Text Wrapping Test</title>
+        <style>
+                body {
+                    --velvet-element-highlight: highlight-green;
+                }
+        </style>
+        </head>
+        <body style="font-family: serif">
+        <h1>Text Wrapping Test Page</h1>
 
-//   <p>
-//     This is a normal paragraph containing enough text to test how a renderer
-//     wraps words across multiple lines. The text should remain readable and
-//     should not overflow its container.
-//   </p>
+        <p>
+            This is a normal paragraph containing enough text to test how a renderer
+            wraps words across multiple lines. The text should remain readable and
+            should not overflow its container.
+        </p>
 
-//   <h2>Short Words</h2>
-//   <p>
-//     One two three four five six seven eight nine ten eleven twelve thirteen
-//     fourteen fifteen sixteen seventeen eighteen nineteen twenty.
-//   </p>
+        <h2>Short Words</h2>
+        <p>
+            One two three four five six seven eight nine ten eleven twelve thirteen
+            fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+        </p>
 
-//   <h2>Long Words</h2>
-//   <p>
-//     Pneumonoultramicroscopicsilicovolcanoconiosis
-//     antidisestablishmentarianism
-//     supercalifragilisticexpialidocious
-//   </p>
+        <h2>Long Words</h2>
+        <p>
+            Pneumonoultramicroscopicsilicovolcanoconiosis
+            antidisestablishmentarianism
+            supercalifragilisticexpialidocious
+        </p>
 
-//   <h2>Long URL</h2>
-//   <p>
-//     www.example.com/a-very-long-path-that-may-need-to-wrap/section/subsection/article?id=123456789&mode=preview
-//   </p>
+        <h2>Long URL</h2>
+        <p>
+            www.example.com/a-very-long-path-that-may-need-to-wrap/section/subsection/article?id=123456789&mode=preview
+        </p>
 
-//   <h2>Long Unbroken Text</h2>
-//   <p>
-//     ThisIsAReallyLongUnbrokenStringDesignedToTestWhetherTheRendererCanHandleTextThatContainsNoSpacesAtAllAndMayNeedToBreakOrOverflow
-//   </p>
+        <h2>Long Unbroken Text</h2>
+        <p>
+            ThisIsAReallyLongUnbrokenStringDesignedToTestWhetherTheRendererCanHandleTextThatContainsNoSpacesAtAllAndMayNeedToBreakOrOverflow
+        </p>
 
-//   <h2>Mixed Content</h2>
-//   <p>
-//     This paragraph includes <strong>bold text</strong>,
-//     <span>italic text</span>,
-//     and a line break.
-//     This sentence begins after a forced line break.
-//   </p>
+        <h2>Mixed Content</h2>
+        <p>
+            This paragraph includes <strong>bold text</strong>,
+            <span>italic text</span>,
+            and a line break.
+            This sentence begins after a forced line break.
+        </p>
 
-//   <h2>Right-to-Left Text</h2>
-//   <p dir="rtl">
-//     هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.
-//   </p>
+        <h2>Right-to-Left Text</h2>
+        <p dir="rtl">
+            هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.
+        </p>
 
-//   <h2>Unicode and Emoji</h2>
-//   <p>
-//     Unicode characters: café, naïve, résumé, Ελληνικά, Русский, 中文, 日本語,
-//     العربية, हिन्दी, and emoji 😀 🚀 🌍.
-//   </p>
+        <h2>Unicode and Emoji</h2>
+        <p>
+            Unicode characters: café, naïve, résumé, Ελληνικά, Русский, 中文, 日本語,
+            العربية, हिन्दी, and emoji 😀 🚀 🌍.
+        </p>
 
-//   <h2>Nested Elements</h2>
-//   <p>
-//     Start of paragraph
-//     <span>inside a span</span>
-//     <span>followed by another span containing more text that may wrap across lines</span>
-//     and the end of the paragraph.
-//   </p>
+        <h2>Nested Elements</h2>
+        <p>
+            Start of paragraph
+            <span>inside a span</span>
+            <span>followed by another span containing more text that may wrap across lines</span>
+            and the end of the paragraph.
+        </p>
 
-//   <h2>Wrapping Spans</h2>
-//   <p>
-//         Hello, <span>World World World World World World World World World World World World World World World</span>
-//   </p>
+        <h2>Wrapping Spans</h2>
+        <p>
+                Hello, <span>World World World World World World World World World World World World World World World</span>
+        </p>
 
-//     <h2>Subfonts</h2>
-//     <p style="font-size: 3em; font-weight: light">Hello 日本語</p>
-//     <p style="font-size: 3em; font-weight: normal">Hello 日本語</p>
-//     <p style="font-size: 3em; font-weight: bold">Hello 日本語</p>
-//     <p style="font-size: 3em; font-weight: extrablack">Hello 日本語</p>
-//   Xinside spanX<br>
-//   X<span>inside span</span>X
-// </body>
-// </html>
-//     );
+            <h2>Subfonts</h2>
+            <p style="font-size: 3em; font-weight: light">Hello 日本語</p>
+            <p style="font-size: 3em; font-weight: normal">Hello 日本語</p>
+            <p style="font-size: 3em; font-weight: bold">Hello 日本語</p>
+            <p style="font-size: 3em; font-weight: extrablack">Hello 日本語</p>
+        Xinside spanX<br>
+        X<span>inside span</span>X
+        </body>
+        </html>
+    );
     // const char *input = VL_STRINGIFY(
     //     <style>
     //         body {
@@ -1736,39 +1736,39 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <p style="font-size: 3em">Ελληνικά 1 2 3 4 5</p>
     // );
-    const char *input = VL_STRINGIFY(
-        <h1>Advanced Typography</h1>
-        <style>
-            p {
-                font-size: 3em;
-                margin-block-start: 0.5em;
-                margin-block-end: 0.5em;
-            }
-        </style>
-        <p>
-            السلام عليكم<br>
-            بسم الله الرحمن الرحيم<br>
-            لا إله إلا الله<br>
-            محمد رسول الله<br>
-            العربية لغة جميلة<br>
-        </p>
-        <p>Ελληνικά, 中文, 日本語</p>
-        <p>العربية, हिन्दी</p>
-        <p style="font-family: Zapfino">Zapfino!</p>
-        <p style="font-family: Skia; margin-top: 3em">
-            AVATAR WAY WA To Te<br>
-            office ffi ff fi fl<br>
-            1234567890<br>
-        </p>
-        <p style="font-family: 'Hoefler Text">
-            The office of the affinity official
-            AVATAR To Ta Te
-        </p>
-        <p style="font-family: 'Hiragino Sans'">
-            日本語の文章です<br>
-            漢字とひらがなとカタカナ
-        </p>
-    );
+    // const char *input = VL_STRINGIFY(
+    //     <h1>Advanced Typography</h1>
+    //     <style>
+    //         p {
+    //             font-size: 3em;
+    //             margin-block-start: 0.5em;
+    //             margin-block-end: 0.5em;
+    //         }
+    //     </style>
+    //     <p>
+    //         السلام عليكم<br>
+    //         بسم الله الرحمن الرحيم<br>
+    //         لا إله إلا الله<br>
+    //         محمد رسول الله<br>
+    //         العربية لغة جميلة<br>
+    //     </p>
+    //     <p>Ελληνικά, 中文, 日本語</p>
+    //     <p>العربية, हिन्दी</p>
+    //     <p style="font-family: Zapfino">Zapfino!</p>
+    //     <p style="font-family: Skia; margin-top: 3em">
+    //         AVATAR WAY WA To Te<br>
+    //         office ffi ff fi fl<br>
+    //         1234567890<br>
+    //     </p>
+    //     <p style="font-family: 'Hoefler Text">
+    //         The office of the affinity official
+    //         AVATAR To Ta Te
+    //     </p>
+    //     <p style="font-family: 'Hiragino Sans'">
+    //         日本語の文章です<br>
+    //         漢字とひらがなとカタカナ
+    //     </p>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

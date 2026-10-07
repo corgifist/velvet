@@ -1,4 +1,3 @@
-#include "platform/universal/kb_text_shape.h"
 #include "support/da.h"
 #include "support/global_error_pool.h"
 #define KB_TEXT_SHAPE_IMPLEMENTATION
