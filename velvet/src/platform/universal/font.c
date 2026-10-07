@@ -114,17 +114,17 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id_with_font_index(
     float by2 = VL_FLOOR(by1 + h);
     vl_font_atlas_codepoint_t result = {0};
     result.owner = font;
+    
+    float lb = left_bearing * ui->slim_scale;
+    float ax = advance_x * ui->slim_scale;
+    result.advance_x = ax;
+    result.x1 = x1 - lb;
+    result.y1 = ui->base.ascent + ui->base.line_gap + ((float) y1) / font->density;
+    result.x2 = x2 / font->density - lb;
+    result.y2 = ui->base.ascent + ((float) y2) / font->density;
     result.w = w / font->density;
     result.h = h / font->density;
     result.glyph_id = glyph_id;
-    
-    float lb = left_bearing * ui->scale / font->density;
-    float ax = advance_x * ui->scale / font->density;
-    result.advance_x = ax;
-    result.x1 = lb;
-    result.y1 = ui->base.ascent + ui->base.line_gap + ((float) y1) / font->density;
-    result.x2 = lb + w / font->density;
-    result.y2 = ui->base.ascent + ((float) y2) / font->density;
 
     float aw = atlas->width;
     float ah = atlas->height;

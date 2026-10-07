@@ -356,7 +356,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             text_glyph.y2 = text_glyph.y1 + atlas_codepoint->h;
             // printf("text_glyph.y1 = %c %f\n", shaper_glyph.codepoint, atlas_codepoint->y2 - sized_font->font->ascent);
             segment.width = VL_MAX(segment.width, segment_x + VL_MAX(atlas_codepoint->x2, shaper_glyph.advance_x));
-            segment.height = VL_MAX(segment.height, VL_MAX(line_height, atlas_codepoint->h));
+            segment.height = VL_MAX(segment.height, VL_MAX(line_height, atlas_codepoint->y2));
             segment.span_offset = VL_MAX(segment.span_offset, -sized_font->descent);
             line->gap = VL_MAX(line->gap, sized_font->line_gap);
             segment_x += shaper_glyph.advance_x;
