@@ -139,12 +139,13 @@ font_root font_root_name(const char *description, size_t description_size) {
 bool vl_font_search_compare_family_names(const char *family_name, const char *query) {
     if (!family_name || !query) return false;
     while (*query != '\0' && *query == ' ') { query++; }
+
     int family_len = strlen(family_name);
     int query_len = strlen(query);
     if (query_len > family_len) return false;
     while (query[query_len - 1] == ' ' && query_len > 0) { query_len--; }
+    
     if (query_len == 0) return false;
-
     font_root family_root = font_root_name(family_name, family_len);
     font_root query_root = font_root_name(query, query_len);
     return (query_root.len == family_root.len && utf8ncasecmp(family_root.ptr, query_root.ptr, query_root.len) == 0);

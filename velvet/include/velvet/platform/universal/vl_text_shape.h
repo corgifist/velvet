@@ -1,3 +1,13 @@
+/*
+  vl_text_shape - velvet's fork of kb_text_shape with the following features:
+    * hardened security all over the place
+    * better cmap glyph selection
+    * Apple Advanced Typography support
+
+  you are free to do everything you want with this code unless zlib license allows it
+  vl_text_shape is released into the wild under zlib license, i recommend checking it out
+*/
+
 /*  kb_text_shape - v2.25 - text segmentation and shaping
     by Jimmy Lefevre
 
@@ -4567,24 +4577,60 @@ static kbts__op_kind kbts__Ops_Default[] = {
   KBTS__OP_KIND_POST_GPOS_FIXUP,
   KBTS__OP_KIND_AAT_POSITION,
 };
-static kbts__op_kind kbts__Ops_ArabicAAT[] =
+/*
+ * AAT substitution and positioning are deliberately separate, matching
+ * HarfBuzz's pipeline: morx/mort perform substitution, while kerx/kern
+ * participate in the positioning stage.  POST_GPOS_FIXUP is retained so
+ * RTL reversal, default-ignorable handling, and attachment finalization
+ * are identical to the normal shaping path.
+ */
+static kbts__op_kind kbts__Ops_AAT[] =
 {
   KBTS__OP_KIND_NORMALIZE,
   KBTS__OP_KIND_AAT,
-  KBTS__OP_KIND_AAT_POST,
-};
-static kbts__feature_stage kbts__FeatureStages_ArabicAAT[] =
-{
-  {0, {{0ull, 0ull, 0ull, 0ull}}},
+  KBTS__OP_KIND_AAT_POSITION,
+  KBTS__OP_KIND_POST_GPOS_FIXUP,
 };
 
-static kbts__op_list kbts__OpList_ArabicAAT =
+static kbts__op_kind kbts__Ops_AAT_GPOS[] =
+{
+  KBTS__OP_KIND_NORMALIZE,
+  KBTS__OP_KIND_AAT,
+  KBTS__OP_KIND_GPOS_METRICS,
+  KBTS__OP_KIND_GPOS_FEATURES,
+  KBTS__OP_KIND_AAT_POSITION,
+  KBTS__OP_KIND_POST_GPOS_FIXUP,
+};
+
+static kbts__feature_stage kbts__FeatureStages_AAT_GPOS[] =
+{
+  {7, {{0ull | KBTS__FEATURE_FLAG0(abvm) |
+               KBTS__FEATURE_FLAG0(blwm) |
+               KBTS__FEATURE_FLAG0(curs),
+         0ull,
+         0ull | KBTS__FEATURE_FLAG2(mark) |
+               KBTS__FEATURE_FLAG2(mkmk) |
+               KBTS__FEATURE_FLAG2(dist) |
+               KBTS__FEATURE_FLAG2(kern),
+         0ull}}},
+};
+
+static kbts__op_list kbts__OpList_AAT =
 {
   0,
-  KBTS__ARRAY_LENGTH(kbts__FeatureStages_ArabicAAT),
-  kbts__FeatureStages_ArabicAAT,
-  KBTS__ARRAY_LENGTH(kbts__Ops_ArabicAAT),
-  kbts__Ops_ArabicAAT
+  0,
+  0,
+  KBTS__ARRAY_LENGTH(kbts__Ops_AAT),
+  kbts__Ops_AAT
+};
+
+static kbts__op_list kbts__OpList_AAT_GPOS =
+{
+  7,
+  KBTS__ARRAY_LENGTH(kbts__FeatureStages_AAT_GPOS),
+  kbts__FeatureStages_AAT_GPOS,
+  KBTS__ARRAY_LENGTH(kbts__Ops_AAT_GPOS),
+  kbts__Ops_AAT_GPOS
 };
 static kbts__feature_stage kbts__FeatureStages_Default[] = {
   {1, {{0ull, 0ull, 0ull, 0ull | KBTS__FEATURE_FLAG3(rvrn)}}},
@@ -13570,6 +13616,7 @@ typedef struct kbts__existing_shape_config
 
   kbts_font *Font;
   kbts_script Script;
+  kbts_language Language;
 } kbts__existing_shape_config;
 
 typedef kbts_u32 kbts__context_flags;
@@ -16330,6 +16377,7 @@ static kbts__matrix_index kbts__IdSequentialLookupMatrixIndex(kbts_un Sequential
 
 static kbts__matrix_index kbts__GlyphLookupSubtableMatrixIndex(kbts_un SubtableIndex, kbts_un SubtableCount, kbts_un GlyphIndex, kbts_un GlyphCount)
 {
+  KBTS__UNUSED(SubtableCount);
   kbts_un FlatIndex = SubtableIndex * GlyphCount + GlyphIndex;
 
   kbts__matrix_index Result = KBTS__ZERO;
@@ -17015,12 +17063,6 @@ static kbts_glyph_classes kbts__GlyphClasses(kbts_font *Font, kbts_u32 Id)
   return Result;
 }
 
-static int kbts__ScriptIsWeak(kbts_script Script)
-{
-  int Result = (Script == KBTS_SCRIPT_DONT_KNOW) || (Script == KBTS_SCRIPT_DEFAULT) || (Script == KBTS_SCRIPT_DEFAULT2);
-  return Result;
-}
-
 static int kbts__ShaperRtl(kbts_shaper Shaper)
 {
   int Result = (Shaper == KBTS_SHAPER_ARABIC) || (Shaper == KBTS_SHAPER_HEBREW);
@@ -17353,18 +17395,13 @@ static kbts_b32 kbts__NextLookup(kbts__iterate_lookups *It)
 
 static void kbts__UnbucketGlyph(kbts_shape_scratchpad *Scratchpad, kbts_glyph *Glyph)
 {
+  KBTS__UNUSED(Scratchpad);
   if(Glyph->Bucketed)
   {
     Glyph->Bucketed->SortKey = KBTS__DELETED_SORT_KEY;
 
     Glyph->Bucketed = 0;
   }
-}
-
-static kbts_un kbts__IdLookupListIndex(kbts_un GlyphId, kbts_un GlyphCount)
-{
-  kbts_un Result = KBTS__MIN(GlyphId, GlyphCount);
-  return Result;
 }
 
 #define KBTS__DLLIST_SORT(First, OnePastLast, Member) \
@@ -17960,15 +17997,6 @@ static kbts__bucketed_glyph_block *kbts__NewBucketedGlyphBlock(kbts_shape_scratc
   return Result;
 }
 
-static kbts_shape_scratchpad *kbts__CreateShapeScratchpad(kbts_shape_config *Config, kbts_allocator_function *Allocator, void *AllocatorData)
-{
-  kbts_un ScratchpadSize = kbts_SizeOfShapeScratchpad(Config);
-  kbts_shape_scratchpad *Result = kbts_PlaceShapeScratchpad(Config, kbts__AllocatorAllocate(Allocator, AllocatorData, ScratchpadSize), Allocator, AllocatorData);
-  Result->SelfAllocated = 1;
-
-  return Result;
-}
-
 static kbts__bucketed_glyph *kbts__InsertGlyphIntoBucket(kbts_shape_scratchpad *Scratchpad, kbts_un BucketIndex, kbts_glyph *Glyph, kbts_u16 FeatureValue)
 {
   kbts__bucketed_glyph_block_header *Sentinel = &Scratchpad->LookupGlyphBuckets[BucketIndex];
@@ -18005,6 +18033,7 @@ static kbts__bucketed_glyph *kbts__InsertGlyphIntoBucket(kbts_shape_scratchpad *
 
 static kbts_b32 kbts__BucketGlyph(kbts_shape_scratchpad *Scratchpad, kbts_glyph *Glyph, kbts_un MinimumSequentialLookupIndex, kbts_b32 ScanBackwards)
 {
+  KBTS__UNUSED(ScanBackwards);
   kbts_b32 Result = 0;
   kbts_shape_config *Config = Scratchpad->Config;
   kbts_un SequentialLookupCount = kbts__SequentialLookupCount(Config);
@@ -19578,24 +19607,33 @@ kbts__AATRangeValid(kbts_u32 Length, kbts_u32 Offset, kbts_u32 Size)
   return Offset <= Length && Size <= Length - Offset;
 }
 
-static kbts_u32
-kbts__AATTableTagToId(kbts_u32 Tag)
-{
-  switch(Tag)
-  {
-    case KBTS_FOURCC('m','o','r','t'): return KBTS_BLOB_TABLE_ID_MORT;
-    case KBTS_FOURCC('m','o','r','x'): return KBTS_BLOB_TABLE_ID_MORX;
-    case KBTS_FOURCC('k','e','r','n'): return KBTS_BLOB_TABLE_ID_KERN;
-    case KBTS_FOURCC('k','e','r','x'): return KBTS_BLOB_TABLE_ID_KERX;
-    case KBTS_FOURCC('f','e','a','t'): return KBTS_BLOB_TABLE_ID_FEAT;
-    case KBTS_FOURCC('p','r','o','p'): return KBTS_BLOB_TABLE_ID_PROP;
-    case KBTS_FOURCC('a','n','k','r'): return KBTS_BLOB_TABLE_ID_ANKR;
-    case KBTS_FOURCC('j','u','s','t'): return KBTS_BLOB_TABLE_ID_JUST;
-    case KBTS_FOURCC('o','p','b','d'): return KBTS_BLOB_TABLE_ID_OPBD;
-    case KBTS_FOURCC('t','r','a','k'): return KBTS_BLOB_TABLE_ID_TRAK;
-  }
+#ifndef KBTS_AAT_MAX_STATE_STEPS
+#define KBTS_AAT_MAX_STATE_STEPS 1048576u
+#endif
 
-  return KBTS_BLOB_TABLE_ID_NONE;
+static kbts_u32 kbts__AATGlyphCount(kbts_glyph_storage *Storage);
+
+static kbts_u32
+kbts__AATStateSafetyLimit(kbts_glyph_storage *Storage,
+                          kbts_u32 Multiplier,
+                          kbts_u32 Minimum)
+{
+  kbts_u32 Count;
+  kbts_u64 Limit;
+
+  if(!Storage)
+    return 0;
+
+  Count=kbts__AATGlyphCount(Storage);
+  Limit=(kbts_u64)Count*(kbts_u64)Multiplier+(kbts_u64)Minimum;
+
+  if(Limit>KBTS_AAT_MAX_STATE_STEPS)
+    Limit=KBTS_AAT_MAX_STATE_STEPS;
+
+  if(Limit<Minimum)
+    Limit=Minimum;
+
+  return (kbts_u32)Limit;
 }
 
 static const kbts_u8 *
@@ -19760,7 +19798,7 @@ kbts__AATLookupFormat4(
 
       Target=Offset+ValueOffset;
 
-      if(Glyph-First>(Length-Target)/2)
+      if((kbts_u32)(Glyph-First) > (Length-Target)/2)
         return DefaultValue;
 
       Target+=(kbts_u32)(Glyph-First)*2;
@@ -20376,31 +20414,6 @@ kbts__AATStateClass(
 
 
 static kbts_u16
-kbts__AATStateEntryIndex(kbts__aat_driver *D,
-                         kbts_u16 State,
-                         kbts_u16 Class)
-{
-  kbts_u16 StateSize = (kbts_u16)(D->ClassCount * 2);
-  kbts_u16 StateOffset;
-
-  if(Class >= D->ClassCount)
-    Class = 0;
-
-  StateOffset =
-    kbts__AATReadU16(
-      D->Base,
-      D->Length,
-      D->StateArray + State * StateSize + Class * 2);
-
-  /*
-   * MORX extended state-array entries are already zero-based UInt16
-   * entry-table indices.  They are NOT byte offsets and must not be
-   * divided by two.
-   */
-  return StateOffset;
-}
-
-static kbts_u16
 kbts__AATMorxStateEntryIndex(
   kbts__aat_driver *D,
   kbts_u16 State,
@@ -20436,29 +20449,6 @@ kbts__AATMorxStateEntryIndex(
     D->Base,
     D->Length,
     P);
-}
-
-static kbts__aat_state_entry
-kbts__AATStateEntry(kbts__aat_driver *D,
-                    kbts_u16 EntryIndex)
-{
-  kbts__aat_state_entry Result = KBTS__ZERO;
-  kbts_u32 P;
-
-  if(!D || D->EntryTable>D->Length ||
-     EntryIndex>(D->Length-D->EntryTable)/6)
-    return Result;
-
-  P = D->EntryTable + (kbts_u32)EntryIndex * 6;
-
-  if(kbts__AATRangeValid(D->Length, P, 6))
-  {
-    Result.NewState = kbts__AATReadU16(D->Base, D->Length, P);
-    Result.Flags = kbts__AATReadU16(D->Base, D->Length, P + 2);
-    Result.Extra = kbts__AATReadU16(D->Base, D->Length, P + 4);
-  }
-
-  return Result;
 }
 
 static void
@@ -20550,28 +20540,6 @@ kbts__AATGlyphCount(kbts_glyph_storage *Storage)
   return Count;
 }
 
-static kbts_glyph *
-kbts__AATNext(kbts_glyph_storage *Storage,
-              kbts_glyph *Glyph,
-              kbts_b32 Reverse)
-{
-  if(!Glyph)
-    return 0;
-
-  if(Reverse)
-  {
-    if(Glyph->Prev == &Storage->GlyphSentinel)
-      return 0;
-
-    return Glyph->Prev;
-  }
-
-  if(Glyph->Next == &Storage->GlyphSentinel)
-    return 0;
-
-  return Glyph->Next;
-}
-
 static void
 kbts__AATAdvanceGlyph(kbts__aat_driver *D)
 {
@@ -20580,14 +20548,6 @@ kbts__AATAdvanceGlyph(kbts__aat_driver *D)
   else
     D->Current = D->Current ? D->Current->Next : 0;
 }
-
-static kbts_b32
-kbts__AATGlyphIsSentinel(kbts_glyph_storage *Storage,
-                         kbts_glyph *Glyph)
-{
-  return !Glyph || Glyph == &Storage->GlyphSentinel;
-}
-
 
 static void
 kbts__AATReverseStorage(kbts_glyph_storage *Storage)
@@ -20879,37 +20839,6 @@ kbts__AATMorxContextual(
      D->Current &&
      D->Current!=&D->Storage->GlyphSentinel)
     D->Mark=D->Current;
-}
-
-static void
-kbts__AATMorxNonContextual(
-  kbts__aat_driver *D,
-  kbts_u32 LookupOffset)
-{
-  kbts_u16 NewId;
-
-  if(!D ||
-     !D->Current ||
-     D->Current == &D->Storage->GlyphSentinel)
-  {
-    return;
-  }
-
-  NewId =
-    kbts__AATLookup(
-      D->Base,
-      D->Length,
-      LookupOffset,
-      D->Current->Id,
-      0);
-
-  if(NewId &&
-     NewId != 0xFFFF)
-  {
-    kbts__AATSetGlyphId(
-      D->Current,
-      NewId);
-  }
 }
 
 static void
@@ -21361,8 +21290,8 @@ kbts__AATMorxDrive(
     default: return;
   }
 
-  SafetyLimit=kbts__AATGlyphCount(D->Storage)*128+8192;
-  if(SafetyLimit<8192) SafetyLimit=8192;
+  SafetyLimit=kbts__AATStateSafetyLimit(D->Storage,64,4096);
+  if(!SafetyLimit) return;
 
   D->State=0;
   D->Current=D->Storage->GlyphSentinel.Next;
@@ -21629,7 +21558,7 @@ kbts__AATMorxCompileFlags(const kbts_u8 *Base,
     kbts_u16 Setting=kbts__AATReadU16(Base,Length,P+2);
     kbts_b32 Matched=0;
 
-    for(int J=0;J<OverrideCount;++J)
+    for(int J=OverrideCount-1;J>=0;--J)
     {
       kbts__aat_feature_mapping M=kbts__AATFindFeatureMapping(Overrides[J].Tag);
       if(!M.Tag || M.Type!=Type) continue;
@@ -22252,6 +22181,8 @@ kbts__AATMortDrive(kbts__aat_driver *D,
                    kbts_u32 AuxiliaryOffset1,
                    kbts_u32 AuxiliaryOffset2)
 {
+  KBTS__UNUSED(AuxiliaryOffset2);
+
   kbts_u32 SafetyLimit;
 
   if(!D ||
@@ -22270,7 +22201,7 @@ kbts__AATMortDrive(kbts__aat_driver *D,
       D->Storage->GlyphSentinel.Next;
 
   SafetyLimit =
-    kbts__AATGlyphCount(D->Storage) * 64 + 4096;
+    kbts__AATStateSafetyLimit(D->Storage,32,2048);
 
   while(D->Current &&
         D->Current != &D->Storage->GlyphSentinel &&
@@ -23525,7 +23456,7 @@ kbts__AATKerxFormat1(kbts_font *Font,
 
   Current = Reverse ? Storage->GlyphSentinel.Prev : Storage->GlyphSentinel.Next;
   State = 0;
-  Safety = kbts__AATGlyphCount(Storage) * 64 + 4096;
+  Safety = kbts__AATStateSafetyLimit(Storage,32,2048);
 
   while(Current && Current != &Storage->GlyphSentinel && Safety--)
   {
@@ -23630,7 +23561,7 @@ kbts__AATKerxFormat4(kbts_font *Font,
     return;
 
   Current = Reverse ? Storage->GlyphSentinel.Prev : Storage->GlyphSentinel.Next;
-  Safety = kbts__AATGlyphCount(Storage) * 64 + 4096;
+  Safety = kbts__AATStateSafetyLimit(Storage,32,2048);
 
   while(Current && Current != &Storage->GlyphSentinel && Safety--)
   {
@@ -24171,7 +24102,7 @@ kbts__AATApplyKernState(kbts_font *Font,
 
   State = 0;
   Current = Storage->GlyphSentinel.Next;
-  Safety = kbts__AATGlyphCount(Storage) * 64 + 4096;
+  Safety = kbts__AATStateSafetyLimit(Storage,32,2048);
 
   while(Current && Current != &Storage->GlyphSentinel && Safety--)
   {
@@ -24525,35 +24456,6 @@ typedef struct kbts__aat_feature_flags
   kbts_u32 Disable;
 } kbts__aat_feature_flags;
 
-static kbts__aat_feature_flags
-kbts__AATDefaultFeatureFlags(void)
-{
-  kbts__aat_feature_flags Result = KBTS__ZERO;
-
-  Result.Enable = 0xFFFFFFFFu;
-  Result.Disable = 0;
-
-  return Result;
-}
-
-static void
-kbts__AATApplyFeatureOverrides(
-  kbts_shape_config *Config,
-  kbts__aat_feature_flags *Flags)
-{
-  /*
-   * Standard OpenType-to-AAT compatibility mapping.
-   *
-   * The AAT feature registry uses featureType/featureSetting rather
-   * than four-character tags.  These mappings cover the features
-   * that matter to layout compatibility.
-   */
-
-  KBTS__UNUSED(Config);
-  KBTS__UNUSED(Flags);
-}
-
-
 /* ========================================================================== */
 /* AAT property table                                                         */
 /* ========================================================================== */
@@ -24638,143 +24540,13 @@ kbts__AATAttachMarks(kbts_font *Font,
 /* AAT optical bounds                                                         */
 /* ========================================================================== */
 
-static void
-kbts__AATApplyOpbd(kbts_font *Font,
-                   kbts_glyph_storage *Storage)
-{
-  kbts_u32 Length;
-  const kbts_u8 *Base;
-
-  Base =
-    kbts__AATGetTable(
-      Font,
-      KBTS_BLOB_TABLE_ID_OPBD,
-      &Length);
-
-  if(!Base)
-    return;
-
-  if(!kbts__AATRangeValid(Length, 0, 8))
-    return;
-
-  {
-    kbts_u32 LookupOffset =
-      kbts__AATReadU32(Base, Length, 4);
-
-    kbts_glyph *At =
-      Storage->GlyphSentinel.Next;
-
-    while(At != &Storage->GlyphSentinel)
-    {
-      kbts_u16 Relative =
-        kbts__AATLookup(
-          Base,
-          Length,
-          LookupOffset,
-          At->Id,
-          0xFFFF);
-
-      if(Relative != 0xFFFF)
-      {
-        kbts_u32 P =
-          LookupOffset + Relative;
-
-        if(kbts__AATRangeValid(Length, P, 8))
-        {
-          kbts_s16 Left =
-            kbts__AATReadS16(Base, Length, P);
-
-          kbts_s16 Right =
-            kbts__AATReadS16(Base, Length, P + 2);
-
-          At->OffsetX += Left;
-          At->AdvanceX -= Left;
-          At->AdvanceX += Right;
-        }
-      }
-
-      At = At->Next;
-    }
-  }
-}
-
-
 /* ========================================================================== */
 /* AAT tracking                                                               */
 /* ========================================================================== */
 
-static void
-kbts__AATApplyTrak(kbts_font *Font,
-                   kbts_glyph_storage *Storage,
-                   kbts_s32 Tracking)
-{
-  kbts_u32 Length;
-  const kbts_u8 *Base;
-
-  Base =
-    kbts__AATGetTable(
-      Font,
-      KBTS_BLOB_TABLE_ID_TRAK,
-      &Length);
-
-  if(!Base || !Tracking)
-    return;
-
-  {
-    kbts_glyph *At =
-      Storage->GlyphSentinel.Next;
-
-    while(At != &Storage->GlyphSentinel)
-    {
-      At->AdvanceX += Tracking;
-      At = At->Next;
-    }
-  }
-}
-
-
 /* ========================================================================== */
 /* AAT justification                                                          */
 /* ========================================================================== */
-
-static void
-kbts__AATApplyJust(kbts_font *Font,
-                   kbts_glyph_storage *Storage,
-                   kbts_s32 ExtraWidth)
-{
-  kbts_u32 Length;
-  const kbts_u8 *Base;
-  kbts_glyph *At;
-  kbts_u32 Count;
-  kbts_s32 PerGlyph;
-
-  Base =
-    kbts__AATGetTable(
-      Font,
-      KBTS_BLOB_TABLE_ID_JUST,
-      &Length);
-
-  if(!Base || !ExtraWidth)
-    return;
-
-  Count = kbts__AATGlyphCount(Storage);
-
-  if(!Count)
-    return;
-
-  PerGlyph = ExtraWidth / (kbts_s32)Count;
-
-  At = Storage->GlyphSentinel.Next;
-
-  while(At != &Storage->GlyphSentinel)
-  {
-    At->AdvanceX += PerGlyph;
-    At = At->Next;
-  }
-
-  KBTS__UNUSED(Length);
-}
-
 
 /* ========================================================================== */
 /* AAT main entry point                                                       */
@@ -24821,48 +24593,6 @@ kbts__AATFontIsAAT(kbts_font *Font)
 }
 
 static void
-kbts__AATReverseGlyphs(
-  kbts_glyph_storage *Storage)
-{
-  kbts_glyph *First;
-  kbts_glyph *Last;
-  kbts_glyph *Glyph;
-  kbts_glyph *Next;
-
-  if(!Storage)
-    return;
-
-  First=Storage->GlyphSentinel.Next;
-
-  if(!First ||
-     First==&Storage->GlyphSentinel)
-    return;
-
-  Last=Storage->GlyphSentinel.Prev;
-
-  if(!Last ||
-     Last==&Storage->GlyphSentinel ||
-     First==Last)
-    return;
-
-  Glyph=First;
-
-  while(Glyph &&
-        Glyph!=&Storage->GlyphSentinel)
-  {
-    Next=Glyph->Next;
-
-    Glyph->Next=Glyph->Prev;
-    Glyph->Prev=Next;
-
-    Glyph=Next;
-  }
-
-  Storage->GlyphSentinel.Next=Last;
-  Storage->GlyphSentinel.Prev=First;
-}
-
-static void
 kbts__AATApply(
   kbts_shape_config *Config,
   kbts_glyph_storage *Storage,
@@ -24870,79 +24600,31 @@ kbts__AATApply(
 {
   kbts_font *Font;
 
-  if(!Config ||
-     !Storage)
+  if(!Config || !Storage)
     return;
 
   Font=Config->Font;
-
   if(!Font)
     return;
 
+  /*
+   * AAT substitution is a separate shaping stage.  Positioning is
+   * deliberately handled by KBTS__OP_KIND_AAT_POSITION, after GPOS
+   * when a GPOS stage is present.
+   */
   if(kbts__AATFontHasMorx(Font))
   {
-    kbts__AATApplyMorx(
-      Font,
-      Storage,
-      RunDirection);
-
-    kbts__AATRemoveDeletedGlyphs(
-      Storage);
-
-    kbts__AATRefreshGlyphMetrics(
-      Font,
-      Storage);
+    kbts__AATApplyMorx(Font,Storage,RunDirection);
+    kbts__AATRemoveDeletedGlyphs(Storage);
+    kbts__AATRefreshGlyphMetrics(Font,Storage);
   }
   else if(kbts__AATFontHasMort(Font))
   {
-    kbts__AATApplyMort(
-      Font,
-      Storage);
-
-    kbts__AATRemoveDeletedGlyphs(
-      Storage);
-
-    kbts__AATRefreshGlyphMetrics(
-      Font,
-      Storage);
-  }
-
-  if(kbts__AATFontHasKerx(Font))
-  {
-    kbts__AATApplyKerx(
-      Font,
-      Storage);
-  }
-  else if(kbts__AATFontHasKern(Font))
-  {
-    kbts__AATApplyKern(
-      Font,
-      Storage);
-  }
-
-  kbts__AATAttachMarks(
-    Font,
-    Storage);
-
-  kbts__AATApplyOpbd(
-    Font,
-    Storage);
-
-  kbts__AATApplyTrak(
-    Font,
-    Storage,
-    0);
-
-  /* AAT processes the glyph array in display/layout order.  This shaping
-   * pipeline keeps its active glyph list in logical order while shaping,
-   * so restore the visual RTL order at the AAT boundary. */
-  if(RunDirection==KBTS_DIRECTION_RTL)
-  {
-    kbts__AATReverseGlyphs(
-      Storage);
+    kbts__AATApplyMort(Font,Storage);
+    kbts__AATRemoveDeletedGlyphs(Storage);
+    kbts__AATRefreshGlyphMetrics(Font,Storage);
   }
 }
-
 typedef kbts_u32 kbts__mcm_sequence_state;
 enum kbts__mcm_sequence_state_enum
 {
@@ -25534,7 +25216,7 @@ static kbts__substitution_result_flags kbts__DoSubstitution(kbts_shape_scratchpa
   return Result;
 }
 
-static kbts__glyph_list kbts__PushGlyphList(kbts_glyph_storage *Storage, kbts_glyph *First, kbts_glyph *Last)
+KBTS_NOINLINE kbts__glyph_list kbts__PushGlyphList(kbts_glyph_storage *Storage, kbts_glyph *First, kbts_glyph *Last)
 {
   kbts__glyph_list Result = KBTS__ZERO;
 
@@ -25881,21 +25563,22 @@ static void kbts__ExecuteOp(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storag
          Storage &&
          Scratchpad->Config->Font)
       {
-        kbts_font *Font = Scratchpad->Config->Font;
+        kbts_font *AATFont = Scratchpad->Config->Font;
 
-        /* HarfBuzz treats AAT positioning as a positioning stage, not as
-         * an Arabic-only operation.  kerx has precedence over kern. */
-        if(kbts__AATFontHasKerx(Font))
+        /*
+         * Match HarfBuzz's positioning selection: kerx is the AAT
+         * positioning engine. Legacy kern is used here only when
+         * GPOS is absent.
+         */
+        if(kbts__AATFontHasKerx(AATFont))
         {
-          kbts__AATApplyKerx(
-            Font,
-            Storage);
+          kbts__AATApplyKerx(AATFont,Storage);
         }
-        else if(kbts__AATFontHasKern(Font))
+        else if(!AATFont->Blob ||
+                !AATFont->Blob->Tables[KBTS_BLOB_TABLE_ID_GPOS].Length)
         {
-          kbts__AATApplyKern(
-            Font,
-            Storage);
+          if(kbts__AATFontHasKern(AATFont))
+            kbts__AATApplyKern(AATFont,Storage);
         }
       }
     }
@@ -25927,7 +25610,7 @@ static void kbts__ExecuteOp(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storag
               kbts_u64 Decomposition = 0;
               kbts_u32 DecompositionSize = 0;
               int AnyUnsupported = 0;
-              kbts_glyph Decomposed[2];
+              kbts_glyph Decomposed[2] = KBTS__ZERO;
 
               if(!(GlyphToDecompose.Flags & KBTS_GLYPH_FLAG_DO_NOT_DECOMPOSE))
               {
@@ -27260,7 +26943,7 @@ static kbts_glyph *kbts__BeginCluster(kbts_shape_scratchpad *Scratchpad, kbts_gl
       kbts_un State = 0;
       kbts_un Broken = 1;
       kbts_un BrokenState = 0;
-      kbts_glyph *FirstGlyphs[3];
+      kbts_glyph *FirstGlyphs[3] = {0,0,0};
 
       while(kbts__GlyphIsValid(Storage, Glyph) &&
             (State < KBTS_INDIC_SYLLABIC_STATE_COUNT))
@@ -28878,7 +28561,7 @@ static kbts_shape_config *kbts__PlaceShapeConfig(kbts_font *Font, kbts_script Sc
     }
     
     Config.IndicScriptProperties = kbts__IndicScriptProperties(Script);
-    Config.Shaper = FoundScriptIsIndic3 ? KBTS_SHAPER_USE : ScriptProperties->Shaper;
+    Config.Shaper = FoundScriptIsIndic3 ? (kbts_shaper)KBTS_SHAPER_USE : ScriptProperties->Shaper;
     Config.OpList = *kbts__ShaperOpLists[Config.Shaper];
 
     Config.Features = KBTS__ZERO_TYPE(kbts__feature_set);
@@ -28914,7 +28597,15 @@ static kbts_shape_config *kbts__PlaceShapeConfig(kbts_font *Font, kbts_script Sc
     if(kbts__AATFontHasMorx(Font) ||
        kbts__AATFontHasMort(Font))
     {
-      Config.OpList = kbts__OpList_ArabicAAT;
+      if(Font->Blob &&
+         Font->Blob->Tables[KBTS_BLOB_TABLE_ID_GPOS].Length)
+      {
+        Config.OpList = kbts__OpList_AAT_GPOS;
+      }
+      else
+      {
+        Config.OpList = kbts__OpList_AAT;
+      }
     } else if((Config.Shaper == KBTS_SHAPER_ARABIC) && !Rclt)
     {
       Config.OpList = kbts__OpList_ArabicNoRclt;
@@ -29585,6 +29276,9 @@ KBTS_EXPORT void kbts_ClearActiveGlyphs(kbts_glyph_storage *Storage)
 
 KBTS_EXPORT void kbts_FreeAllGlyphs(kbts_glyph_storage *Storage)
 {
+  if(!Storage)
+    return;
+
   kbts__FreeArena(&Storage->Arena);
 
   KBTS__DLLIST_SENTINEL_INIT(&Storage->GlyphSentinel);
@@ -29595,7 +29289,7 @@ KBTS_EXPORT kbts_glyph *kbts_PushGlyph(kbts_glyph_storage *Storage, kbts_font *F
 {
   kbts_glyph *Result = 0;
 
-  if(!Storage->Error)
+  if(Storage && !Storage->Error)
   {
     kbts__EnsureGlyphStorageInitialized(Storage);
 
@@ -30266,7 +29960,7 @@ KBTS_EXPORT void kbts_ShapeCodepoint(kbts_shape_context *Context, int Codepoint)
 
 KBTS_EXPORT void kbts_ShapeUtf32WithUserId(kbts_shape_context *Context, int *Utf32, int Length, int BaseUserId, int UserIdIncrement)
 {
-  if(!Context->Error && (Length > 0))
+  if(Context && Utf32 && !Context->Error && (Length > 0))
   {
     int UserId = BaseUserId;
 
@@ -30281,7 +29975,7 @@ KBTS_EXPORT void kbts_ShapeUtf32WithUserId(kbts_shape_context *Context, int *Utf
 }
 KBTS_EXPORT void kbts_ShapeUtf32(kbts_shape_context *Context, int *Utf32, int Length)
 {
-  if(!Context->Error && (Length > 0))
+  if(Context && Utf32 && !Context->Error && (Length > 0))
   {
     KBTS__FOR(Utf32Index, 0, (kbts_un)Length)
     {
@@ -30293,7 +29987,7 @@ KBTS_EXPORT void kbts_ShapeUtf32(kbts_shape_context *Context, int *Utf32, int Le
 
 KBTS_EXPORT void kbts_ShapeUtf8WithUserId(kbts_shape_context *Context, const char *Utf8, int Length, int BaseUserId, kbts_user_id_generation_mode UserIdGenerationMode)
 {
-  if(!Context->Error && (Length > 0))
+  if(Context && Utf8 && !Context->Error && (Length > 0))
   {
     const char *At = Utf8;
     const char *End = Utf8 + Length;
@@ -30320,7 +30014,7 @@ KBTS_EXPORT void kbts_ShapeUtf8WithUserId(kbts_shape_context *Context, const cha
 }
 KBTS_EXPORT void kbts_ShapeUtf8(kbts_shape_context *Context, const char *Utf8, int Length, kbts_user_id_generation_mode UserIdGenerationMode)
 {
-  if(!Context->Error && (Length > 0))
+  if(Context && Utf8 && !Context->Error && (Length > 0))
   {
     const char *At = Utf8;
     const char *End = Utf8 + Length;
@@ -30399,6 +30093,14 @@ KBTS_EXPORT int kbts_ShapePopFeature(kbts_shape_context *Context, kbts_u32 Tag)
 static void kbts__ShapeDirect(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storage *Storage, kbts_direction RunDirection)
 {
   KBTS_INSTRUMENT_FUNCTION_BEGIN;
+
+  if(!Scratchpad || !Storage || !Scratchpad->Config)
+  {
+    if(Scratchpad)
+      Scratchpad->Error = KBTS_SHAPE_ERROR_INVALID_FONT;
+    KBTS_INSTRUMENT_FUNCTION_END;
+    return;
+  }
 
   if(kbts__GlyphIsValid(Storage, Storage->GlyphSentinel.Next))
   {
@@ -30612,6 +30314,9 @@ KBTS_EXPORT void kbts_DestroyShapeScratchpad(kbts_shape_scratchpad *Scratchpad)
 
 KBTS_EXPORT kbts_shape_error kbts_ShapeDirect(kbts_shape_scratchpad *Scratchpad, kbts_glyph_storage *Storage, kbts_direction RunDirection, kbts_glyph_iterator *Output)
 {
+  if(!Scratchpad || !Storage || !Output)
+    return KBTS_SHAPE_ERROR_INVALID_FONT;
+
   kbts__ShapeDirect(Scratchpad, Storage, RunDirection);
   kbts_shape_error Result = Scratchpad->Error;
 
@@ -30674,7 +30379,8 @@ static kbts_shape_config *kbts__FindOrCreateShapeConfig(kbts_shape_context *Cont
       kbts__existing_shape_config *Existing = &ExistingBlock->Items[ExistingIndex];
 
       if((Existing->Font == Font) &&
-         (Existing->Script == Script))
+         (Existing->Script == Script) &&
+         (Existing->Language == Language))
       {
         Result = Existing->Config;
 
@@ -30974,13 +30680,19 @@ KBTS_EXPORT int kbts_ShapeRun(kbts_shape_context *Context, kbts_run *Run)
 
 KBTS_EXPORT int kbts_GlyphIteratorIsValid(kbts_glyph_iterator *It)
 {
-  int Result = It->CurrentGlyph && kbts__GlyphIsValid(It->GlyphStorage, It->CurrentGlyph);
-  return Result;
+  if(!It || !It->GlyphStorage)
+    return 0;
+
+  return It->CurrentGlyph && kbts__GlyphIsValid(It->GlyphStorage, It->CurrentGlyph);
 }
 
 KBTS_EXPORT int kbts_GlyphIteratorNext(kbts_glyph_iterator *It, kbts_glyph **Glyph)
 {
   int Result = 0;
+
+  if(!It || !Glyph)
+    return 0;
+
   kbts_glyph *CurrentGlyph = It->CurrentGlyph;
 
   if(kbts_GlyphIteratorIsValid(It))
@@ -30998,17 +30710,23 @@ KBTS_EXPORT int kbts_FontCount(void *Data, int Size)
 {
   int Result = 0;
 
-  if(Data && (Size >= 4))
+  if(Data && Size >= 4)
   {
-    kbts_u32 Magic = *(kbts_u32 *)Data;
+    kbts_u32 Magic;
+    KBTS_MEMCPY(&Magic, Data, sizeof(Magic));
 
     if(Magic == KBTS_FOURCC('t', 't', 'c', 'f'))
     {
-      kbts__ttc_header *Header = (kbts__ttc_header *)Data;
-
-      if(Header->Magic == KBTS_FOURCC('t', 't', 'c', 'f'))
+      if(Size >= (int)sizeof(kbts__ttc_header))
       {
-        Result = (int)kbts__ByteSwap32(Header->FontCount);
+        kbts__ttc_header *Header = (kbts__ttc_header *)Data;
+        kbts_u32 Count = kbts__ByteSwap32(Header->FontCount);
+        kbts_u32 Capacity =
+          (kbts_u32)(Size - (int)sizeof(kbts__ttc_header)) /
+          (kbts_u32)sizeof(kbts_u32);
+
+        if(Count <= Capacity && Count <= 0x7FFFFFFFu)
+          Result = (int)Count;
       }
     }
     else if((Magic == KBTS_FOURCC('O', 'T', 'T', 'O')) ||
@@ -31020,16 +30738,6 @@ KBTS_EXPORT int kbts_FontCount(void *Data, int Size)
   }
 
   return Result;
-}
-
-static int
-kbts_CmapPriority(kbts_u16 PlatformId, kbts_u16 EncodingId)
-{
-    if (PlatformId == 3 && EncodingId == 10) return 400; // Unicode full
-    if (PlatformId == 3 && EncodingId == 1)  return 300; // Unicode BMP
-    if (PlatformId == 0)                     return 200; // Unicode
-    if (PlatformId == 1)                     return 100; // Macintosh
-    return 0;
 }
 
 static kbts__cmap_subtable_pointer
@@ -31090,9 +30798,10 @@ kbts__SelectCmapSubtable(kbts_blob_header *Header,
 
           if(!Result.Subtable)
           {
-            IsBetter = 1;
+            IsBetter = (Format < KBTS__ARRAY_LENGTH(kbts__CmapFormatPrecedence));
           }
-          else if(Format < KBTS__ARRAY_LENGTH(kbts__CmapFormatPrecedence))
+          else if((Format < KBTS__ARRAY_LENGTH(kbts__CmapFormatPrecedence)) &&
+                  (PreferredFormat < KBTS__ARRAY_LENGTH(kbts__CmapFormatPrecedence)))
           {
             kbts_u16 Precedence =
               kbts__CmapFormatPrecedence[Format];
@@ -31160,10 +30869,13 @@ kbts__SelectCmapSubtable(kbts_blob_header *Header,
 
 KBTS_EXPORT kbts_load_font_error kbts_LoadFont(kbts_font *Font, kbts_load_font_state *State, void *FontData, int FontDataSize, int FontIndex, int *ScratchSize_, int *OutputSize_)
 {
-  kbts_load_font_error Result = 0;
+  kbts_load_font_error Result = KBTS_LOAD_FONT_ERROR_INVALID_FONT;
 
-  if(FontDataSize >= 4)
+  if(Font && State && FontData && ScratchSize_ && OutputSize_ &&
+     FontDataSize >= 4)
   {
+    *ScratchSize_ = 0;
+    *OutputSize_ = 0;
     char *FileEnd = (char *)FontData + FontDataSize;
     kbts_u32 Magic = *(kbts_u32 *)FontData;
     kbts_un DirectoryOffset = 0;
@@ -31178,12 +30890,18 @@ KBTS_EXPORT kbts_load_font_error kbts_LoadFont(kbts_font *Font, kbts_load_font_s
         kbts_un FontCount = kbts__ByteSwap32(Header->FontCount);
 
         if(((kbts_u32)FontIndex < FontCount) &&
-           ((kbts_un)FontDataSize >= (sizeof(kbts__ttc_header) + sizeof(kbts_u32) * FontCount)))
+           (FontCount <= ((kbts_u32)FontDataSize - (kbts_u32)sizeof(kbts__ttc_header)) /
+                         (kbts_u32)sizeof(kbts_u32)))
         {
           kbts_u32 *TableDirectoryOffsets = KBTS__POINTER_AFTER(kbts_u32, Header);
           DirectoryOffset = kbts__ByteSwap32(TableDirectoryOffsets[FontIndex]);
 
-          Magic = KBTS__U32BE(0x10000);
+          if(DirectoryOffset <= (kbts_u32)FontDataSize &&
+             (kbts_u32)sizeof(kbts__table_directory) <=
+             (kbts_u32)FontDataSize - DirectoryOffset)
+          {
+            Magic = KBTS__U32BE(0x10000);
+          }
         }
       }
     }
@@ -31195,6 +30913,18 @@ KBTS_EXPORT kbts_load_font_error kbts_LoadFont(kbts_font *Font, kbts_load_font_s
 
       State->FontData = FontData;
       State->FontDataSize = (kbts_u32)FontDataSize;
+
+      if(DirectoryOffset > (kbts_un)FontDataSize ||
+         sizeof(kbts__table_directory) > (kbts_un)FontDataSize - DirectoryOffset)
+      {
+        return KBTS_LOAD_FONT_ERROR_INVALID_FONT;
+      }
+
+      if(DirectoryOffset > (kbts_un)FontDataSize ||
+         sizeof(kbts__table_directory) > (kbts_un)FontDataSize - DirectoryOffset)
+      {
+        return KBTS_LOAD_FONT_ERROR_INVALID_FONT;
+      }
 
       kbts__table_directory *Directory = KBTS__POINTER_OFFSET(kbts__table_directory, FontData, DirectoryOffset);
       kbts_un DirectoryTableCount = kbts__ByteSwap16(Directory->TableCount);
@@ -31209,6 +30939,18 @@ KBTS_EXPORT kbts_load_font_error kbts_LoadFont(kbts_font *Font, kbts_load_font_s
           kbts__table_record *Table = &Tables[TableIndex];
           kbts_u32 TableOffset = kbts__ByteSwap32(Table->Offset);
           kbts_u32 TableLength = kbts__ByteSwap32(Table->Length);
+
+          if(TableOffset > (kbts_u32)FontDataSize ||
+             TableLength > (kbts_u32)FontDataSize - TableOffset)
+          {
+            continue;
+          }
+
+          if(TableOffset > (kbts_u32)FontDataSize ||
+             TableLength > (kbts_u32)FontDataSize - TableOffset)
+          {
+            continue;
+          }
 
           void *TableBase = KBTS__POINTER_OFFSET(void, FontData, TableOffset);
           char *TableEnd = (char *)TableBase + TableLength;
@@ -34151,7 +33893,17 @@ KBTS_EXPORT void kbts_GuessTextProperties(void *Text, int TextSizeInBytes, kbts_
 
 KBTS_EXPORT void kbts_GuessTextPropertiesUtf32(const int *Utf32, int Utf32Count, kbts_direction *Direction, kbts_script *Script)
 {
-  kbts_GuessTextProperties((void *)Utf32, sizeof(int) * Utf32Count, KBTS_TEXT_FORMAT_UTF32, Direction, Script);
+  if(Utf32 && Utf32Count > 0 &&
+     (kbts_un)Utf32Count <= (kbts_un)0x7FFFFFFF / sizeof(int))
+  {
+    kbts_GuessTextProperties((void *)Utf32, sizeof(int) * Utf32Count,
+                              KBTS_TEXT_FORMAT_UTF32, Direction, Script);
+  }
+  else
+  {
+    if(Direction) *Direction = KBTS_DIRECTION_DONT_KNOW;
+    if(Script) *Script = KBTS_SCRIPT_DONT_KNOW;
+  }
 }
 
 KBTS_EXPORT void kbts_GuessTextPropertiesUtf8(const char *Utf8, int Utf8Length, kbts_direction *Direction, kbts_script *Script)
@@ -34309,7 +34061,19 @@ KBTS_EXPORT void kbts_BreakEntireStringUtf32(kbts_direction Direction, kbts_japa
                                              kbts_break *Breaks, int BreakCapacity, int *BreakCount,
                                              kbts_break_flags *BreakFlags, int BreakFlagCapacity, int *BreakFlagCount)
 {
-  kbts_BreakEntireString(Direction, JapaneseLineBreakStyle, ConfigFlags, Utf32, sizeof(int) * Utf32Count, KBTS_TEXT_FORMAT_UTF32, Breaks, BreakCapacity, BreakCount, BreakFlags, BreakFlagCapacity, BreakFlagCount);
+  if(Utf32 && Utf32Count > 0 &&
+     (kbts_un)Utf32Count <= (kbts_un)0x7FFFFFFF / sizeof(int))
+  {
+    kbts_BreakEntireString(Direction, JapaneseLineBreakStyle, ConfigFlags,
+                           Utf32, sizeof(int) * Utf32Count, KBTS_TEXT_FORMAT_UTF32,
+                           Breaks, BreakCapacity, BreakCount,
+                           BreakFlags, BreakFlagCapacity, BreakFlagCount);
+  }
+  else
+  {
+    if(BreakCount) *BreakCount = 0;
+    if(BreakFlagCount) *BreakFlagCount = 0;
+  }
 }
 KBTS_EXPORT void kbts_BreakEntireStringUtf8(kbts_direction Direction, kbts_japanese_line_break_style JapaneseLineBreakStyle, kbts_break_config_flags ConfigFlags,
                                             const char *Utf8, int Utf8Length,
