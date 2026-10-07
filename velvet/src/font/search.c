@@ -35,20 +35,36 @@ font_root font_root_name(const char *description, size_t description_size) {
         const char *text;
         size_t len;
     } suffixes[] = {
-        STR_LEN("Regular"),
         STR_LEN("Italic"),
-        STR_LEN("Bold"),
         STR_LEN("Condensed"),
         STR_LEN("Narrow"),
-        STR_LEN("Light"),
         STR_LEN("Oblique"),
+
         STR_LEN("Thin"),
-        STR_LEN("Medium"),
-        STR_LEN("UltraLight"),
-        STR_LEN("Black"),
-        STR_LEN("UltraBlack"),
+        STR_LEN("Light"),
         STR_LEN("ExtraLight"),
+        STR_LEN("Extra Light"),
+        STR_LEN("Extra-Light"),
+        STR_LEN("Regular"),
+        STR_LEN("Normal"),
+        STR_LEN("Medium"),
+        STR_LEN("Bold"),
+        STR_LEN("SemiBold"),
+        STR_LEN("Semi Bold"),
+        STR_LEN("Semi-Bold"),
+        STR_LEN("Heavy"),
+        STR_LEN("Extra Bold"),
+        STR_LEN("ExtraBold"),
+        STR_LEN("Extra-Bold"),
+        STR_LEN("Black"),
         STR_LEN("ExtraBlack"),
+        STR_LEN("Extra Black"),
+        STR_LEN("Extra-Black"),
+        STR_LEN("Extra Black"),
+        STR_LEN("Extra Heavy"),
+        STR_LEN("ExtraHeavy"),
+        STR_LEN("Extra-Heavy"),
+
         STR_LEN("W0"),
         STR_LEN("W1"),
         STR_LEN("W2"),
@@ -138,11 +154,46 @@ vl_result_t vl_font_search_classify(const char *font_name, int *weight, bool *it
     if (!font_name) return VL_ERROR;
     if (weight) {
         *weight = VL_WEB_FONT_REGULAR;
-        if (utf8casestr(font_name, "Light")) *weight = VL_WEB_FONT_LIGHT;
-        if (utf8casestr(font_name, "ExtraLight") || utf8casestr(font_name, "Extra Light")) 
+        if (utf8casestr(font_name, "Thin") || utf8casestr(font_name, "W0"))
+            *weight = VL_WEB_FONT_THIN;
+        if (utf8casestr(font_name, "Light") 
+            || utf8casestr(font_name, "W2")) 
+            *weight = VL_WEB_FONT_LIGHT;
+        if (utf8casestr(font_name, "ExtraLight") 
+            || utf8casestr(font_name, "Extra Light")
+            || utf8casestr(font_name, "Extra-Light")
+            || utf8casestr(font_name, "W1")) 
             *weight = VL_WEB_FONT_EXTRA_LIGHT;
-        if (utf8casestr(font_name, "Bold")) *weight = VL_WEB_FONT_BOLD;
-        if (utf8casestr(font_name, "Black")) *weight = VL_WEB_FONT_BLACK;
+        if (utf8casestr(font_name, "Regular") 
+            || utf8casestr(font_name, "Normal")
+            || utf8casestr(font_name, "W3"))
+            *weight = VL_WEB_FONT_REGULAR;
+        if (utf8casestr(font_name, "Medium") 
+            || utf8casestr(font_name, "W4")) 
+            *weight = VL_WEB_FONT_MEDIUM;
+        if (utf8casestr(font_name, "Bold") 
+            || utf8casestr(font_name, "W6")) 
+            *weight = VL_WEB_FONT_BOLD;
+        if (utf8casestr(font_name, "SemiBold") 
+            || utf8casestr(font_name, "Semi Bold")
+            || utf8casestr(font_name, "Semi-Bold")
+            || utf8casestr(font_name, "W5")) 
+            *weight = VL_WEB_FONT_EXTRA_LIGHT; 
+        if (utf8casestr(font_name, "Heavy") 
+            || utf8casestr(font_name, "Extra Bold")
+            || utf8casestr(font_name, "ExtraBold")
+            || utf8casestr(font_name, "Extra-Bold")
+            || utf8casestr(font_name, "W7")) 
+            *weight = VL_WEB_FONT_EXTRA_BOLD; 
+        if (utf8casestr(font_name, "Black") || utf8casestr(font_name, "W8")) *weight = VL_WEB_FONT_BLACK;
+        if (utf8casestr(font_name, "ExtraBlack") 
+            || utf8casestr(font_name, "Extra Black")
+            || utf8casestr(font_name, "Extra-Black")
+            || utf8casestr(font_name, "Extra Heavy")
+            || utf8casestr(font_name, "ExtraHeavy")
+            || utf8casestr(font_name, "Extra-Heavy")
+            || utf8casestr(font_name, "W9")) 
+            *weight = VL_WEB_FONT_EXTRA_LIGHT;
     }
     if (italic) {
         *italic = (utf8casestr(font_name, "Italic") != 0);
