@@ -26,7 +26,7 @@ struct vl_font_atlas_codepoint {
     float w, h;
     float x1, y1;
     float x2, y2;
-    float advance_x;
+    float advance_x, left_side_bearing;
 
     int font_index;
 };

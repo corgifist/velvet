@@ -376,7 +376,7 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
         float base_scale = 16;
         if (is_font_size) {
             vl_css_value_t font_family = vl_css_layout_node_get_property(node, "font-family", VL_CSS_VALUE_NONE());
-            if (VL_CSS_VALUE_COMPARE_LITERALS(font_family, "monospace")) {
+            if (VL_CSS_VALUE_COMPARE_LITERALS(font_family, "monospace") || (font_family.type == VL_CSS_VALUE_FONT_LIST && strcmp(font_family.as.font_list.fonts[0], "monospace") == 0)) {
                 base_scale = 13;
             }
         }

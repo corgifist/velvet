@@ -3746,6 +3746,7 @@ struct kbts_glyph
   kbts_u8 CombiningClass;
 
   kbts_u8 MarkOrdering; // Only used temporarily in NORMALIZE for Arabic mark reordering.
+  kbts_b32 IsLastInRun;
 };
 
 typedef struct kbts_shape_codepoint
@@ -30322,6 +30323,21 @@ KBTS_EXPORT kbts_shape_error kbts_ShapeDirect(kbts_shape_scratchpad *Scratchpad,
 
   if(!Result)
   {
+    *Output = kbts_ActiveGlyphIterator(Storage);
+
+    kbts_glyph *Glyph = 0;
+    kbts_glyph *LastGlyph = 0;
+    while(kbts_GlyphIteratorNext(Output, &Glyph))
+    {
+      Glyph->IsLastInRun = 0;
+      LastGlyph = Glyph;
+    }
+
+    if(LastGlyph)
+    {
+      LastGlyph->IsLastInRun = 1;
+    }
+
     *Output = kbts_ActiveGlyphIterator(Storage);
   }
   else

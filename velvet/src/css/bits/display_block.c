@@ -110,8 +110,13 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         }
         if (child->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) cursor.x = node->effective_padding.w;
         child->position.x += cursor.x;
-        child->span_x_cursor = node->position.x + cursor.x;
-        child->span_x_area = node->parent->size.x;
+        child->span_x_cursor = node->position.x + child->position.x;
+        node->span_x_area = node->size.x - node->margin.y;
+        if (node->display == VL_CSS_LAYOUT_DISPLAY_INLINE) {
+            child->span_x_area = node->parent->span_x_area;
+        } else {
+            child->span_x_area = node->span_x_area;
+        }
         layout_pad_aware_node(node, child);
 
         if (child->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) {
@@ -164,6 +169,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 cursor.y += child->margin.x;
                 size.y += child->margin.x;
             }
+            float prev_max_line_span = line->max_span_offset;
             if (child->span_wrapped) {
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
@@ -173,23 +179,26 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                 child->position.x = node->effective_padding.w;
                 child->size.x = child->span_x_area - node->effective_padding.w - node->effective_padding.y;
             }
-            node->span_wrapped = child->span_wrapped;
+            if (child->span_wrapped) node->span_wrapped = true;
             line->width = VL_MAX(line->width, cursor.x);
             line->height = VL_MAX(line->height, child->size.y);
             size.x = VL_MAX(size.x, cursor.x);
             if (!node->allow_width_growth && !node->parent->allow_width_growth) size.x = VL_MIN(size.x, orig_size.x);
-            // if (!lock_height && old_line_height < line->height) size.y += line->height - old_line_height;
             if (!lock_height && cursor.y + line->height + node->effective_padding.z > size.y) {
                 size.y += cursor.y + line->height + node->effective_padding.z - size.y;
             }
             line->max_span_offset = VL_MAX(line->max_span_offset, child->span_y_offset);
-            node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
+            if (node->display != VL_CSS_LAYOUT_DISPLAY_BLOCK)
+                node->span_y_offset = VL_MAX(node->span_y_offset, child->span_y_offset);
             node->span_line_height = child->span_line_height;
             node->span_last_cursor = child->span_last_cursor;
+            node->span_line_gap = child->span_line_gap;
             VL_DA_APPEND(line->elements, child);
             if (child->span_wrapped) {
                 cursor.x = child->span_last_cursor.x + node->effective_padding.w;
                 cursor.y += child->span_last_cursor.y;
+                printf("%s %f\n", child->tag, child->span_line_gap);
+                if (prev) child->position.y += prev_max_line_span - child->span_y_offset + child->span_line_gap ;
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
             if ((!child->span_wrapped && cursor.x > node->size.x && next) || (next && next->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)) {
@@ -214,7 +223,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         float max_span_offset = line->max_span_offset;
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *child = line->elements[j];
-            child->position.y += line->height - child->size.y + child->span_y_offset - max_span_offset;
+            child->position.y += (line->height - child->size.y) - (max_span_offset - child->span_y_offset);
             if (child->block_first_margin > child->block_applied_margin && child->block_applied_margin != VL_FLOAT_MIN && child->block_first_margin != VL_FLOAT_MIN) {
                 for (int k = i; k < VL_DA_LENGTH(lines); k++) {
                     vl_css_block_line *line = lines + k;

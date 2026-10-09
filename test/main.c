@@ -1568,9 +1568,6 @@ void styling_test() {
     //     <meta charset="utf-8" />
     //     <title>CSS selector difference</title>
     //     <style>
-    //         body {
-    //             --velvet-element-highlight: highlight-green;
-    //         }
     //         .a.b.c {
     //         background: #c8f7c5;
     //         border: 2px solid #2d8a34;
@@ -1587,6 +1584,10 @@ void styling_test() {
     //         color: #111;
     //         font-family: sans-serif;
     //         }
+
+    //         .highlight {
+    //             --velvet-element-highlight: highlight-green;
+    //         }
     //     </style>
     //     </head>
     //     <body>
@@ -1596,7 +1597,7 @@ void styling_test() {
     //     </div>
 
     //     <h2>.a .b .c</h2>
-    //     <div class="a">
+    //     <div class="a highlight">
     //         <div class="b">
     //         <div class="box c">
     //             This matches <code>.a .b .c</code> because <code>.c</code> is inside <code>.b</code>, which is inside <code>.a</code>.
@@ -1605,9 +1606,10 @@ void styling_test() {
     //     </div>
 
     //     <h2>Does not match both</h2>
-    //     <div class="box a">
+    //     <div class="a highlight">
     //         <div class="box b c">
-    //         This does <strong>not</strong> match <code>.a.b.c</code>, and it also does <strong>not</strong> match <code>.a .b .c</code> because <code>.c</code> is not a descendant of <code>.b</code> here.
+    //         This does <strong class="">not</strong> match <code>.a.b.c</code>, and it also does <strong>not</strong> 
+    //         match <code>.a .b .c</code> because <code>.c</code> is not /*a descendant of <code>.b</code> here.*/
     //         </div>
     //     </div>
     //     </body>
@@ -1624,9 +1626,13 @@ void styling_test() {
     //             body {
     //                 // --velvet-element-highlight: highlight-green;
     //             }
+
+    //             .highlight {
+    //                 --velvet-element-highlight: highlight-orange;
+    //             }
     //     </style>
     //     </head>
-    //     <body style="font-family: serif">
+    //     <body style="font-family: serif" class="highlight">
     //     <h1>Text Wrapping Test Page</h1>
 
     //     <p>
@@ -1667,7 +1673,7 @@ void styling_test() {
     //     </p>
 
     //     <h2>Right-to-Left Text</h2>
-    //     <p dir="rtl">
+    //     <p>
     //         هذا نص عربي طويل لاختبار التفاف النص من اليمين إلى اليسار داخل الصفحة.
     //     </p>
 
@@ -1696,7 +1702,7 @@ void styling_test() {
     //     <p style="font-size: 3em; font-weight: bold">Hello 日本語</p>
     //     <p style="font-size: 3em; font-weight: extrablack">Hello 日本語</p>
 
-    //     <p style="font-family: Zapfino">Zapfino!</p>
+    //     <p style="font-family: Zapfino; font-size: 2em">Zapfino!</p>
 
     //     Xinside spanX<br>
     //     X<span>inside span</span>X
@@ -1784,6 +1790,11 @@ void styling_test() {
     //     <p style="font-size: 5em">السلام عليكم</p>
     //     <p style="font-size: 6em">السلام عليكم</p>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <p style="font-weight: bolder; font-size: 3em; font-family: sans-serif">
+    //         Hello, World!
+    //     </p>
+    // );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);
@@ -1828,7 +1839,7 @@ void styling_test() {
 
 void font_search() {
     VL_DA(vl_font_search_description_t) results = NULL;
-    vl_font_search_query(&results, "Hiragino");
+    vl_font_search_query(&results, "Arial");
     printf("%zu results:\n", VL_DA_LENGTH(results));
     for (int i = 0; i < VL_DA_LENGTH(results); i++) {
         vl_font_search_description_print(results + i);

@@ -28,7 +28,7 @@ vl_result_t vl_dom_element_html_render(vl_dom_element_t *element) {
         vl_dom_element_render(body_element);
 
         // vl_graphics_render_clear(element->owner->owner->render, VL_BLACK);
-        // vl_graphics_render_batch_rect(element->owner->owner->render, VL_RECT_EX(0, 0, 512, 512), element->owner->owner->fonts.atlases[0].brush);
+        // vl_graphics_render_batch_rect(element->owner->owner->render, VL_RECT_EX(0, 0, 1024, 512), element->owner->owner->fonts.atlases[0].brush);
     }
     return VL_SUCCESS;
 }

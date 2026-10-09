@@ -1,4 +1,5 @@
 #include "font/atlas.h"
+#include "platform/universal/vl_truetype.h"
 #include "support/base_math.h"
 #include "support/error_pool.h"
 #include "support/math.h"
@@ -40,14 +41,15 @@ vl_font_t *vl_font_universal_new_with_subfont_indices(vl_platform_context_t *con
             }
         }
         vl_font_universal_info_t *font_info = VL_NEW(vl_font_universal_info_t);
-        if (!stbtt_InitFont(&font_info->font, font->data, stbtt_GetFontOffsetForIndex(data, i))) {
+        if (!stbtt_InitFontWithSize(&font_info->font, font->data, data_length, stbtt_GetFontOffsetForIndex(data, i))) {
             continue;
         }
         font_info->scale = stbtt_ScaleForMappingEmToPixels(&font_info->font, height * density);
         font_info->slim_scale = font_info->scale / density;
         int ascent, descent, line_gap;
-        if (!stbtt_GetFontVMetricsOS2(&font_info->font, &ascent, &descent, &line_gap))
-            stbtt_GetFontVMetrics(&font_info->font, &ascent, &descent, &line_gap);
+        int use_os2_metric = stbtt_GetUseTypoMetrics(&font_info->font);
+        if (use_os2_metric && stbtt_GetFontVMetricsOS2(&font_info->font, &ascent, &descent, &line_gap)) {}
+        else stbtt_GetFontVMetrics(&font_info->font, &ascent, &descent, &line_gap);
         font_info->base.ascent = ascent * font_info->slim_scale;
         font_info->base.descent = descent * font_info->slim_scale;
         font_info->base.line_gap = VL_CEIL(line_gap * font_info->slim_scale);
@@ -58,11 +60,11 @@ vl_font_t *vl_font_universal_new_with_subfont_indices(vl_platform_context_t *con
         for (int i = 0; i <= STBTT_UNICODE_EID_UNICODE_2_0_FULL; i++) {
             for (int j = 0; j <= STBTT_PLATFORM_ID_MICROSOFT; j++) {
                 face_name = stbtt_GetFontNameString(&font_info->font, 
-                &len, j, i, STBTT_MS_LANG_ENGLISH, 4
+                    &len, j, i, STBTT_MS_LANG_ENGLISH, 4
                 );
                 if (face_name && len > 0) goto found_name;
                 face_name = stbtt_GetFontNameString(&font_info->font, 
-                &len, j, i, STBTT_MAC_LANG_ENGLISH, 4
+                    &len, j, i, STBTT_MAC_LANG_ENGLISH, 4
                 );
                 if (face_name && len > 0) goto found_name;
             }
@@ -118,9 +120,10 @@ vl_font_atlas_codepoint_t *vl_font_universal_rasterize_glyph_id_with_font_index(
     float lb = left_bearing * ui->slim_scale;
     float ax = advance_x * ui->slim_scale;
     result.advance_x = ax;
-    result.x1 = x1 - lb;
-    result.y1 = ui->base.ascent + ui->base.line_gap + ((float) y1) / font->density;
-    result.x2 = x2 / font->density - lb;
+    result.left_side_bearing = lb;
+    result.x1 = x1 / font->density;
+    result.y1 = ui->base.ascent + ((float) y1) / font->density;
+    result.x2 = x2 / font->density;
     result.y2 = ui->base.ascent + ((float) y2) / font->density;
     result.w = w / font->density;
     result.h = h / font->density;

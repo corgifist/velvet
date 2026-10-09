@@ -3,7 +3,7 @@
 
 #include "font/atlas.h"
 #include "velvet/font/font.h"
-#include "velvet/platform/universal/stb_truetype.h"
+#include "velvet/platform/universal/vl_truetype.h"
 
 struct vl_font_universal_info {
     vl_font_info_t base;

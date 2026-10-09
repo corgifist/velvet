@@ -50,10 +50,16 @@ struct vl_css_layout_background {
 };
 typedef struct vl_css_layout_background vl_css_layout_background_t;
 
-typedef void vl_css_layout_node_owner_t;
+struct vl_css_layout_span_line {
+    float span_y_offset;
+    float span_line_height;
+    float span_line_gap;
+};
+typedef struct vl_css_layout_span_line vl_css_layout_span_line_t;
 
 struct vl_css_layout_node;
 struct vl_web;
+typedef void vl_css_layout_node_owner_t;
 typedef vl_vec2_t (*vl_css_layout_node_get_content_size)(struct vl_css_layout_node *node);
 struct vl_css_layout_node {
     struct vl_web *web;
@@ -94,8 +100,9 @@ struct vl_css_layout_node {
     float block_first_margin;
     float block_first_offset;
     float span_y_offset;
+    VL_DA(vl_css_layout_span_line_t) span_lines;
     float span_x_cursor, span_x_area;
-    float span_line_height;
+    float span_line_height, span_line_gap;
     vl_vec2_t span_last_cursor;
     bool span_wrapped;
     bool calculating_layout;
