@@ -281,6 +281,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
     vl_dom_element_text_segment_t segment = new_segment();
     float max_line_height = 0;
     float max_line_gap = 0;
+    bool wrap_allowed = (element->layout.whitespace.text_wrap_mode == VL_CSS_LAYOUT_TEXT_WRAP);
     while (vl_font_shaper_shape(fonts->shaper, run)) {
         if (run->hard_line_break) {
             base_x = 0;
@@ -327,7 +328,7 @@ static void calculate_layout(vl_dom_element_t *element, vl_dom_element_text_layo
             line->width = VL_MAX(line->width, base_x + segment_x);
             // printf("glyph id: %i advance x: %f %f\n", shaper_glyph.id, shaper_glyph.advance_x, segment.span_offset);
             if (can_break || shaper_glyph.last) {
-                if (span_position + base_x + segment.width > element->layout.span_x_area && VL_DA_LENGTH(line->segments) > 0) {
+                if (wrap_allowed && span_position + base_x + segment.width > element->layout.span_x_area && VL_DA_LENGTH(line->segments) > 0) {
                     // printf("breaking %c: %s %f %f\n", shaper_glyph.codepoint, layout->blueprint.text, element->layout.span_x_area, span_position + base_x + segment.width);
                     line->wrapped = true;
                     base_x = 0;

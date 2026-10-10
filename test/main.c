@@ -1796,30 +1796,52 @@ void styling_test() {
     //         Hello, World!
     //     </p>
     // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         p {
+    //             font-size: 4.5em;
+    //         }
+    //         .transparent {
+    //             opacity: 70%;
+    //         }
+    //     </style>
+    //     <h1>Arabic overlaps</h1>
+    //     <p>
+    //         السلام عليكم<br>
+    //         بسم الله الرحمن الرحيم<br>
+    //         لا إله إلا الله<br>
+    //         محمد رسول الله<br>
+    //         العربية لغة جميلة<br>
+    //     </p>
+    //     <p class="transparent">
+    //         السلام عليكم<br>
+    //         بسم الله الرحمن الرحيم<br>
+    //         لا إله إلا الله<br>
+    //         محمد رسول الله<br>
+    //         العربية لغة جميلة<br>
+    //     </p>
+    // );
     const char *input = VL_STRINGIFY(
         <style>
-            p {
-                font-size: 4.5em;
+            div {
+                font-family: "Arial";
+                font-weight: bold;
+                font-size: 4rem;
+                box-sizing: border-box;
+                border: 0.25rem solid black;
+                padding: 0 4px;
+                width: 14rem;
+                margin: 1rem;
             }
-            .transparent {
-                opacity: 70%;
+            .wrap {
+                text-wrap-mode: wrap;
+            }
+            .nowrap {
+                text-wrap-mode: nowrap;
             }
         </style>
-        <h1>Arabic overlaps</h1>
-        <p>
-            السلام عليكم<br>
-            بسم الله الرحمن الرحيم<br>
-            لا إله إلا الله<br>
-            محمد رسول الله<br>
-            العربية لغة جميلة<br>
-        </p>
-        <p class="transparent">
-            السلام عليكم<br>
-            بسم الله الرحمن الرحيم<br>
-            لا إله إلا الله<br>
-            محمد رسول الله<br>
-            العربية لغة جميلة<br>
-        </p>
+        <div class="wrap">CSS IS AWESOME</div>
+        <div class="nowrap">CSS IS AWESOME</div>
     );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);

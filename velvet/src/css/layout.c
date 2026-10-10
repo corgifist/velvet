@@ -150,6 +150,7 @@ static vl_result_t stylesheet_broad_query(vl_css_layout_node_t *node, VL_DA(vl_c
 #include "bits/construct_dimensions.c"
 #include "bits/construct_borders.c"
 #include "bits/construct_background.c"
+#include "bits/construct_whitespace.c"
 
 #include "bits/construct_position_metrics.c"
 
@@ -223,6 +224,7 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     construct_complex_metric("padding", &node->padding, NULL, node);
     construct_borders(node);
     construct_background(node);
+    node->whitespace = construct_whitespace(node);
     node->effective_padding = VL_VEC4_ADD(node->padding, VL_VEC4(node->border[0].width, node->border[1].width, node->border[2].width, node->border[3].width));
     return VL_SUCCESS;
 }

@@ -36,7 +36,9 @@ static const char *s_const_literals[] = {
     "absolute",
     "relative",
     "sticky",
-    "natural"
+    "natural",
+    "wrap",
+    "nowrap"
 };
 
 #endif // VELVET_CSS_CONSTANTS_H

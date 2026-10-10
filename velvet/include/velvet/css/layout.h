@@ -50,12 +50,16 @@ struct vl_css_layout_background {
 };
 typedef struct vl_css_layout_background vl_css_layout_background_t;
 
-struct vl_css_layout_span_line {
-    float span_y_offset;
-    float span_line_height;
-    float span_line_gap;
+enum vl_css_layout_text_wrap_mode {
+    VL_CSS_LAYOUT_TEXT_WRAP = 0,
+    VL_CSS_LAYOUT_TEXT_NOWRAP = 1
 };
-typedef struct vl_css_layout_span_line vl_css_layout_span_line_t;
+typedef enum vl_css_layout_text_wrap_mode vl_css_layout_text_wrap_mode_t;
+
+struct vl_css_layout_whitespace {
+    vl_css_layout_text_wrap_mode_t text_wrap_mode;
+};
+typedef struct vl_css_layout_whitespace vl_css_layout_whitespace_t;
 
 struct vl_css_layout_node;
 struct vl_web;
@@ -101,11 +105,11 @@ struct vl_css_layout_node {
     float block_first_margin;
     float block_first_offset;
     float span_y_offset;
-    VL_DA(vl_css_layout_span_line_t) span_lines;
     float span_x_cursor, span_x_area;
     float span_line_height, span_line_gap;
     vl_vec2_t span_last_cursor;
     bool span_wrapped;
+    vl_css_layout_whitespace_t whitespace;
     bool calculating_layout;
 };
 
