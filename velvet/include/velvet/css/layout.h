@@ -94,6 +94,7 @@ struct vl_css_layout_node {
     vl_css_layout_border_t border[4];
     vl_css_layout_background_t background;
     vl_vec4_t color;
+    float opacity;
     vl_vec4_t effective_padding;
     float block_last_margin;
     float block_applied_margin;

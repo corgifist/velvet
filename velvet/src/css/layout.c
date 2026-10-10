@@ -202,6 +202,13 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
         css_color = VL_CSS_VALUE_RGBA(0, 0, 0, 1);
     }
     node->color = vl_css_value_to_rgba(css_color);
+    vl_css_value_t css_opacity = vl_css_layout_node_get_property(node, "opacity", VL_CSS_VALUE_FLOATING(1));
+    node->opacity = 1;
+    if (css_opacity.type == VL_CSS_VALUE_FLOATING) {
+        node->opacity = css_opacity.as.floating;
+    } else if (VL_CSS_VALUE_IS_METRIC(css_opacity)) {
+        node->opacity = vl_css_layout_node_process_metric(node, NULL, css_opacity.as.metric1, 1).value;
+    }
     vl_css_value_t content_value = vl_css_layout_node_get_property(node, "content", VL_CSS_VALUE_NONE());
     if (VL_CSS_VALUE_IS_LITERAL(content_value)) {
         VL_STRING_FREE(node->content_string);

@@ -16,11 +16,13 @@ struct vl_graphics_render {
     vl_platform_context_t *context;
 
     VL_DA(vl_mat4_t) transform;
+    VL_DA(float) alpha;
 };
 typedef struct vl_graphics_render vl_graphics_render_t;
 
 VL_API vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window);
 VL_API vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t color);
+VL_API vl_result_t vl_graphics_render_push_alpha(vl_graphics_render_t *render, float alpha);
 VL_API vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, vl_mat4_t transform);
 VL_API vl_result_t vl_graphics_render_push_translate(vl_graphics_render_t *render, vl_vec2_t translation);
 VL_API vl_result_t vl_graphics_render_push_rotate(vl_graphics_render_t *render, float degrees);
@@ -42,6 +44,8 @@ VL_API vl_result_t vl_graphics_render_batch_point(vl_graphics_render_t *render, 
 VL_API vl_result_t vl_graphics_render_batch_end(vl_graphics_render_t *render);
 VL_API vl_result_t vl_graphics_render_pop_transform(vl_graphics_render_t *render);
 VL_API vl_result_t vl_graphics_render_clear_transform(vl_graphics_render_t *render);
+VL_API vl_result_t vl_graphics_render_pop_alpha(vl_graphics_render_t *render);
+VL_API vl_result_t vl_graphics_render_clear_alpha(vl_graphics_render_t *render);
 VL_API vl_result_t vl_graphics_render_resize(vl_graphics_render_t *render, int w, int h);
 VL_API vl_result_t vl_graphics_render_free(vl_graphics_render_t *render);
 

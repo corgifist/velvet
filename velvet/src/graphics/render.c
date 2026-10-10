@@ -15,6 +15,7 @@ vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window) {
     if (render) {
         render->context = window->context;
         render->transform = VL_DA_INIT(vl_mat4_t);
+        render->alpha = VL_DA_INIT(float);
     }
     return render;
 }
@@ -22,6 +23,13 @@ vl_graphics_render_t *vl_graphics_render_new(vl_os_window_t *window) {
 vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t color) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_clear) return VL_ERROR;
     return render->context->graphics_render_clear(render, color);
+}
+
+vl_result_t vl_graphics_render_push_alpha(vl_graphics_render_t *render, float alpha) {
+    if (!render || !render->alpha) return VL_ERROR;
+    float top = (VL_DA_LENGTH(render->alpha) > 0 ? *((float*) VL_DA_LAST(render->alpha)) : 1.0f);
+    *VL_DA_PUSH(render->alpha, float) = top * alpha;
+    return VL_SUCCESS; 
 }
 
 vl_result_t vl_graphics_render_push_transform(vl_graphics_render_t *render, vl_mat4_t transform) {
@@ -84,6 +92,9 @@ vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec
         vl_vec4_t dst;
         vl_mat4_mul_vec4(&dst, *((vl_mat4_t*) VL_DA_LAST(render->transform)), src);
         point = VL_POINT(dst.x, dst.y);
+    }
+    if (render->alpha && !VL_DA_EMPTY(render->alpha)) {
+        color.a *= *((float*) VL_DA_LAST(render->alpha));
     }
     return render->context->graphics_render_batch_vertex(render, point, brush, color, uv); 
 }
@@ -303,11 +314,8 @@ vl_result_t vl_graphics_render_batch_end(vl_graphics_render_t *render) {
 }
 
 vl_result_t vl_graphics_render_pop_transform(vl_graphics_render_t *render) {
-    if (!render) return VL_ERROR;
-    if (render->transform) {
-        if (VL_DA_LENGTH(render->transform) <= 0) return VL_ERROR;
-        VL_DA_DELETE(render->transform, VL_DA_LENGTH(render->transform) - 1);
-    }
+    if (!render || !render->transform) return VL_ERROR;
+    VL_DA_POP(render->transform);
     return VL_SUCCESS;
 }
 
@@ -315,6 +323,18 @@ vl_result_t vl_graphics_render_clear_transform(vl_graphics_render_t *render) {
     if (!render) return VL_ERROR;
     VL_DA_FREE(render->transform);
     render->transform = VL_DA_INIT(vl_mat4_t);
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_graphics_render_pop_alpha(vl_graphics_render_t *render) {
+    if (!render || !render->alpha) return VL_ERROR;
+    VL_DA_POP(render->alpha);
+    return VL_SUCCESS;
+}
+
+vl_result_t vl_graphics_render_clear_alpha(vl_graphics_render_t *render) {
+    if (!render || !render->alpha) return VL_ERROR;
+    VL_DA_CLEAR(render->alpha);
     return VL_SUCCESS;
 }
 

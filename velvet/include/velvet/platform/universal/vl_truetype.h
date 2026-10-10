@@ -427,6 +427,89 @@ int main(int arg, char **argv)
 #endif
 
 
+#include <stddef.h>
+
+/* Public TrueType VM types.  These must be visible to users who include the
+   declarations-only header; keeping them inside the implementation section
+   makes vltt_tt_vm an unknown type in normal client translation units. */
+#ifndef VLTT_TT_POINT_DEFINED
+#define VLTT_TT_POINT_DEFINED
+typedef struct vltt_tt_point_s {
+   int x, y;
+   int ox, oy;
+   unsigned char touched_x, touched_y, on_curve;
+} vltt_tt_point;
+#endif
+
+/* Shared VM types: both public execution and rasterization use this interpreter. */
+typedef struct vltt_tt_zone_s {
+   vltt_tt_point *points;
+   int count;
+   int contours;
+   int *contour_ends;
+} vltt_tt_zone;
+
+typedef struct vltt_tt_state_s {
+   int proj_x, proj_y;
+   int free_x, free_y;
+   int dual_x, dual_y;
+   int rp0, rp1, rp2;
+   int loop;
+   int minimum_distance;
+   int cvt_cut_in;
+   int single_width_cut_in;
+   int single_width_value;
+   int delta_base, delta_shift;
+   int auto_flip;
+   int round_period, round_phase, round_threshold;
+   int round_mode, angle_weight;
+   int min_dist;
+   int scan_control, scan_type;
+   int gep0, gep1, gep2;
+} vltt_tt_state;
+
+typedef struct vltt_tt_vm_s {
+   int32_t *stack;
+   int stack_capacity, sp;
+   int32_t *storage;
+   int storage_count;
+   int32_t *cvt;
+   int cvt_count;
+   int32_t *twilight_x, *twilight_y;
+   unsigned char *twilight_tx, *twilight_ty;
+   int twilight_count;
+   vltt_tt_zone zones[2];
+   vltt_tt_state gs;
+   unsigned char *code;
+   size_t code_size;
+   size_t ip;
+   int call_depth, max_call_depth;
+   int instruction_limit, instructions;
+   int error;
+   int interpreter_version;
+   int compatibility_flags;
+   int function_count;
+   int32_t function_id[1024];
+   const unsigned char *function_code[1024];
+   size_t function_size[1024];
+   int idef_count;
+   int32_t idef_id[256];
+   const unsigned char *idef_code[256];
+   size_t idef_size[256];
+   int ppem;
+   int units_per_em;
+   int variation_count;
+   int32_t variation_coords[64];
+   int glyph_flags;
+   int execution_mode;
+} vltt_tt_vm;
+
+typedef struct vltt_tt_program_s {
+   const unsigned char *fpgm; size_t fpgm_size;
+   const unsigned char *prep; size_t prep_size;
+   const unsigned char *glyf_program; size_t glyf_program_size;
+} vltt_tt_program;
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 ////
@@ -4105,30 +4188,47 @@ static int stbtt__vl_should_hint(const stbtt_fontinfo *info, float scale_x, floa
    int units_per_em;
    if (!STBTT_VL_NATIVE_HINTING || !info || scale_x != scale_y || !(scale_x > 0.0f) || !isfinite(scale_x)) return 0;
    if (!info->data || info->head < 0) return 0;
+   if (info->data_size && ((size_t)info->head > info->data_size || info->data_size-(size_t)info->head < 20)) return 0;
    units_per_em = ttUSHORT(info->data + info->head + 18);
    if (units_per_em <= 0) return 0;
    return scale_x * (float)units_per_em <= STBTT_VL_NATIVE_HINTING_MAX_PPEM;
 }
 
 
-#ifndef VLTT_TT_POINT_DEFINED
-#define VLTT_TT_POINT_DEFINED
-typedef struct vltt_tt_point_s {
-   int x, y;
-   int ox, oy;
-   unsigned char touched_x, touched_y, on_curve;
-} vltt_tt_point;
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+STBTT_DEF int vltt_tt_vm_init(vltt_tt_vm *vm, int stack_capacity, int storage_count, int cvt_count, int twilight_count);
+STBTT_DEF void vltt_tt_vm_done(vltt_tt_vm *vm);
+STBTT_DEF void vltt_tt_vm_reset_graphics(vltt_tt_vm *vm);
+STBTT_DEF int vltt_tt_execute(vltt_tt_vm *vm, const unsigned char *program, size_t program_size, int instruction_limit);
+STBTT_DEF int vltt_tt_execute_font_program(const stbtt_fontinfo *face, vltt_tt_vm *vm, int ppem);
+STBTT_DEF int vltt_tt_execute_prep(const stbtt_fontinfo *face, vltt_tt_vm *vm, int ppem);
+STBTT_DEF int vltt_tt_hint_points(vltt_tt_vm *vm, vltt_tt_zone *zone, int ppem);
+#ifdef __cplusplus
+}
 #endif
 
 static int vltt__table_bounds(const stbtt_fontinfo *f, const char tag[4], size_t *off, size_t *len);
 static int stbtt__vl_raw_table_bounds(const stbtt_fontinfo *f,const char tag[4],size_t *off,size_t *len)
 {
-   const unsigned char *d; size_t base; unsigned n,i;
+   const unsigned char *d; size_t base,dir_end; unsigned n,i;
    if(!f||!f->data||!off||!len||f->fontstart<0)return 0;
    d=f->data;base=(size_t)f->fontstart;
+   if(f->data_size && (base>f->data_size || f->data_size-base<12))return 0;
    n=ttUSHORT(d+base+4); if(n>4096)return 0;
+   if(base>SIZE_MAX-12 || (size_t)n>(SIZE_MAX-base-12)/16)return 0;
+   dir_end=base+12+(size_t)n*16;
+   if(f->data_size && dir_end>f->data_size)return 0;
    for(i=0;i<n;i++){
-      size_t r=base+12+(size_t)i*16; if(stbtt_tag(d+r,tag)){*off=(size_t)ttULONG(d+r+8);*len=(size_t)ttULONG(d+r+12);return *len<=((size_t)64<<20);}
+      size_t r=base+12+(size_t)i*16;
+      if(stbtt_tag(d+r,tag)){
+         size_t o=(size_t)ttULONG(d+r+8),z=(size_t)ttULONG(d+r+12);
+         if(z>((size_t)64<<20) || (f->data_size && (o>f->data_size || z>f->data_size-o)))return 0;
+         *off=o;*len=z;return 1;
+      }
    }
    return 0;
 }
@@ -4153,444 +4253,6 @@ static int stbtt__vl_raw_table_bounds(const stbtt_fontinfo *f,const char tag[4],
 #define STBTT_VL_HINT_MAX_INSTRUCTIONS 250000
 #endif
 
-typedef struct stbtt__vl_tt_func {
-   const unsigned char *code;
-   size_t size;
-} stbtt__vl_tt_func;
-
-typedef struct stbtt__vl_tt_ctx {
-   vltt_tt_point *p;
-   vltt_tt_point twilight[1024];
-   int twilight_count;
-   int count;
-   int contours;
-   int *ends;
-   int stack[2048];
-   int sp;
-   int zp0,zp1,zp2;
-   int rp0,rp1,rp2;
-   int loop;
-   int ppem;
-   int scale64;
-   int proj_x,proj_y,free_x,free_y,dual_x,dual_y;
-   int round_mode;
-   int minimum_distance;
-   int cvt_cut_in;
-   int single_width_cut_in,single_width_value;
-   int auto_flip;
-   int instruction_control;
-   int delta_base, delta_shift;
-   int round_period, round_phase, round_threshold;
-   int scan_control, scan_type;
-   int angle_weight;
-   int variation_count;
-   int variation_coords[64];
-   int instructions;
-   int error;
-   int call_depth;
-   int if_depth;
-   int skip_depth;
-   int32_t cvt[2048];
-   int cvt_count;
-   int32_t storage[256];
-   stbtt__vl_tt_func funcs[STBTT_VL_HINT_MAX_FUNCTIONS];
-   unsigned char func_valid[STBTT_VL_HINT_MAX_FUNCTIONS];
-   stbtt__vl_tt_func idefs[256];
-   unsigned char idef_valid[256];
-} stbtt__vl_tt_ctx;
-
-static int stbtt__vl_tt_push(stbtt__vl_tt_ctx *c,int v)
-{
-   if (!c || c->sp >= (int)(sizeof(c->stack)/sizeof(c->stack[0]))) { if(c)c->error=1; return 0; }
-   c->stack[c->sp++]=v; return 1;
-}
-static int stbtt__vl_tt_pop(stbtt__vl_tt_ctx *c,int *v)
-{
-   if (!c || !v || c->sp<=0) { if(c)c->error=1; return 0; }
-   *v=c->stack[--c->sp]; return 1;
-}
-static int stbtt__vl_tt_pop_u(stbtt__vl_tt_ctx *c,int *v)
-{
-   if (!stbtt__vl_tt_pop(c,v)) return 0;
-   if (*v<0) { c->error=1; return 0; }
-   return 1;
-}
-static int stbtt__vl_tt_proj(const stbtt__vl_tt_ctx *c,int x,int y)
-{
-   return (int)(((int64_t)x*c->proj_x+(int64_t)y*c->proj_y+8192)>>14);
-}
-static int stbtt__vl_tt_orig_proj(const stbtt__vl_tt_ctx *c,int x,int y)
-{
-   return (int)(((int64_t)x*c->dual_x+(int64_t)y*c->dual_y+8192)>>14);
-}
-static vltt_tt_point *stbtt__vl_tt_point(stbtt__vl_tt_ctx *c,int zone,int pi)
-{
-   if (!c || (zone!=0 && zone!=1)) { if(c)c->error=1; return 0; }
-   if (zone==0) { if(pi<0||pi>=c->twilight_count){c->error=1;return 0;} return &c->twilight[pi]; }
-   if (pi<0||pi>=c->count){c->error=1;return 0;}
-   return &c->p[pi];
-}
-static void stbtt__vl_tt_move(stbtt__vl_tt_ctx *c,int zone,int pi,int d)
-{
-   vltt_tt_point *p=stbtt__vl_tt_point(c,zone,pi);
-   if(!p)return;
-   p->x += (int)(((int64_t)d*c->free_x+8192)>>14);
-   p->y += (int)(((int64_t)d*c->free_y+8192)>>14);
-   if (c->free_x) p->touched_x=1;
-   if (c->free_y) p->touched_y=1;
-}
-static int stbtt__vl_tt_round(const stbtt__vl_tt_ctx *c,int v)
-{
-   int sign=v<0?-1:1, a=v<0?-v:v, q;
-   int period=64, phase=0, threshold=32;
-   if(!c) return v;
-   switch(c->round_mode) {
-      case 0: return v; /* off */
-      case 1: period=64; phase=0; threshold=32; break; /* grid */
-      case 2: period=32; phase=16; threshold=16; break; /* half */
-      case 3: period=32; phase=0; threshold=16; break; /* double */
-      case 4: period=64; phase=0; threshold=0; break; /* down */
-      case 5: period=64; phase=0; threshold=63; break; /* up */
-      case 6: period=c->round_period>0?c->round_period:64; phase=c->round_phase; threshold=c->round_threshold; break;
-      case 7: period=c->round_period>0?c->round_period:45; phase=c->round_phase; threshold=c->round_threshold; break;
-      default: period=64; phase=0; threshold=32; break;
-   }
-   if(c->round_mode==4) return sign*((a+63)/64*64);
-   if(c->round_mode==5) return v>=0?((a+63)&~63):-(a&~63);
-   if(period<=0) return v;
-   q=(a-phase+threshold)/period;
-   if(q<0) q=0;
-   return sign*(q*period+phase);
-}
-
-static int stbtt__vl_tt_round_param(stbtt__vl_tt_ctx *c,int param,int fortyfive)
-{
-   int period_code=(param>>6)&3, phase_code=(param>>4)&3, thresh_code=param&15;
-   int period=(period_code==0)?(fortyfive?45:32):(period_code==1)?(fortyfive?91:64):(fortyfive?181:128);
-   int phase=(phase_code==0)?0:(phase_code==1)?period/4:(phase_code==2)?period/2:(period*3)/4;
-   int threshold;
-   if(thresh_code==0) threshold=period-1;
-   else threshold=((thresh_code-4)*period)/8;
-   c->round_period=period; c->round_phase=phase; c->round_threshold=threshold;
-   c->round_mode=fortyfive?7:6;
-   return 1;
-}
-
-static int stbtt__vl_tt_set_proj_axis(stbtt__vl_tt_ctx *c,int x,int y)
-{
-   int64_t n=(int64_t)x*x+(int64_t)y*y;
-   if (n<=0) return 0;
-   {
-      double inv=16384.0/sqrt((double)n);
-      c->proj_x=(int)lrint((double)x*inv); c->proj_y=(int)lrint((double)y*inv);
-      c->dual_x=c->proj_x; c->dual_y=c->proj_y;
-      return 1;
-   }
-}
-static int stbtt__vl_tt_set_free_axis(stbtt__vl_tt_ctx *c,int x,int y)
-{
-   int64_t n=(int64_t)x*x+(int64_t)y*y;
-   if (n<=0) return 0;
-   {
-      double inv=16384.0/sqrt((double)n);
-      c->free_x=(int)lrint((double)x*inv); c->free_y=(int)lrint((double)y*inv);
-      return 1;
-   }
-}
-static int stbtt__vl_tt_load_cvt(stbtt__vl_tt_ctx *c,const stbtt_fontinfo *info,float scale)
-{
-   size_t off,len; int n,i;
-   if (!c || !info || !stbtt__vl_raw_table_bounds(info,"cvt ",&off,&len) || len<2) return 1;
-   n=(int)(len/2); if(n>(int)(sizeof(c->cvt)/sizeof(c->cvt[0]))) n=(int)(sizeof(c->cvt)/sizeof(c->cvt[0]));
-   for(i=0;i<n;i++) c->cvt[i]=(int)lrint((double)ttSHORT(info->data+off+(size_t)i*2)*(double)scale*64.0);
-   c->cvt_count=n; return 1;
-}
-static int stbtt__vl_tt_find_endf(const unsigned char *code,size_t n,size_t pos,size_t *out)
-{
-   while(pos<n){unsigned op=code[pos++];
-      if(op>=0xB0&&op<=0xB7){size_t k=(size_t)(op-0xB0)+1;if(pos+k>n)return 0;pos+=k;continue;}
-      if(op>=0xB8&&op<=0xBF){size_t k=((size_t)(op-0xB8)+1)*2;if(pos+k>n)return 0;pos+=k;continue;}
-      if(op==0x40){if(pos>=n)return 0;size_t k=code[pos++];if(pos+k>n)return 0;pos+=k;continue;}
-      if(op==0x41){if(pos>=n)return 0;size_t k=(size_t)code[pos++]*2;if(pos+k>n)return 0;pos+=k;continue;}
-      if(op==0x2D){*out=pos-1;return 1;}
-   }
-   return 0;
-}
-
-static int stbtt__vl_tt_parse_fpgm(stbtt__vl_tt_ctx *c,const stbtt_fontinfo *info)
-{
-   size_t off,len,ip=0; int defs=0;
-   if(!c||!info||!stbtt__vl_raw_table_bounds(info,"fpgm",&off,&len)) return 1;
-   if(len>65536)return 0;
-   while(ip<len){unsigned op=info->data[off+ip++]; int fn;
-      if(op>=0xB0&&op<=0xB7){size_t k=(size_t)(op-0xB0)+1;if(ip+k>len)return 0;while(k--)if(!stbtt__vl_tt_push(c,info->data[off+ip++]))return 0;continue;}
-      if(op>=0xB8&&op<=0xBF){size_t k=(size_t)(op-0xB8)+1;if(ip+k*2>len)return 0;while(k--){int v=(int16_t)((info->data[off+ip]<<8)|info->data[off+ip+1]);ip+=2;if(!stbtt__vl_tt_push(c,v))return 0;}continue;}
-      if(op==0x40){if(ip>=len)return 0;size_t k=info->data[off+ip++];if(ip+k>len)return 0;while(k--)if(!stbtt__vl_tt_push(c,info->data[off+ip++]))return 0;continue;}
-      if(op==0x41){if(ip>=len)return 0;size_t k=info->data[off+ip++];if(ip+k*2>len)return 0;while(k--){int v=(int16_t)((info->data[off+ip]<<8)|info->data[off+ip+1]);ip+=2;if(!stbtt__vl_tt_push(c,v))return 0;}continue;}
-      if(op==0x2C||op==0x89){int fn;size_t body,end;if(!stbtt__vl_tt_pop_u(c,&fn)||fn>=256)return 0;body=ip;if(!stbtt__vl_tt_find_endf(info->data+off,len,ip,&end))return 0;if(op==0x2C){if(fn<STBTT_VL_HINT_MAX_FUNCTIONS){c->funcs[fn].code=info->data+off+body;c->funcs[fn].size=end-body;c->func_valid[fn]=1;defs++;}}else{if(!c->idef_valid[fn]){c->idefs[fn].code=info->data+off+body;c->idefs[fn].size=end-body;c->idef_valid[fn]=1;}}ip=end+1;continue;}
-      if(op==0x2D)continue;
-      /* Execute the small amount of global state setup that matters to glyph programs. */
-      switch(op){
-         case 0x18:c->round_mode=1;break; case 0x19:c->round_mode=2;break; case 0x1A:if(!stbtt__vl_tt_pop(c,&fn))return 0;c->minimum_distance=fn;break;
-         case 0x1D:if(!stbtt__vl_tt_pop(c,&fn))return 0;c->cvt_cut_in=fn;break; case 0x1E:if(!stbtt__vl_tt_pop(c,&fn))return 0;c->single_width_cut_in=fn;break;
-         case 0x1F:if(!stbtt__vl_tt_pop(c,&fn))return 0;c->single_width_value=(int)lrint((double)fn*(double)c->scale64/64.0);break;
-         case 0x5E:if(!stbtt__vl_tt_pop(c,&fn))return 0;c->delta_base=fn;break; case 0x5F:if(!stbtt__vl_tt_pop(c,&fn))return 0;c->delta_shift=fn<0?0:(fn>6?6:fn);break;
-         default: break;
-      }
-   }
-   c->sp=0;return defs>=0;
-}
-
-static int stbtt__vl_tt_find_next(const unsigned char *code,size_t n,size_t pos,unsigned target,size_t *out)
-{
-   size_t i=pos; int depth=0;
-   while(i<n){ unsigned op=code[i++];
-      if(op>=0xB0&&op<=0xB7){size_t k=(size_t)(op-0xB0)+1;if(i+k>n)return 0;i+=k;continue;}
-      if(op>=0xB8&&op<=0xBF){size_t k=((size_t)(op-0xB8)+1)*2;if(i+k>n)return 0;i+=k;continue;}
-      if(op==0x40){if(i>=n)return 0;size_t k=(size_t)code[i++];if(i+k>n)return 0;i+=k;continue;}
-      if(op==0x41){if(i>=n)return 0;size_t k=((size_t)code[i++])*2;if(i+k>n)return 0;i+=k;continue;}
-      if(op==0x58) { depth++; continue; }
-      if(op==0x1B) { if(depth==0 && target==0x1B){*out=i-1;return 1;} continue; }
-      if(op==0x59) { if(depth==0){*out=i-1;return 1;} --depth; }
-   }
-   return 0;
-}
-
-static int stbtt__vl_tt_point_delta(const stbtt__vl_tt_ctx *c,int a,int b)
-{
-   if(a<0||a>=c->count||b<0||b>=c->count)return 0;
-   return stbtt__vl_tt_proj(c,c->p[a].x-c->p[b].x,c->p[a].y-c->p[b].y);
-}
-static void stbtt__vl_tt_iup_axis(stbtt__vl_tt_ctx *c,int axis)
-{
-   int start=0;
-   for(int cc=0;cc<c->contours;cc++) {
-      int end=c->ends[cc], first=-1,next=-1;
-      for(int i=start;i<=end;i++) { int touched=axis?c->p[i].touched_y:c->p[i].touched_x; if(touched){if(first<0)first=i;} }
-      if(first<0){start=end+1;continue;}
-      int i=start;
-      do {
-         int touched=axis?c->p[i].touched_y:c->p[i].touched_x;
-         if(!touched) {
-            int a=i;
-            while(a!=end && !(axis?c->p[a].touched_y:c->p[a].touched_x)){a++;}
-            if(a==end && !(axis?c->p[a].touched_y:c->p[a].touched_x)) a=start;
-            next=a;
-            int b=i;
-            while(b!=start && !(axis?c->p[b].touched_y:c->p[b].touched_x)){b--;}
-            if(b==start && !(axis?c->p[b].touched_y:c->p[b].touched_x)) b=end;
-            int pa=axis?c->p[next].y:c->p[next].x,pb=axis?c->p[b].y:c->p[b].x;
-            int oa=axis?c->p[next].oy:c->p[next].ox,ob=axis?c->p[b].oy:c->p[b].ox;
-            int oi=axis?c->p[i].oy:c->p[i].ox;
-            int v;
-            if(oa!=ob) v=pb+(int)(((int64_t)(pa-pb)*(oi-ob))/(oa-ob));
-            else v=pb;
-            if(axis)c->p[i].y=v;else c->p[i].x=v;
-         }
-         if(i==end)break;i++;
-      } while(i<=end);
-      start=end+1;
-   }
-}
-static void stbtt__vl_tt_shift_point(stbtt__vl_tt_ctx *c,int pi,int ref)
-{
-   if(pi<0||pi>=c->count||ref<0||ref>=c->count)return;
-   { int dx=c->p[ref].x-c->p[ref].ox,dy=c->p[ref].y-c->p[ref].oy;c->p[pi].x+=dx;c->p[pi].y+=dy;c->p[pi].touched_x=1;c->p[pi].touched_y=1; }
-}
-static void stbtt__vl_tt_align_point(stbtt__vl_tt_ctx *c,int pi,int ref)
-{
-   if(pi<0||pi>=c->count||ref<0||ref>=c->count)return;
-   {int d=stbtt__vl_tt_proj(c,c->p[ref].x-c->p[pi].x,c->p[ref].y-c->p[pi].y);stbtt__vl_tt_move(c,1,pi,d);}
-}
-
-static int stbtt__vl_tt_run(stbtt__vl_tt_ctx *c,const unsigned char *code,size_t n)
-{
-   size_t ip=0; int a,b,d;
-   if(!c||!code||n>65536||c->call_depth>=STBTT_VL_HINT_MAX_CALL_DEPTH)return 0;
-   c->call_depth++;
-   while(ip<n && !c->error) {
-      unsigned op=code[ip++];
-      if(++c->instructions>STBTT_VL_HINT_MAX_INSTRUCTIONS){c->error=1;break;}
-      if(op>=0xB0&&op<=0xB7){size_t k=(size_t)(op-0xB0)+1;if(ip+k>n){c->error=1;break;}while(k--)if(!stbtt__vl_tt_push(c,code[ip++]))break;continue;}
-      if(op>=0xB8&&op<=0xBF){size_t k=(size_t)(op-0xB8)+1;if(ip+k*2>n){c->error=1;break;}while(k--){int v=(int16_t)((code[ip]<<8)|code[ip+1]);ip+=2;if(!stbtt__vl_tt_push(c,v))break;}continue;}
-      switch(op) {
-         case 0x00: c->proj_x=0;c->proj_y=16384;c->dual_x=0;c->dual_y=16384;break;
-         case 0x01: c->proj_x=16384;c->proj_y=0;c->dual_x=16384;c->dual_y=0;break;
-         case 0x02: c->proj_x=0;c->proj_y=16384; c->dual_x=0;c->dual_y=16384;break;
-         case 0x03: c->proj_x=16384;c->proj_y=0; c->dual_x=16384;c->dual_y=0;break;
-         case 0x04: c->free_x=0;c->free_y=16384;break;
-         case 0x05: c->free_x=16384;c->free_y=0;break;
-         case 0x06: case 0x07: case 0x08: case 0x09: {int p1,p2;vltt_tt_point *q1,*q2;if(!stbtt__vl_tt_pop_u(c,&p1)||!stbtt__vl_tt_pop_u(c,&p2))break;q1=stbtt__vl_tt_point(c,c->zp1,p1);q2=stbtt__vl_tt_point(c,c->zp2,p2);if(!q1||!q2)break;{int dx=q2->x-q1->x,dy=q2->y-q1->y;if(op&1){int t=dx;dx=-dy;dy=t;}if(op<8){if(!stbtt__vl_tt_set_proj_axis(c,dx,dy))c->error=1;}else{if(!stbtt__vl_tt_set_free_axis(c,dx,dy))c->error=1;}}}break;
-         case 0x0A: if(!stbtt__vl_tt_pop(&*c,&a)||!stbtt__vl_tt_pop(&*c,&b)||!stbtt__vl_tt_set_proj_axis(c,a,b))break;break;
-         case 0x0B: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_set_free_axis(c,a,b))break;break;
-         case 0x0C: if(!stbtt__vl_tt_push(c,c->proj_x)||!stbtt__vl_tt_push(c,c->proj_y))break;break;
-         case 0x0D: if(!stbtt__vl_tt_push(c,c->free_x)||!stbtt__vl_tt_push(c,c->free_y))break;break;
-         case 0x0E: c->free_x=c->proj_x;c->free_y=c->proj_y;break;
-         case 0x0F: {int p,a0,a1,b0,b1;if(!stbtt__vl_tt_pop_u(c,&b1)||!stbtt__vl_tt_pop_u(c,&b0)||!stbtt__vl_tt_pop_u(c,&a1)||!stbtt__vl_tt_pop_u(c,&a0)||!stbtt__vl_tt_pop_u(c,&p)||p>=c->count||a0>=c->count||a1>=c->count||b0>=c->count||b1>=c->count){c->error=1;break;}double x1=c->p[a0].x,y1=c->p[a0].y,x2=c->p[a1].x,y2=c->p[a1].y,x3=c->p[b0].x,y3=c->p[b0].y,x4=c->p[b1].x,y4=c->p[b1].y;double den=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);double xx,yy;if(fabs(den)>1e-9){double t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/den;xx=x1+t*(x2-x1);yy=y1+t*(y2-y1);}else{xx=(x1+x2+x3+x4)*0.25;yy=(y1+y2+y3+y4)*0.25;}c->p[p].x=(int)lrint(xx);c->p[p].y=(int)lrint(yy);c->p[p].touched_x=1;c->p[p].touched_y=1;}break;
-         case 0x10: if(!stbtt__vl_tt_pop_u(c,&a))break;c->rp0=a;break;
-         case 0x11: if(!stbtt__vl_tt_pop_u(c,&a))break;c->rp1=a;break;
-         case 0x12: if(!stbtt__vl_tt_pop_u(c,&a))break;c->rp2=a;break;
-         case 0x13: if(!stbtt__vl_tt_pop_u(c,&a)||a>1)break;c->zp0=a;break;
-         case 0x14: if(!stbtt__vl_tt_pop_u(c,&a)||a>1)break;c->zp1=a;break;
-         case 0x15: if(!stbtt__vl_tt_pop_u(c,&a)||a>1)break;c->zp2=a;break;
-         case 0x16: if(!stbtt__vl_tt_pop_u(c,&a)||a>1)break;c->zp0=c->zp1=c->zp2=a;break;
-         case 0x17: if(!stbtt__vl_tt_pop(c,&a)||a<1||a>c->count)break;c->loop=a;break;
-         case 0x18: c->round_mode=1;break;
-         case 0x19: c->round_mode=2;break;
-         case 0x1A: if(!stbtt__vl_tt_pop(c,&a))break;c->minimum_distance=a;break;
-         case 0x1C: if(!stbtt__vl_tt_pop(c,&a))break;{int64_t np=(int64_t)(ip-1)+a;if(np<0||(uint64_t)np>n){c->error=1;break;}ip=(size_t)np;}break;
-         case 0x1D: if(!stbtt__vl_tt_pop(c,&a))break;c->cvt_cut_in=a;break;
-         case 0x1E: if(!stbtt__vl_tt_pop(c,&a))break;c->single_width_cut_in=a;break;
-         case 0x1F: if(!stbtt__vl_tt_pop(c,&a))break;c->single_width_value=(int)lrint((double)a*(double)c->scale64/64.0);break;
-         case 0x20: if(c->sp<=0||!stbtt__vl_tt_push(c,c->stack[c->sp-1]))break;break;
-         case 0x21: if(!stbtt__vl_tt_pop(c,&a))break;break;
-         case 0x22: c->sp=0;break;
-         case 0x23: if(c->sp<2){c->error=1;break;}d=c->stack[c->sp-1];c->stack[c->sp-1]=c->stack[c->sp-2];c->stack[c->sp-2]=d;break;
-         case 0x24: if(!stbtt__vl_tt_push(c,c->sp))break;break;
-         case 0x25: if(!stbtt__vl_tt_pop_u(c,&a)||a>=c->sp){c->error=1;break;}if(!stbtt__vl_tt_push(c,c->stack[c->sp-1-a]))break;break;
-         case 0x26: if(!stbtt__vl_tt_pop_u(c,&a)||a>=c->sp){c->error=1;break;}{int ix=c->sp-1-a,v=c->stack[ix];memmove(&c->stack[ix],&c->stack[ix+1],(size_t)(c->sp-ix-1)*sizeof(c->stack[0]));c->stack[c->sp-1]=v;}break;
-         case 0x27: {int p1,p2;if(!stbtt__vl_tt_pop_u(c,&p1)||!stbtt__vl_tt_pop_u(c,&p2)||p1>=c->count||p2>=c->count){c->error=1;break;}int d=stbtt__vl_tt_proj(c,c->p[p2].x-c->p[p1].x,c->p[p2].y-c->p[p1].y);int h=d/2;stbtt__vl_tt_move(c,1,p1,h);stbtt__vl_tt_move(c,1,p2,-h);}break;
-         case 0x28: if(!stbtt__vl_tt_pop_u(c,&a)||a>=c->count){c->error=1;break;}c->p[a].touched_x=0;c->p[a].touched_y=0;break;
-         case 0x29: {int fn,count;if(!stbtt__vl_tt_pop_u(c,&fn)||!stbtt__vl_tt_pop(c,&count)||fn>=STBTT_VL_HINT_MAX_FUNCTIONS||!c->func_valid[fn]||count<0||count>1024){c->error=1;break;}while(count--&&!c->error)if(!stbtt__vl_tt_run(c,c->funcs[fn].code,c->funcs[fn].size))break;}break;
-         case 0x2A: {int fn,count;if(!stbtt__vl_tt_pop_u(c,&fn)||!stbtt__vl_tt_pop(c,&count)||fn>=STBTT_VL_HINT_MAX_FUNCTIONS||!c->func_valid[fn]||count<0||count>1024){c->error=1;break;}while(count--&&!c->error)if(!stbtt__vl_tt_run(c,c->funcs[fn].code,c->funcs[fn].size))break;}break;
-         case 0x2B: {
-            if(!stbtt__vl_tt_pop_u(c,&a)) break;
-            if(a<0 || a>=STBTT_VL_HINT_MAX_FUNCTIONS || !c->func_valid[a] || c->call_depth>=STBTT_VL_HINT_MAX_CALL_DEPTH) {
-               c->error=1;
-               break;
-            }
-            if(!stbtt__vl_tt_run(c,c->funcs[a].code,c->funcs[a].size)) c->error=1;
-         } break;
-         case 0x2D: c->call_depth--; return !c->error;
-         case 0x2E: case 0x2F: {
-            vltt_tt_point *pt;if(!stbtt__vl_tt_pop_u(c,&a))break;pt=stbtt__vl_tt_point(c,c->zp0,a);if(!pt)break;
-            {int cur=stbtt__vl_tt_proj(c,pt->x,pt->y);int target=(op&1)?stbtt__vl_tt_round(c,cur):cur;stbtt__vl_tt_move(c,c->zp0,a,target-cur);if(c->zp0==0){pt=stbtt__vl_tt_point(c,0,a);if(pt){pt->ox=pt->x;pt->oy=pt->y;}}c->rp0=c->rp1=a;}}break;
-         case 0x30: stbtt__vl_tt_iup_axis(c,1);break;
-         case 0x31: stbtt__vl_tt_iup_axis(c,0);break;
-         case 0x32: case 0x33: {
-            int refzone=(op&1)?c->zp1:c->zp0,ref=(op&1)?c->rp2:c->rp1;vltt_tt_point *rp=stbtt__vl_tt_point(c,refzone,ref);int dx=0,dy=0;if(!rp)break;dx=rp->x-rp->ox;dy=rp->y-rp->oy;{int loop=c->loop;while(loop--){vltt_tt_point *pt;if(!stbtt__vl_tt_pop_u(c,&a))break;pt=stbtt__vl_tt_point(c,c->zp2,a);if(!pt)break;if(!(c->zp2==refzone&&a==ref)){pt->x+=dx;pt->y+=dy;pt->touched_x=pt->touched_y=1;}}}c->loop=1;
-         } break;
-         case 0x34: case 0x35: {
-            int contour,refzone=(op&1)?c->zp1:c->zp0,ref=(op&1)?c->rp2:c->rp1;vltt_tt_point *rp;int st,en,dx,dy;if(!stbtt__vl_tt_pop_u(c,&contour))break;if(c->zp2==0){if(contour!=0){c->error=1;break;}st=0;en=c->twilight_count-1;}else{if(contour>=c->contours){c->error=1;break;}st=contour?c->ends[contour-1]+1:0;en=c->ends[contour];}rp=stbtt__vl_tt_point(c,refzone,ref);if(!rp)break;dx=rp->x-rp->ox;dy=rp->y-rp->oy;for(int q=st;q<=en;q++){vltt_tt_point *pt=stbtt__vl_tt_point(c,c->zp2,q);if(pt&&!(c->zp2==refzone&&q==ref)){pt->x+=dx;pt->y+=dy;pt->touched_x=pt->touched_y=1;}}
-         } break;
-         case 0x36: case 0x37: {
-            int zone,refzone=(op&1)?c->zp1:c->zp0,ref=(op&1)?c->rp2:c->rp1;vltt_tt_point *rp;int dx,dy,lim;if(!stbtt__vl_tt_pop_u(c,&zone)||zone>1){c->error=1;break;}rp=stbtt__vl_tt_point(c,refzone,ref);if(!rp)break;dx=rp->x-rp->ox;dy=rp->y-rp->oy;lim=zone==0?c->twilight_count:(c->count>4?c->count-4:0);for(int q=0;q<lim;q++){vltt_tt_point *pt=stbtt__vl_tt_point(c,zone,q);if(pt&&!(zone==refzone&&q==ref)){pt->x+=dx;pt->y+=dy;pt->touched_x=pt->touched_y=1;}}
-         } break;
-         case 0x38: if(!stbtt__vl_tt_pop(c,&a))break;{int loop=c->loop;while(loop--){if(!stbtt__vl_tt_pop_u(c,&b))break;if(!stbtt__vl_tt_point(c,c->zp2,b))break;stbtt__vl_tt_move(c,c->zp2,b,a);}c->loop=1;}break;
-         case 0x39: {
-            int loop=c->loop;
-            while(loop--) {
-               vltt_tt_point *p0,*p1,*pt;int oi,o0,o1,c0,c1,target,cur;int twilight=(c->zp0==0||c->zp1==0||c->zp2==0);
-               if(!stbtt__vl_tt_pop_u(c,&a))break;
-               p0=stbtt__vl_tt_point(c,c->zp0,c->rp1);p1=stbtt__vl_tt_point(c,c->zp1,c->rp2);pt=stbtt__vl_tt_point(c,c->zp2,a);if(!p0||!p1||!pt)break;
-               o0=stbtt__vl_tt_orig_proj(c,twilight?p0->x:p0->ox,twilight?p0->y:p0->oy);
-               o1=stbtt__vl_tt_orig_proj(c,twilight?p1->x:p1->ox,twilight?p1->y:p1->oy);
-               oi=stbtt__vl_tt_orig_proj(c,twilight?pt->x:pt->ox,twilight?pt->y:pt->oy);
-               c0=stbtt__vl_tt_proj(c,p0->x,p0->y);c1=stbtt__vl_tt_proj(c,p1->x,p1->y);
-               if(o1!=o0)target=c0+(int)(((int64_t)(c1-c0)*(oi-o0))/(o1-o0));else target=c0;
-               cur=stbtt__vl_tt_proj(c,pt->x,pt->y);stbtt__vl_tt_move(c,c->zp2,a,target-cur);
-            }
-            c->loop=1;
-         } break;
-         case 0x3A: case 0x3B: {int p,dst,ref=c->rp0;vltt_tt_point *pt,*pr;if(!stbtt__vl_tt_pop_u(c,&p)||!stbtt__vl_tt_pop(c,&dst))break;pt=stbtt__vl_tt_point(c,c->zp1,p);pr=stbtt__vl_tt_point(c,c->zp0,ref);if(!pt||!pr)break;{int target=(op&1)?stbtt__vl_tt_round(c,dst):dst;if(abs(target)<c->minimum_distance)target=target<0?-c->minimum_distance:c->minimum_distance;if(c->zp1==0){pt->ox=pr->x;pt->oy=pr->y;pt->x=pt->ox;pt->y=pt->oy;}int cur=stbtt__vl_tt_proj(c,pt->x-pr->x,pt->y-pr->y);stbtt__vl_tt_move(c,c->zp1,p,target-cur);c->rp1=ref;c->rp2=p;if(op&1)c->rp0=p;}}break;
-         case 0x3C: {int loop=c->loop;vltt_tt_point *ref=stbtt__vl_tt_point(c,c->zp0,c->rp0);if(!ref)break;while(loop--){vltt_tt_point *pt;if(!stbtt__vl_tt_pop_u(c,&a))break;pt=stbtt__vl_tt_point(c,c->zp1,a);if(!pt)break;{int d=stbtt__vl_tt_proj(c,ref->x-pt->x,ref->y-pt->y);stbtt__vl_tt_move(c,c->zp1,a,d);}}c->loop=1;}break;
-         case 0x3D: c->round_mode=4;break;
-         case 0x3E: case 0x3F: {int p,n;vltt_tt_point *pt;if(!stbtt__vl_tt_pop_u(c,&p)||!stbtt__vl_tt_pop_u(c,&n))break;pt=stbtt__vl_tt_point(c,c->zp0,p);if(!pt||n>=c->cvt_count){c->error=1;break;}{int target=c->cvt[n],orig=stbtt__vl_tt_orig_proj(c,pt->ox,pt->oy),cur=stbtt__vl_tt_proj(c,pt->x,pt->y);if(c->zp0==0){target=c->cvt[n];pt->ox=(int)(((int64_t)target*c->free_x+8192)>>14);pt->oy=(int)(((int64_t)target*c->free_y+8192)>>14);pt->x=pt->ox;pt->y=pt->oy;orig=target;cur=target;}if((op&1)&&abs(target-orig)>c->cvt_cut_in&&c->zp0!=0)target=orig;if(op&1)target=stbtt__vl_tt_round(c,target);stbtt__vl_tt_move(c,c->zp0,p,target-cur);c->rp0=c->rp1=p;}}break;
-         case 0x40: {if(ip>=n){c->error=1;break;}size_t k=code[ip++];if(ip+k>n){c->error=1;break;}while(k--)if(!stbtt__vl_tt_push(c,code[ip++]))break;}break;
-         case 0x41: {if(ip+1>n){c->error=1;break;}int k=code[ip++];if(ip+(size_t)k*2>n){c->error=1;break;}while(k--){int v=(int16_t)((code[ip]<<8)|code[ip+1]);ip+=2;if(!stbtt__vl_tt_push(c,v))break;}}break;
-         case 0x42: {int loc,val;if(!stbtt__vl_tt_pop_u(c,&loc)||!stbtt__vl_tt_pop(c,&val)||loc>=256){c->error=1;break;}c->storage[loc]=val;}break;
-         case 0x43: {int loc;if(!stbtt__vl_tt_pop_u(c,&loc)||loc>=256){c->error=1;break;}if(!stbtt__vl_tt_push(c,c->storage[loc]))break;}break;
-         case 0x44: {int loc,val;if(!stbtt__vl_tt_pop(c,&val)||!stbtt__vl_tt_pop_u(c,&loc)||loc>=c->cvt_count){c->error=1;break;}c->cvt[loc]=val;}break;
-         case 0x45: {int loc;if(!stbtt__vl_tt_pop_u(c,&loc)||loc>=c->cvt_count){c->error=1;break;}if(!stbtt__vl_tt_push(c,c->cvt[loc]))break;}break;
-         case 0x46: case 0x47: {int p;vltt_tt_point *pt;if(!stbtt__vl_tt_pop_u(c,&p))break;pt=stbtt__vl_tt_point(c,c->zp2,p);if(!pt)break;if(!stbtt__vl_tt_push(c,op==0x46?stbtt__vl_tt_proj(c,pt->x,pt->y):stbtt__vl_tt_orig_proj(c,pt->ox,pt->oy)))break;}break;
-         case 0x48: {int p,val;vltt_tt_point *pt;if(!stbtt__vl_tt_pop_u(c,&p)||!stbtt__vl_tt_pop(c,&val))break;pt=stbtt__vl_tt_point(c,c->zp2,p);if(!pt)break;{int cur=stbtt__vl_tt_proj(c,pt->x,pt->y);stbtt__vl_tt_move(c,c->zp2,p,val-cur);}}break;
-         case 0x49: case 0x4A: {int p1,p2;vltt_tt_point *q1,*q2;if(!stbtt__vl_tt_pop_u(c,&p1)||!stbtt__vl_tt_pop_u(c,&p2))break;q1=stbtt__vl_tt_point(c,c->zp1,p1);q2=stbtt__vl_tt_point(c,c->zp0,p2);if(!q1||!q2)break;{int d=(op==0x49)?stbtt__vl_tt_proj(c,q1->x-q2->x,q1->y-q2->y):stbtt__vl_tt_orig_proj(c,q1->ox-q2->ox,q1->oy-q2->oy);if(!stbtt__vl_tt_push(c,d))break;}}break;
-         case 0x4B: if(!stbtt__vl_tt_push(c,c->ppem))break;break;
-         case 0x4C: if(!stbtt__vl_tt_push(c,c->ppem*64))break;break;
-         case 0x4D: c->auto_flip=1;break;
-         case 0x4E: c->auto_flip=0;break;
-         case 0x4F: if(!stbtt__vl_tt_pop(c,&a))break;break;
-         case 0x50: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,a<b))break;break;
-         case 0x51: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,b<=a))break;break;
-         case 0x52: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,b>a))break;break;
-         case 0x53: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,b>=a))break;break;
-         case 0x54: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,a==b))break;break;
-         case 0x55: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,a!=b))break;break;
-         case 0x56: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,(a&63)!=0))break;break;
-         case 0x57: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,(a&63)==0))break;break;
-         case 0x58: if(!stbtt__vl_tt_pop(c,&a))break;if(!a){size_t q;if(stbtt__vl_tt_find_next(code,n,ip,0x1B,&q))ip=q+1;else if(stbtt__vl_tt_find_next(code,n,ip,0x59,&q))ip=q+1;else c->error=1;}break;
-         case 0x59: break;
-         case 0x5D: case 0x71: case 0x72: {int cnt;if(!stbtt__vl_tt_pop_u(c,&cnt)||cnt>64||cnt>c->sp/2){c->error=1;break;}int base=c->delta_base+(op==0x71?16:(op==0x72?32:0));for(int k=0;k<cnt;k++){int pt,arg;if(!stbtt__vl_tt_pop_u(c,&pt)||pt>=c->count||!stbtt__vl_tt_pop(c,&arg)){c->error=1;break;}int pp=base+((arg>>4)&15);if(pp==c->ppem){int d=(arg&15)-8;d=(d*64)/(1<<c->delta_shift);stbtt__vl_tt_move(c,1,pt,d);}}}break;
-         case 0x5E: if(!stbtt__vl_tt_pop(c,&a))break;c->delta_base=a<0?0:a;break;
-         case 0x5F: if(!stbtt__vl_tt_pop(c,&a))break;c->delta_shift=(a<0?0:(a>6?6:a));break;
-         case 0x5A: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,(a&&b)?1:0))break;break;
-         case 0x5B: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,(a||b)?1:0))break;break;
-         case 0x5C: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a?0:1))break;break;
-         case 0x60: if(!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a+b))break;break;
-         case 0x61: if(!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a-b))break;break;
-         case 0x62: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a>>6))break;break;
-         case 0x63: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a<<6))break;break;
-         case 0x64: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a<0?-a:a))break;break;
-         case 0x65: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a))break;break;
-         case 0x66: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a>=0?(a&~63):-(((-a+63)&~63))))break;break;
-         case 0x67: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a>=0?((a+63)&~63):-((-a)&~63)))break;break;
-         case 0x68: case 0x69: case 0x6A: case 0x6B: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,stbtt__vl_tt_round(c,a)))break;break;
-         case 0x6C: case 0x6D: case 0x6E: case 0x6F: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_push(c,a))break;break;
-         case 0x76: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_round_param(c,a,0))break;break;
-         case 0x77: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_round_param(c,a,1))break;break;
-         case 0x78: {int cond,off;if(!stbtt__vl_tt_pop(c,&cond)||!stbtt__vl_tt_pop(c,&off))break;if(cond){int64_t np=(int64_t)(ip-1)+off;if(np<0||(uint64_t)np>n){c->error=1;break;}ip=(size_t)np;}}break;
-         case 0x79: {int cond,off;if(!stbtt__vl_tt_pop(c,&cond)||!stbtt__vl_tt_pop(c,&off))break;if(!cond){int64_t np=(int64_t)(ip-1)+off;if(np<0||(uint64_t)np>n){c->error=1;break;}ip=(size_t)np;}}break;
-         case 0x7A: c->round_mode=0;break;
-         case 0x7C: c->round_mode=5;break;
-         case 0x7D: c->round_mode=4;break;
-         case 0x70: {int loc,val;if(!stbtt__vl_tt_pop_u(c,&loc)||!stbtt__vl_tt_pop(c,&val)||loc>=c->cvt_count){c->error=1;break;}c->cvt[loc]=(int)lrint((double)val*(double)c->scale64/64.0); } break;
-         case 0x73: case 0x74: case 0x75: {int cnt;if(!stbtt__vl_tt_pop_u(c,&cnt)||cnt>64||cnt>c->sp/2){c->error=1;break;}int base=c->delta_base+(op==0x74?16:(op==0x75?32:0));for(int k=0;k<cnt;k++){int arg,idx;if(!stbtt__vl_tt_pop(c,&arg)||!stbtt__vl_tt_pop_u(c,&idx)||idx>=c->cvt_count){c->error=1;break;}int pp=base+((arg>>4)&15);if(pp==c->ppem){int d=(arg&15)-8;d=(d*64)/(1<<c->delta_shift);c->cvt[idx]+=d;}}} break;
-         case 0x7E: if(!stbtt__vl_tt_pop(c,&a))break;c->angle_weight=a;break;
-         case 0x7F: if(!stbtt__vl_tt_pop(c,&a))break;break; /* AA is obsolete */
-         case 0x80: if(!stbtt__vl_tt_pop_u(c,&a)||a>=c->count){c->error=1;break;}c->p[a].on_curve=!c->p[a].on_curve;break;
-         case 0x81: case 0x82: {int hi,lo;if(!stbtt__vl_tt_pop_u(c,&hi)||!stbtt__vl_tt_pop_u(c,&lo)||hi>=c->count||lo>hi){c->error=1;break;}for(int q=lo;q<=hi;q++)c->p[q].on_curve=(unsigned char)(op==0x81);}break;
-         case 0x83: if(!stbtt__vl_tt_pop(c,&a))break;c->scan_control=a;break;
-         case 0x84: if(!stbtt__vl_tt_pop(c,&a))break;break;
-         case 0x85: if(!stbtt__vl_tt_pop(c,&a))break;c->scan_control=a;break;
-         case 0x86: case 0x87: {int p1,p2;if(!stbtt__vl_tt_pop_u(c,&p1)||!stbtt__vl_tt_pop_u(c,&p2)||p1>=c->count||p2>=c->count){c->error=1;break;}int dx=c->p[p2].x-c->p[p1].x,dy=c->p[p2].y-c->p[p1].y;if(op&1){int t=dx;dx=-dy;dy=t;}if(!stbtt__vl_tt_set_proj_axis(c,dx,dy))c->error=1;}break;
-         case 0x88: { int sel,r=0; if(!stbtt__vl_tt_pop(c,&sel))break; if(sel&1)r|=42; if(sel&16)r|=1<<11; if(sel&32)r|=1<<12; if(!stbtt__vl_tt_push(c,r))break; } break;
-         case 0x8A: if(c->sp<3){c->error=1;break;}{int z=c->stack[c->sp-3],y=c->stack[c->sp-2],x=c->stack[c->sp-1];c->stack[c->sp-3]=y;c->stack[c->sp-2]=x;c->stack[c->sp-1]=z;}break;
-         case 0x8B: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,a>b?a:b))break;break;
-         case 0x8C: if(!stbtt__vl_tt_pop(c,&a)||!stbtt__vl_tt_pop(c,&b)||!stbtt__vl_tt_push(c,a<b?a:b))break;break;
-         case 0x8D: if(!stbtt__vl_tt_pop(c,&a))break;c->scan_type=a;break;
-         case 0x8E: {int selector,val;if(!stbtt__vl_tt_pop(c,&selector)||!stbtt__vl_tt_pop(c,&val))break;if(selector==1&&val)c->instruction_control|=1;else if(selector==1)c->instruction_control&=~1;else if(selector==2&&val)c->instruction_control|=2;else if(selector==2)c->instruction_control&=~2;else if(selector==3){if(val==4)c->instruction_control|=4;else if(val==3)c->instruction_control&=~4;}} break;
-         case 0x89: break;
-         case 0x91: if(!stbtt__vl_tt_pop_u(c,&a)||a<0||a>=c->variation_count){c->error=1;break;} if(!stbtt__vl_tt_push(c,c->variation_coords[a]))break; break;
-         case 0x2C: break;
-         default:
-            if(op<0xC0 && c->idef_valid[op]) { if(c->call_depth>=STBTT_VL_HINT_MAX_CALL_DEPTH || !stbtt__vl_tt_run(c,c->idefs[op].code,c->idefs[op].size)) c->error=1; break; }
-            if(op>=0xC0&&op<=0xDF) {
-               int p,ref,dist;vltt_tt_point *pt,*rp;int z0=c->zp0,z1=c->zp1;
-               if(!stbtt__vl_tt_pop_u(c,&p))break;ref=c->rp0;pt=stbtt__vl_tt_point(c,z1,p);rp=stbtt__vl_tt_point(c,z0,ref);if(!pt||!rp)break;
-               if(z1==0){pt->ox=rp->x;pt->oy=rp->y;pt->x=pt->ox;pt->y=pt->oy;}
-               dist=stbtt__vl_tt_orig_proj(c,pt->ox-rp->ox,pt->oy-rp->oy);
-               if(c->single_width_cut_in>0 && abs(dist-c->single_width_value)<c->single_width_cut_in)dist=(dist<0)?-c->single_width_value:c->single_width_value;
-               if(op&4)dist=stbtt__vl_tt_round(c,dist);if((op&8)&&abs(dist)<c->minimum_distance)dist=dist<0?-c->minimum_distance:c->minimum_distance;
-               {int cur=stbtt__vl_tt_proj(c,pt->x-rp->x,pt->y-rp->y);stbtt__vl_tt_move(c,z1,p,dist-cur);}c->rp1=ref;c->rp2=p;if(op&16)c->rp0=p;
-            } else if(op>=0xE0) {
-               int p,cv,ref,dist,target;vltt_tt_point *pt,*rp;int z0=c->zp0,z1=c->zp1;
-               if(!stbtt__vl_tt_pop_u(c,&cv)||!stbtt__vl_tt_pop_u(c,&p))break;if(cv>=c->cvt_count){c->error=1;break;}ref=c->rp0;pt=stbtt__vl_tt_point(c,z1,p);rp=stbtt__vl_tt_point(c,z0,ref);if(!pt||!rp)break;
-               target=c->cvt[cv];dist=target;if(c->auto_flip&&dist<0)dist=-dist;
-               if(z1==0){pt->ox=rp->x;pt->oy=rp->y;pt->x=pt->ox;pt->y=pt->oy;}
-               {int orig=stbtt__vl_tt_orig_proj(c,pt->ox-rp->ox,pt->oy-rp->oy);if((op&4)&&abs(dist-orig)>c->cvt_cut_in)dist=orig;if(op&4)dist=stbtt__vl_tt_round(c,dist);}
-               if((op&8)&&abs(dist)<c->minimum_distance)dist=dist<0?-c->minimum_distance:c->minimum_distance;
-               {int cur=stbtt__vl_tt_proj(c,pt->x-rp->x,pt->y-rp->y);stbtt__vl_tt_move(c,z1,p,dist-cur);}c->rp1=ref;c->rp2=p;if(op&16)c->rp0=p;
-            } else if(op==0x2C) {
-            } else if(op==0x2D) {
-            } else if(op==0x80) {
-            } else {
-               /* Unknown/engine-specific instructions are ignored in tolerant mode. */
-            }
-            break;
-      }
-   }
-   c->call_depth--; return !c->error;
-}
 
 static int stbtt__vl_decode_simple_glyph(const stbtt_fontinfo *info,int glyph,vltt_tt_point **out,int *count,int **ends_out,int *contours_out,const unsigned char **instr_out,size_t *instr_len_out)
 {
@@ -4637,32 +4299,48 @@ static void stbtt__vl_light_hint_points(vltt_tt_point *p,int n,int ppem)
 }
 static int stbtt__vl_hint_simple_glyph(const stbtt_fontinfo *info,int glyph,float sx,float sy,vltt_tt_point **outp,int *outn,int **outends,int *outcontours)
 {
-   vltt_tt_point *p=0;int n=0,*ends=0,nc=0;const unsigned char *ins=0;size_t insn=0;stbtt__vl_tt_ctx c;int upem,ppem;size_t hOff=0,hLen=0;int allow=1;
+   vltt_tt_point *p=0,*tw=0; int n=0,*ends=0,nc=0,upem,ppem,allow=1,ok=0; const unsigned char *ins=0; size_t insn=0,hOff=0,hLen=0; vltt_tt_vm vm; int vm_ready=0;
    if(outp)*outp=0;if(outn)*outn=0;if(outends)*outends=0;if(outcontours)*outcontours=0;
    if(!STBTT_VL_NATIVE_HINTING||!info||info->cff.size||!(fabsf(sx)>0.0f)||!(fabsf(sy)>0.0f)||fabsf(sx-sy)>0.0001f)return 0;
-   upem=ttUSHORT(info->data+info->head+18);ppem=(int)lrintf(fabsf(sy)*(float)upem);if(ppem<1||ppem>STBTT_VL_HINT_MAX_PPEM)return 0;
+   if(info->head<0 || (info->data_size && ((size_t)info->head>info->data_size || info->data_size-(size_t)info->head<20)))return 0;
+   upem=ttUSHORT(info->data+info->head+18);if(upem<=0)return 0;ppem=(int)lrintf(fabsf(sy)*(float)upem);if(ppem<1||ppem>STBTT_VL_HINT_MAX_PPEM)return 0;
    if(!stbtt__vl_decode_simple_glyph(info,glyph,&p,&n,&ends,&nc,&ins,&insn))return 0;
+   if(n<1||n>STBTT_VL_HINT_MAX_POINTS)goto done;
    for(int q=0;q<n;q++){p[q].x=(int)lrintf((float)p[q].x*sx);p[q].y=(int)lrintf((float)p[q].y*sy);p[q].ox=(int)lrintf((float)p[q].ox*sx);p[q].oy=(int)lrintf((float)p[q].oy*sy);}
-   if(!ins||!insn)goto fail;
+   if(!ins||!insn)goto done;
    if(vltt__table_bounds(info,"gasp",&hOff,&hLen)&&hLen>=4){unsigned ng=ttUSHORT(info->data+hOff+2);size_t q=4;allow=0;for(unsigned k=0;k<ng&&q+4<=hLen;k++,q+=4){unsigned maxp=ttUSHORT(info->data+hOff+q),fl=ttUSHORT(info->data+hOff+q+2);if(ppem<=maxp){allow=(fl&1)!=0;break;}}}
-   if(!allow)goto fail;
-   memset(&c,0,sizeof(c));c.p=p;c.count=n;c.contours=nc;c.ends=ends;c.ppem=ppem;
-   { size_t mo=0,ml=0; int tw=16; if(stbtt__vl_raw_table_bounds(info,"maxp",&mo,&ml)&&ml>=18&&ttULONG(info->data+mo)>=0x00010000)tw=ttUSHORT(info->data+mo+16); if(tw<1)tw=1;if(tw>1024)tw=1024;c.twilight_count=tw; }
-c.variation_count=(info->vltt_var_coords_valid&&info->vltt_var_axes>0)?(info->vltt_var_axes<64?info->vltt_var_axes:64):0;for(int vi=0;vi<c.variation_count;vi++)c.variation_coords[vi]=(int)lrintf(info->vltt_var_coords[vi]*16384.0f);c.scale64=(int)lrintf(sx*64.0f);c.zp0=c.zp1=c.zp2=1;c.proj_x=c.dual_x=16384;c.proj_y=c.dual_y=0;c.free_x=16384;c.free_y=0;c.round_mode=1;c.minimum_distance=64;c.cvt_cut_in=68;c.single_width_cut_in=0;c.single_width_value=0;c.auto_flip=1;c.delta_base=9;c.delta_shift=3;c.round_period=64;c.round_phase=0;c.round_threshold=32;c.scan_control=0;c.scan_type=2;
-   if(!stbtt__vl_tt_load_cvt(&c,info,(sx+sy)*0.5f))goto fail;
-   /* Font programs establish FDEFs. We intentionally keep global side effects local to this glyph context. */
-   if(!stbtt__vl_tt_parse_fpgm(&c,info))goto fail;
-   { size_t po,pl; if(vltt__table_bounds(info,"prep",&po,&pl) && pl<=65536) { c.sp=0;c.instructions=0;c.error=0;c.call_depth=0; if(!stbtt__vl_tt_run(&c,info->data+po,pl)||c.error) { c.sp=0; c.instructions=0; c.error=0; c.call_depth=0; } } }
-   c.sp=0;c.instructions=0;c.error=0;c.call_depth=0;c.rp0=c.rp1=c.rp2=0;
-   if(!stbtt__vl_tt_run(&c,ins,insn)||c.error)goto fail;
-   { int max_move=(ppem*64)/8; if(max_move<3*64)max_move=3*64; if(max_move>8*64)max_move=8*64; int ox0=p[0].ox,ox1=p[0].ox,oy0=p[0].oy,oy1=p[0].oy,hx0=p[0].x,hx1=p[0].x,hy0=p[0].y,hy1=p[0].y; for(int q=0;q<n-4;q++){if(abs(p[q].x-p[q].ox)>max_move||abs(p[q].y-p[q].oy)>max_move)goto fail;if(p[q].ox<ox0)ox0=p[q].ox;if(p[q].ox>ox1)ox1=p[q].ox;if(p[q].oy<oy0)oy0=p[q].oy;if(p[q].oy>oy1)oy1=p[q].oy;if(p[q].x<hx0)hx0=p[q].x;if(p[q].x>hx1)hx1=p[q].x;if(p[q].y<hy0)hy0=p[q].y;if(p[q].y>hy1)hy1=p[q].y;} if((ox1-ox0)>0 && ((hx1-hx0)*4 < (ox1-ox0) || (hx1-hx0)> (ox1-ox0)*2))goto fail; if((oy1-oy0)>0 && ((hy1-hy0)*4 < (oy1-oy0) || (hy1-hy0)> (oy1-oy0)*2))goto fail; }
-   if(outp)*outp=p;if(outn)*outn=n;if(outends)*outends=ends;if(outcontours)*outcontours=nc;return 1;
-fail:
-   if(p && ppem>=10 && ppem<=STBTT_VL_HINT_MAX_PPEM && allow){
-      for(int q=0;q<n-4;q++){p[q].x=p[q].ox;p[q].y=p[q].oy;p[q].touched_x=p[q].touched_y=0;}
-      stbtt__vl_light_hint_points(p,n,ppem);
-      if(outp)*outp=p;if(outn)*outn=n;if(outends)*outends=ends;if(outcontours)*outcontours=nc;return 1;
+   if(!allow)goto done;
+   {
+      int tw_count=16, storage_count=256, cvt_count=2048; size_t mo=0,ml=0,co=0,cl=0;
+      if(stbtt__vl_raw_table_bounds(info,"maxp",&mo,&ml)&&ml>=18&&ttULONG(info->data+mo)>=0x00010000){int q=ttUSHORT(info->data+mo+16);if(q>0)tw_count=q;}
+      if(tw_count<1)tw_count=1;if(tw_count>1024)tw_count=1024;
+      if(stbtt__vl_raw_table_bounds(info,"maxp",&mo,&ml)&&ml>=24&&ttULONG(info->data+mo)>=0x00010000){int q=ttUSHORT(info->data+mo+18);if(q>0&&q<65536)storage_count=q;}
+      cvt_count=1;
+      if(stbtt__vl_raw_table_bounds(info,"cvt ",&co,&cl)){if((cl&1)!=0||cl/2>65536)goto done;if(cl>=2)cvt_count=(int)(cl/2);}
+      if(!vltt_tt_vm_init(&vm,2048,storage_count,cvt_count,tw_count))goto done;vm_ready=1;
+      vm.zones[1].points=p;vm.zones[1].count=n;vm.zones[1].contours=nc;vm.zones[1].contour_ends=ends;
+      tw=(vltt_tt_point*)STBTT_malloc((size_t)tw_count*sizeof(*tw),info->userdata);if(!tw)goto done;memset(tw,0,(size_t)tw_count*sizeof(*tw));
+      for(int q=0;q<tw_count;q++){tw[q].x=tw[q].ox=vm.twilight_x[q];tw[q].y=tw[q].oy=vm.twilight_y[q];}
+      vm.zones[0].points=tw;vm.zones[0].count=tw_count;vm.zones[0].contours=0;vm.zones[0].contour_ends=0;
+      vm.variation_count=(info->vltt_var_coords_valid&&info->vltt_var_axes>0)?(info->vltt_var_axes<64?info->vltt_var_axes:64):0;for(int vi=0;vi<vm.variation_count;vi++)vm.variation_coords[vi]=(int32_t)lrintf(info->vltt_var_coords[vi]*16384.0f);
+      if(!vltt_tt_execute_font_program(info,&vm,ppem))goto done;
+      if(!vltt_tt_execute_prep(info,&vm,ppem))goto done;
+      vm.zones[1].points=p;vm.zones[1].count=n;vm.zones[1].contours=nc;vm.zones[1].contour_ends=ends;vm.zones[0].points=tw;vm.zones[0].count=tw_count;
+      vm.sp=0;vm.error=0;vm.instructions=0;vm.call_depth=0;
+      if(!vltt_tt_execute(&vm,ins,insn,STBTT_VL_HINT_MAX_INSTRUCTIONS)||vm.error)goto done;
+      for(int q=0;q<tw_count;q++){vm.twilight_x[q]=tw[q].x;vm.twilight_y[q]=tw[q].y;vm.twilight_tx[q]=tw[q].touched_x;vm.twilight_ty[q]=tw[q].touched_y;}
+      {
+         int max_move=(ppem*64)/8;if(max_move<3*64)max_move=3*64;if(max_move>8*64)max_move=8*64;
+         int ox0=p[0].ox,ox1=p[0].ox,oy0=p[0].oy,oy1=p[0].oy,hx0=p[0].x,hx1=p[0].x,hy0=p[0].y,hy1=p[0].y;
+         for(int q=0;q<n;q++){if(abs(p[q].x-p[q].ox)>max_move||abs(p[q].y-p[q].oy)>max_move)goto done;if(p[q].ox<ox0)ox0=p[q].ox;if(p[q].ox>ox1)ox1=p[q].ox;if(p[q].oy<oy0)oy0=p[q].oy;if(p[q].oy>oy1)oy1=p[q].oy;if(p[q].x<hx0)hx0=p[q].x;if(p[q].x>hx1)hx1=p[q].x;if(p[q].y<hy0)hy0=p[q].y;if(p[q].y>hy1)hy1=p[q].y;}
+         if((ox1-ox0)>0&&((hx1-hx0)*4<(ox1-ox0)||(hx1-hx0)>(ox1-ox0)*2))goto done;if((oy1-oy0)>0&&((hy1-hy0)*4<(oy1-oy0)||(hy1-hy0)>(oy1-oy0)*2))goto done;
+      }
+      ok=1;
    }
+done:
+   if(vm_ready){vm.zones[0].points=0;vm.zones[1].points=0;vltt_tt_vm_done(&vm);}if(tw)STBTT_free(tw,info->userdata);
+   if(ok){if(outp)*outp=p;if(outn)*outn=n;if(outends)*outends=ends;if(outcontours)*outcontours=nc;return 1;}
+   if(p&&ppem>=10&&ppem<=STBTT_VL_HINT_MAX_PPEM&&allow){for(int q=0;q<n;q++){p[q].x=p[q].ox;p[q].y=p[q].oy;p[q].touched_x=p[q].touched_y=0;}stbtt__vl_light_hint_points(p,n,ppem);if(outp)*outp=p;if(outn)*outn=n;if(outends)*outends=ends;if(outcontours)*outcontours=nc;return 1;}
    if(p)STBTT_free(p,info->userdata);if(ends)STBTT_free(ends,info->userdata);return 0;
 }
 
@@ -6483,66 +6161,6 @@ STBTT_DEF int vltt_face_apply_variations(vltt_face *face, const float *design_co
    an error rather than being permitted to exhaust stack, call depth, or
    instruction budgets. Coordinates are signed 26.6 values.
    ------------------------------------------------------------------------- */
-#ifndef VLTT_TT_POINT_DEFINED
-#define VLTT_TT_POINT_DEFINED
-typedef struct vltt_tt_point_s {
-   int x, y;
-   int ox, oy;
-   unsigned char touched_x, touched_y, on_curve;
-} vltt_tt_point;
-#endif
-
-typedef struct vltt_tt_zone_s {
-   vltt_tt_point *points;
-   int count;
-   int contours;
-} vltt_tt_zone;
-
-typedef struct vltt_tt_state_s {
-   int proj_x, proj_y;
-   int free_x, free_y;
-   int dual_x, dual_y;
-   int rp0, rp1, rp2;
-   int loop;
-   int minimum_distance;
-   int cvt_cut_in;
-   int single_width_cut_in;
-   int single_width_value;
-   int delta_base, delta_shift;
-   int auto_flip;
-   int round_period, round_phase, round_threshold;
-   int min_dist;
-   int scan_control, scan_type;
-   int gep0, gep1, gep2;
-} vltt_tt_state;
-
-typedef struct vltt_tt_vm_s {
-   int32_t *stack;
-   int stack_capacity, sp;
-   int32_t *storage;
-   int storage_count;
-   int32_t *cvt;
-   int cvt_count;
-   int32_t *twilight_x, *twilight_y;
-   unsigned char *twilight_tx, *twilight_ty;
-   int twilight_count;
-   vltt_tt_zone zones[2];
-   vltt_tt_state gs;
-   unsigned char *code;
-   size_t code_size;
-   size_t ip;
-   int call_depth, max_call_depth;
-   int instruction_limit, instructions;
-   int error;
-   int interpreter_version;
-   int compatibility_flags;
-} vltt_tt_vm;
-
-typedef struct vltt_tt_program_s {
-   const unsigned char *fpgm; size_t fpgm_size;
-   const unsigned char *prep; size_t prep_size;
-   const unsigned char *glyf_program; size_t glyf_program_size;
-} vltt_tt_program;
 
 STBTT_DEF int vltt_tt_vm_init(vltt_tt_vm *vm, int stack_capacity, int storage_count, int cvt_count, int twilight_count);
 STBTT_DEF void vltt_tt_vm_done(vltt_tt_vm *vm);
@@ -22172,12 +21790,54 @@ static int vltt__tt_bin(vltt_tt_vm *v, int op) {
    }
    v->error=1; return 0;
 }
+static int vltt__tt_floor64(int x);
+static int vltt__tt_ceil64(int x);
 static int vltt__tt_round(const vltt_tt_state *g, int32_t x) {
-   int p=g->round_period, ph=g->round_phase, th=g->round_threshold;
-   if(p<=0) return x;
-   { int32_t u=x-ph; int32_t q=u>=0?(u+p/2)/p:-((-u+p/2)/p); int32_t r=q*p+ph; if(r-ph<th) r=ph; return r; }
+   int p=g->round_period, ph=g->round_phase, th=g->round_threshold; int64_t q,r,u;
+   if(g->round_mode==1)return vltt__tt_ceil64(x);
+   if(g->round_mode==2)return vltt__tt_floor64(x);
+   if(g->round_mode==3){u=(int64_t)x-32;q=u>=0?(u+32)/64:-((-u+32)/64);r=q*64+32;return (int)r;}
+   if(p<=0)return x;
+   u=(int64_t)x-ph; q=u>=0?(u+p/2)/p:-((-u+p/2)/p); r=q*p+ph;
+   if(r-ph<th)r=ph;
+   if(r>INT32_MAX)return INT32_MAX;if(r<INT32_MIN)return INT32_MIN;return (int)r;
 }
 static int vltt__tt_project(const vltt_tt_state *g, int x, int y) { return (int)(((int64_t)x*g->proj_x+(int64_t)y*g->proj_y)>>14); }
+static int vltt__tt_project_dual(const vltt_tt_state *g,int x,int y){return (int)(((int64_t)x*g->dual_x+(int64_t)y*g->dual_y)>>14);}
+static void vltt__tt_unit_vector(int dx,int dy,int *x,int *y) {
+   double d=sqrt((double)dx*(double)dx+(double)dy*(double)dy);
+   if(d<1.0){*x=16384;*y=0;}else{*x=(int)lrint((double)dx*16384.0/d);*y=(int)lrint((double)dy*16384.0/d);}
+}
+static int vltt__tt_abs_sat(int32_t x) { return x==INT32_MIN?INT32_MAX:(x<0?-x:x); }
+static int vltt__tt_axis_value(const vltt_tt_point *p,int y,int original) { return y?(original?p->oy:p->y):(original?p->ox:p->x); }
+static int vltt__tt_iup_value(int o,int oa,int ob,int pa,int pb) {
+   if(oa==ob)return o<=oa?pa:pb;
+   if(oa<ob){if(o<=oa)return o+(pa-oa);if(o>=ob)return o+(pb-ob);return pa+(int)(((int64_t)(o-oa)*(pb-pa))/(ob-oa));}
+   if(o>=oa)return o+(pa-oa);if(o<=ob)return o+(pb-ob);return pa+(int)(((int64_t)(oa-o)*(pb-pa))/(oa-ob));
+}
+static void vltt__tt_iup(vltt_tt_vm *v,int y) {
+   vltt_tt_zone *z=&v->zones[1]; int start=0,ci;
+   if(!z->points||!z->contour_ends)return;
+   for(ci=0;ci<z->contours;ci++){
+      int end=z->contour_ends[ci],count,i,touched=0;
+      if(end<start||end>=z->count){v->error=1;return;} count=end-start+1;
+      for(i=start;i<=end;i++)if(y?z->points[i].touched_y:z->points[i].touched_x)touched++;
+      if(touched==1){int ref=start;while(ref<=end&&!(y?z->points[ref].touched_y:z->points[ref].touched_x))ref++;if(ref<=end)for(i=start;i<=end;i++){vltt_tt_point *p=&z->points[i];int t=y?p->touched_y:p->touched_x;if(!t){int d=vltt__tt_axis_value(&z->points[ref],y,0)-vltt__tt_axis_value(&z->points[ref],y,1);if(y)p->y=p->oy+d;else p->x=p->ox+d;}}}
+      else if(touched>1){
+         for(i=start;i<=end;i++){
+            int a=i,b=i,j,steps=0;vltt_tt_point *pa=&z->points[a];
+            if(!(y?pa->touched_y:pa->touched_x))continue;
+            do { b=(b==end)?start:b+1; if(y?z->points[b].touched_y:z->points[b].touched_x)break; } while(++steps<count);
+            if(steps>=count)continue;
+            j=(a==end)?start:a+1;
+            while(j!=b){vltt_tt_point *q=&z->points[j];int val=vltt__tt_iup_value(vltt__tt_axis_value(q,y,1),vltt__tt_axis_value(pa,y,1),vltt__tt_axis_value(&z->points[b],y,1),vltt__tt_axis_value(pa,y,0),vltt__tt_axis_value(&z->points[b],y,0));if(y)q->y=val;else q->x=val;j=(j==end)?start:j+1;}
+         }
+      }
+      start=end+1;
+   }
+}
+static int vltt__tt_floor64(int x) { int r=x%64; return r<0?x-r-64:x-r; }
+static int vltt__tt_ceil64(int x) { int r=x%64; return r>0?x-r+64:x-r; }
 static int vltt__tt_free_delta(const vltt_tt_state *g, int d) {
    return (int)(((int64_t)d*g->free_x)>>14); /* x-axis default; y handled by callers */
 }
@@ -22190,170 +21850,153 @@ static void vltt__tt_move(vltt_tt_vm *v,int zone,int p,int distance) {
    q->y += (int)(((int64_t)distance*v->gs.free_y)>>14);
    if(v->gs.free_x) q->touched_x=1; if(v->gs.free_y) q->touched_y=1;
 }
+static void vltt__tt_move_projected(vltt_tt_vm *v,int zone,int p,int distance) {
+   int64_t dot=(int64_t)v->gs.proj_x*v->gs.free_x+(int64_t)v->gs.proj_y*v->gs.free_y;
+   if(dot==0){v->error=1;return;}
+   vltt__tt_move(v,zone,p,(int)((int64_t)distance*16384*16384/dot));
+}
 static int vltt__tt_read_push(vltt_tt_vm *v,const unsigned char *p,size_t n,size_t *ip,unsigned op) {
    size_t i,count;
    if(op>=0xB0 && op<=0xB7){count=(size_t)(op-0xB0)+1; if(*ip+count>n)return 0;for(i=0;i<count;i++)if(!vltt__tt_push(v,p[(*ip)++]))return 0;return 1;}
-   if(op>=0xB8 && op<=0xBF){count=(size_t)(op-0xB8)+1;if(*ip+count*2>n)return 0;for(i=0;i<count;i++){int16_t x=(int16_t)(((unsigned)p[*ip]<<8)|p[*ip+1]);*ip+=2;if(!vltt__tt_push(v,x<<16>>10))return 0;}return 1;}
+   if(op>=0xB8 && op<=0xBF){count=(size_t)(op-0xB8)+1;if(*ip+count*2>n)return 0;for(i=0;i<count;i++){int16_t x=(int16_t)(((unsigned)p[*ip]<<8)|p[*ip+1]);*ip+=2;if(!vltt__tt_push(v,(int32_t)x*64))return 0;}return 1;}
    if(op>=0xB0 && op<=0xB7)return 0;
    return 1;
 }
+static int vltt__tt_skip_push(const unsigned char *p,size_t n,size_t *ip,unsigned op) {
+   size_t k=0;
+   if(op>=0xB0&&op<=0xB7) k=(size_t)(op-0xB0)+1;
+   else if(op>=0xB8&&op<=0xBF) k=((size_t)(op-0xB8)+1)*2;
+   else if(op==0x40||op==0x41) { if(*ip>=n)return 0; k=(size_t)p[(*ip)++]; if(op==0x41) { if(k>(SIZE_MAX/2))return 0;k*=2; } }
+   if(k>n-*ip)return 0;*ip+=k;return 1;
+}
+static void vltt__tt_delta(vltt_tt_vm *v,unsigned op) {
+   int32_t count; int i;
+   if(!vltt__tt_pop(v,&count))return;
+   if(count<0||count>v->sp/2){v->error=1;return;}
+   for(i=0;i<count&&!v->error;i++){
+      int32_t arg,enc;int band=(op==0x5D||op==0x73)?0:(op==0x71||op==0x74)?1:2;
+      if(!vltt__tt_pop(v,&enc)||!vltt__tt_pop(v,&arg))return;
+      {int pp=v->gs.delta_base+band*16+((enc>>4)&15);int nib=enc&15;int delta=(nib-8)*(1<<(6-v->gs.delta_shift));if(pp!=v->ppem)continue;
+       if(op==0x5D||op==0x71||op==0x72){vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep0,arg,&pt))vltt__tt_move(v,v->gs.gep0,arg,delta);}
+       else if(arg>=0&&arg<v->cvt_count)v->cvt[arg]+=delta;else v->error=1;
+      }
+   }
+}
+static int vltt__tt_find_function(vltt_tt_vm *v,int id) { int i;for(i=0;i<v->function_count;i++)if(v->function_id[i]==id)return i;return -1; }
+static int vltt__tt_find_idef(vltt_tt_vm *v,int id) { int i;for(i=0;i<v->idef_count;i++)if(v->idef_id[i]==id)return i;return -1; }
 static int vltt__tt_exec(vltt_tt_vm *v,const unsigned char *p,size_t n,int limit) {
-   size_t ip=0; int32_t a,b,c; int i;
-   if(!v||!p||n>65536){if(v)v->error=1;return 0;} v->code=(unsigned char*)p;v->code_size=n;v->ip=0;v->instructions=0;v->error=0;
-   while(ip<n && !v->error){ unsigned op=p[ip++];
-      if(++v->instructions>limit || v->instructions>VLTT_TT_MAX_INSTRUCTIONS){v->error=1;break;}
-      if(op<=0x06){ if(!vltt__tt_read_push(v,p,n,&ip,op)) { if(op<=0x05){v->error=1;break;} } continue; }
-      if(op>=0xB0&&op<=0xFF){
-         if(op>=0xB0&&op<=0xB7){size_t count=(size_t)(op-0xB0)+1;if(ip+count>n){v->error=1;break;}for(i=0;i<(int)count;i++)if(!vltt__tt_push(v,p[ip++]))break;continue;}
-         if(op>=0xB8&&op<=0xBF){size_t count=(size_t)(op-0xB8)+1;if(ip+count*2>n){v->error=1;break;}for(i=0;i<(int)count;i++){int16_t q=(int16_t)(((unsigned)p[ip]<<8)|p[ip+1]);ip+=2;if(!vltt__tt_push(v,(int32_t)q*64))break;}continue;}
-         if(op>=0xC0&&op<=0xDF){ /* MDRP */ if(!vltt__tt_pop(v,&a)||!vltt__tt_peek(v,0,&b))break; (void)b; {int z0=v->gs.gep0,z1=v->gs.gep1;int rp=(op&2)?v->gs.rp1:v->gs.rp0;if(z0<0||z0>1||z1<0||z1>1||a<0||a>=v->zones[z1].count||rp<0||rp>=v->zones[z0].count){v->error=1;break;} {int dist=vltt__tt_project(&v->gs,v->zones[z1].points[(int)a].x-v->zones[z0].points[rp].x,v->zones[z1].points[(int)a].y-v->zones[z0].points[rp].y);if(op&4)dist=vltt__tt_round(&v->gs,dist);if(op&8&&dist<v->gs.minimum_distance)dist=v->gs.minimum_distance;vltt__tt_move(v,z1,(int)a,dist);v->gs.rp2=v->gs.rp1;v->gs.rp1=(int)a;if(!(op&16))v->gs.rp0=(int)a;}} continue; }
-         if(op>=0xE0&&op<=0xFF){ /* MIRP */ if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break; if(v->gs.gep1<0||v->gs.gep1>1||a<0||a>=v->zones[v->gs.gep1].count){v->error=1;break;} if(b>=0&&b<v->cvt_count){int dist=v->cvt[b];if(op&4)dist=vltt__tt_round(&v->gs,dist);if(op&8&&dist<v->gs.minimum_distance)dist=v->gs.minimum_distance;vltt__tt_move(v,v->gs.gep1,(int)a,dist);v->gs.rp0=v->gs.rp1;v->gs.rp1=(int)a;v->gs.rp2=v->gs.rp1;}continue; }
+   size_t ip=0; int32_t a,b,c,d; int i,top_call;
+   if(!v||(!p&&n)||n>65536){if(v)v->error=1;return 0;}
+   top_call=(v->call_depth==0);
+   if(top_call){v->instructions=0;v->error=0;}
+   v->code=(unsigned char*)p;v->code_size=n;v->ip=0;
+   if(limit<=0||limit>VLTT_TT_MAX_INSTRUCTIONS)limit=VLTT_TT_MAX_INSTRUCTIONS;
+   while(ip<n&&!v->error){
+      unsigned op=p[ip++];
+      if(++v->instructions>limit||v->instructions>VLTT_TT_MAX_INSTRUCTIONS){v->error=1;break;}
+      if(op>=0xB0&&op<=0xB7){size_t k=(size_t)(op-0xB0)+1;if(k>n-ip){v->error=1;break;}for(i=0;i<(int)k;i++)if(!vltt__tt_push(v,p[ip++]))break;continue;}
+      if(op>=0xB8&&op<=0xBF){size_t k=(size_t)(op-0xB8)+1;if(k>(n-ip)/2){v->error=1;break;}for(i=0;i<(int)k;i++){int16_t q=(int16_t)(((unsigned)p[ip]<<8)|p[ip+1]);ip+=2;if(!vltt__tt_push(v,(int32_t)q*64))break;}continue;}
+      if(op==0x40||op==0x41){size_t k,j;if(ip>=n){v->error=1;break;}k=p[ip++];if(op==0x40){if(k>n-ip){v->error=1;break;}for(j=0;j<k;j++)if(!vltt__tt_push(v,p[ip++]))break;}else{if(k>(n-ip)/2){v->error=1;break;}for(j=0;j<k;j++){int16_t q=(int16_t)(((unsigned)p[ip]<<8)|p[ip+1]);ip+=2;if(!vltt__tt_push(v,(int32_t)q*64))break;}}continue;}
+      if(op==0x58){if(!vltt__tt_pop(v,&a))break;if(!a){size_t q=ip;int depth=1;while(q<n&&depth){unsigned z=p[q++];if(z==0x40||z==0x41|| (z>=0xB0&&z<=0xBF)){if(!vltt__tt_skip_push(p,n,&q,z)){v->error=1;break;}continue;}if(z==0x58)depth++;else if(z==0x59)depth--;else if(z==0x1B&&depth==1){depth=0;break;}}ip=q;}continue;}
+      if(op==0x1B){size_t q=ip;int depth=1;while(q<n&&depth){unsigned z=p[q++];if(z==0x40||z==0x41||(z>=0xB0&&z<=0xBF)){if(!vltt__tt_skip_push(p,n,&q,z)){v->error=1;break;}continue;}if(z==0x58)depth++;else if(z==0x59)depth--;}ip=q;continue;}
+      if(op==0x2C||op==0x89){int id,depth=1,found=-1;size_t start=ip,q=ip; if(v->execution_mode==3){v->error=1;break;}if(!vltt__tt_pop(v,&id))break;while(q<n&&depth){unsigned z=p[q++];if(z==0x40||z==0x41||(z>=0xB0&&z<=0xBF)){if(!vltt__tt_skip_push(p,n,&q,z)){v->error=1;break;}continue;}if(z==0x2C||z==0x89)depth++;else if(z==0x2D)depth--;}
+         if(v->error)break;if(depth){v->error=1;break;} if(op==0x2C){found=vltt__tt_find_function(v,id);if(found<0){if(v->function_count>=1024){v->error=1;break;}found=v->function_count++;}v->function_id[found]=id;v->function_code[found]=p+start;v->function_size[found]=(q-1)-start;}else{int undef=(id==0x7F||id==0x83||id==0x84||id==0x90||(id>=0x92&&id<=0xAF));found=vltt__tt_find_idef(v,id);if(undef){if(found<0){if(v->idef_count>=256){v->error=1;break;}found=v->idef_count++;}v->idef_id[found]=id;v->idef_code[found]=p+start;v->idef_size[found]=(q-1)-start;}}ip=q;continue;}
+      if(op==0x2D){v->error=1;break;}
+      if(op==0x2B){int fi;if(!vltt__tt_pop(v,&a))break;fi=vltt__tt_find_function(v,a);if(fi<0){v->error=1;break;}if(v->call_depth>=v->max_call_depth){v->error=1;break;}v->call_depth++;if(!vltt__tt_exec(v,v->function_code[fi],v->function_size[fi],limit)){}v->call_depth--;continue;}
+      if(op==0x2A){if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;{int fi=vltt__tt_find_function(v,a);if(fi<0||b<0||b>limit){v->error=1;break;}for(i=0;i<b&&!v->error;i++){if(v->call_depth>=v->max_call_depth){v->error=1;break;}v->call_depth++;vltt__tt_exec(v,v->function_code[fi],v->function_size[fi],limit);v->call_depth--;}}continue;}
+      if(op==0x1C){if(!vltt__tt_pop(v,&a))break;{int64_t q=(int64_t)ip+a;if(q<0||(uint64_t)q>n){v->error=1;break;}ip=(size_t)q;}continue;}
+      if(op==0x78||op==0x79){if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if((op==0x78&&a)||(op==0x79&&!a)){int64_t q=(int64_t)ip+b;if(q<0||(uint64_t)q>n){v->error=1;break;}ip=(size_t)q;}continue;}
+      if(op>=0x50&&op<=0x5F){
+         if(op==0x5C){if(!vltt__tt_pop(v,&a))break;vltt__tt_push(v,!a);continue;}
+         if(op==0x56||op==0x57){if(!vltt__tt_pop(v,&a))break;b=vltt__tt_round(&v->gs,a)/64;vltt__tt_push(v,op==0x56?(b&1)!=0:(b&1)==0);continue;}
+         if(op==0x5D){vltt__tt_delta(v,op);continue;}
+         if(op==0x5E){if(!vltt__tt_pop(v,&a))break;v->gs.delta_base=a;continue;}
+         if(op==0x5F){if(!vltt__tt_pop(v,&a))break;if(a<0||a>6){v->error=1;break;}v->gs.delta_shift=a;continue;}
+         if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;
+         switch(op){case 0x50:c=(a==b);break;case 0x51:c=(a!=b);break;case 0x52:c=(a>b);break;case 0x53:c=(a>=b);break;case 0x54:c=(a<b);break;case 0x55:c=(a<=b);break;case 0x56:case 0x57:c=0;break;case 0x5A:c=(a&&b);break;case 0x5B:c=(a||b);break;default:c=(a!=b);break;}if(!vltt__tt_push(v,c))break;continue;
+      }
+      if(op>=0xC0&&op<=0xDF){int z0=v->gs.gep0,z1=v->gs.gep1,rp=v->gs.rp0;vltt_tt_point *pt,*ref;int dist,orig;if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_get_zone_point(v,z1,a,&pt)||!vltt__tt_get_zone_point(v,z0,rp,&ref))break;dist=vltt__tt_project_dual(&v->gs,pt->ox-ref->ox,pt->oy-ref->oy);orig=dist;if(op&4)dist=vltt__tt_round(&v->gs,dist);if((op&8)&&abs(dist)<v->gs.minimum_distance)dist=dist<0?-v->gs.minimum_distance:v->gs.minimum_distance;vltt__tt_move_projected(v,z1,a,dist-vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y));v->gs.rp1=rp;v->gs.rp2=a;if(op&16)v->gs.rp0=a;continue;}
+      if(op>=0xE0){int z0=v->gs.gep0,z1=v->gs.gep1,rp=v->gs.rp0,dist,orig;vltt_tt_point *pt,*ref;if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_get_zone_point(v,z1,a,&pt)||!vltt__tt_get_zone_point(v,z0,rp,&ref))break;orig=vltt__tt_project_dual(&v->gs,pt->ox-ref->ox,pt->oy-ref->oy);dist=(b>=0&&b<v->cvt_count)?v->cvt[b]:orig;if(v->gs.auto_flip&&((dist<0)!=(orig<0)))dist=-dist;if(op&4){if(abs(dist-orig)>v->gs.cvt_cut_in)dist=orig;dist=vltt__tt_round(&v->gs,dist);}if((op&8)&&abs(dist)<v->gs.minimum_distance)dist=dist<0?-v->gs.minimum_distance:v->gs.minimum_distance;vltt__tt_move_projected(v,z1,a,dist-vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y));v->gs.rp1=rp;v->gs.rp2=a;if(op&16)v->gs.rp0=a;continue;}
+      if(op>=0x06&&op<=0x0D){
+         if(op<=0x09){vltt_tt_point *p1,*p2;int x,y;if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_get_zone_point(v,v->gs.gep2,a,&p1)||!vltt__tt_get_zone_point(v,v->gs.gep1,b,&p2))break;x=p2->x-p1->x;y=p2->y-p1->y;if(op&1){int t=x;x=-y;y=t;}vltt__tt_unit_vector(x,y,&c,&d);if(op==0x06||op==0x07){v->gs.proj_x=v->gs.dual_x=c;v->gs.proj_y=v->gs.dual_y=d;}else{v->gs.free_x=c;v->gs.free_y=d;}continue;}
+         if(op==0x0A||op==0x0B){if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;vltt__tt_unit_vector(a,b,&c,&d);if(op==0x0A){v->gs.proj_x=v->gs.dual_x=c;v->gs.proj_y=v->gs.dual_y=d;}else{v->gs.free_x=c;v->gs.free_y=d;}continue;}
+         if(op==0x0C){if(!vltt__tt_push(v,v->gs.proj_x)||!vltt__tt_push(v,v->gs.proj_y))break;continue;}
+         if(op==0x0D){if(!vltt__tt_push(v,v->gs.free_x)||!vltt__tt_push(v,v->gs.free_y))break;continue;}
       }
       switch(op){
-         case 0x07: if(!vltt__tt_pop(v,&a))break; if(!vltt__tt_push(v,a))break; break;
-         case 0x08: if(!vltt__tt_push(v,0))break; break; /* NPUSHB fallback handled below */
-         case 0x09: break;
-         case 0x0A: break;
-         case 0x10: if(!vltt__tt_pop(v,&a))break; v->gs.loop=(int)a;break;
-         case 0x11: if(!vltt__tt_pop(v,&a))break; if(a<0||a>1){v->error=1;break;} v->gs.gep0=(int)a;break;
-         case 0x12: if(!vltt__tt_pop(v,&a))break; if(a<0||a>1){v->error=1;break;} v->gs.gep1=(int)a;break;
-         case 0x13: if(!vltt__tt_pop(v,&a))break; if(a<0||a>1){v->error=1;break;} v->gs.gep2=(int)a;break;
-         case 0x1B: if(!vltt__tt_pop(v,&a))break; break; /* ELSE marker is handled by IF/JMPR scanning */
-         case 0x1C: if(!vltt__tt_pop(v,&a))break; {int64_t nip=(int64_t)ip+(int64_t)a;if(nip<0||(uint64_t)nip>n){v->error=1;break;}ip=(size_t)nip;} break;
-         case 0x1D: if(!vltt__tt_pop(v,&a))break; if(v->call_depth>=v->max_call_depth){v->error=1;break;} break;
-         case 0x1E: break;
-         case 0x20: if(!vltt__tt_pop(v,&a))break;break;
-         case 0x21: if(!vltt__tt_push(v,v->sp? v->stack[v->sp-1]:0))break;break;
-         case 0x22: v->sp=0;break;
-         case 0x23: if(v->sp<2){v->error=1;break;} a=v->stack[v->sp-1];v->stack[v->sp-1]=v->stack[v->sp-2];v->stack[v->sp-2]=a;break;
-         case 0x24: if(!vltt__tt_push(v,v->sp))break;break;
-         case 0x25: if(!vltt__tt_pop(v,&a)||a<0||a>=v->sp){v->error=1;break;} v->stack[v->sp-1-a]=v->stack[v->sp-1];break;
-         case 0x26: if(!vltt__tt_pop(v,&a)||a<0||a>=v->sp){v->error=1;break;} v->stack[v->sp-1]=v->stack[v->sp-1-a];break;
-         case 0x2C: break; /* FDEF marker: function extraction is intentionally table-driven by the caller */
-         case 0x2D: break;
-         case 0x2E: case 0x2F: if(!vltt__tt_pop(v,&a))break;break;
-         case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: if(!vltt__tt_bin(v,op-0x30))break;break;
-         case 0x38: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break; if(!vltt__tt_push(v,a+b))break;break;
-         case 0x39: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break; if(!vltt__tt_push(v,a-b))break;break;
-         case 0x3A: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a<0?-a:a))break;break;
-         case 0x3B: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a<0?-a:a))break;break;
-         case 0x3C: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a?1:0))break;break;
-         case 0x3D: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a>>6))break;break;
-         case 0x3E: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a&b))break;break;
-         case 0x3F: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a|b))break;break;
-         case 0x40: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,(a&1)?a/2:a*2))break;break;
-         case 0x41: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x42: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x43: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x44: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x45: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x46: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x47: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x48: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x49: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x4A: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x4B: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x4C: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x4D: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x4E: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x4F: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x50: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a==b))break;break;
-         case 0x51: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a!=0))break;break;
-         case 0x52: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a==0))break;break;
-         case 0x53: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a<0))break;break;
-         case 0x54: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a>=0))break;break;
-         case 0x55: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a>0))break;break;
-         case 0x56: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a<=0))break;break;
-         case 0x57: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a>=0))break;break;
-         case 0x58: if(!vltt__tt_pop(v,&a))break;if(!a){size_t q=ip;int depth=1;while(q<n&&depth){unsigned z=p[q++];if(z==0x58)depth++;else if(z==0x59)depth--;else if(z==0x1B&&depth==1)depth=0;}ip=q;}break;
-         case 0x59: break;
-         case 0x5A: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a&&b))break;break;
-         case 0x5B: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a||b))break;break;
-         case 0x5C: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,(a&&!b)||(!a&&b)))break;break;
-         case 0x5D: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a==b))break;break;
-         case 0x5E: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a>b))break;break;
-         case 0x5F: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a<b))break;break;
-         case 0x60: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a+b))break;break;
-         case 0x61: if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a-b))break;break;
-         case 0x62: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a?((a+32)>>6):0))break;break;
-         case 0x63: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a*64))break;break;
-         case 0x64: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a>>6))break;break;
-         case 0x65: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x66: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,vltt__tt_round(&v->gs,a)))break;break;
-         case 0x67: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x68: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x69: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x6A: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x6B: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x6C: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x6D: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x6E: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x6F: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x70: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x71: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x72: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x73: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x76: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x77: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x78: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_pop(v,&b))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x79: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x7A: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x7B: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x7C: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x7D: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x7E: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x7F: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x80: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x81: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x82: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x83: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x84: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x85: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x86: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x87: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x88: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x89: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x8A: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x8B: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x8C: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x8D: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x8E: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x8F: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x90: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x91: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x92: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x93: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x94: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x95: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x96: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x97: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x98: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x99: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x9A: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x9B: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x9C: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x9D: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x9E: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0x9F: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA0: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA1: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA2: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA3: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA4: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA5: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA6: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA7: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA8: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xA9: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xAA: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xAB: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xAC: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xAD: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xAE: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         case 0xAF: if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,a))break;break;
-         default:
-            /* Undefined instructions are ignored per tolerant-engine behavior. */
-            break;
+      case 0x00:case 0x01:v->gs.proj_x=v->gs.dual_x=v->gs.free_x=(op&1)?16384:0;v->gs.proj_y=v->gs.dual_y=v->gs.free_y=(op&1)?0:16384;break;
+      case 0x02:case 0x03:v->gs.proj_x=v->gs.dual_x=(op&1)?16384:0;v->gs.proj_y=v->gs.dual_y=(op&1)?0:16384;break;
+      case 0x04:case 0x05: v->gs.free_x=(op&1)?16384:0;v->gs.free_y=(op&1)?0:16384;break;
+      case 0x0E:v->gs.free_x=v->gs.proj_x;v->gs.free_y=v->gs.proj_y;break;
+      case 0x0F:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&c)||!vltt__tt_pop(v,&d)||!vltt__tt_pop(v,&i))break;{vltt_tt_point *p1,*p2,*p3,*p4,*p5;if(vltt__tt_get_zone_point(v,v->gs.gep0,d,&p1)&&vltt__tt_get_zone_point(v,v->gs.gep0,c,&p2)&&vltt__tt_get_zone_point(v,v->gs.gep1,b,&p3)&&vltt__tt_get_zone_point(v,v->gs.gep1,a,&p4)&&vltt__tt_get_zone_point(v,v->gs.gep2,i,&p5)){double x1=p1->x,y1=p1->y,x2=p2->x,y2=p2->y,x3=p3->x,y3=p3->y,x4=p4->x,y4=p4->y;double den=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);if(fabs(den)<1e-9){p5->x=(int)lrint(((x1+x2)+(x3+x4))*0.25);p5->y=(int)lrint(((y1+y2)+(y3+y4))*0.25);}else{double q1=x1*y2-y1*x2,q2=x3*y4-y3*x4;p5->x=(int)lrint((q1*(x3-x4)-(x1-x2)*q2)/den);p5->y=(int)lrint((q1*(y3-y4)-(y1-y2)*q2)/den);}p5->touched_x=p5->touched_y=1;}}break;
+      case 0x10:if(!vltt__tt_pop(v,&a))break;v->gs.rp0=a;break;
+      case 0x11:if(!vltt__tt_pop(v,&a))break;v->gs.rp1=a;break;
+      case 0x12:if(!vltt__tt_pop(v,&a))break;v->gs.rp2=a;break;
+      case 0x13:case 0x14:case 0x15:case 0x16:if(!vltt__tt_pop(v,&a))break;if(a<0||a>1){v->error=1;break;}if(op==0x13)v->gs.gep0=a;else if(op==0x14)v->gs.gep1=a;else if(op==0x15)v->gs.gep2=a;else v->gs.gep0=v->gs.gep1=v->gs.gep2=a;break;
+      case 0x17:if(!vltt__tt_pop(v,&a))break;if(a<1||a>v->stack_capacity){v->error=1;break;}v->gs.loop=a;break;
+      case 0x18:v->gs.round_mode=0;v->gs.round_period=64;v->gs.round_phase=0;v->gs.round_threshold=32;break;
+      case 0x19:v->gs.round_mode=3;v->gs.round_period=64;v->gs.round_phase=32;v->gs.round_threshold=0;break;
+      case 0x1A:if(!vltt__tt_pop(v,&a))break;v->gs.minimum_distance=a;break;
+      case 0x1D:if(!vltt__tt_pop(v,&a))break;v->gs.cvt_cut_in=a;break;
+      case 0x1E:if(!vltt__tt_pop(v,&a))break;v->gs.single_width_cut_in=a;break;
+      case 0x20:if(!vltt__tt_peek(v,0,&a)||!vltt__tt_push(v,a))break;break;
+      case 0x21:if(!vltt__tt_pop(v,&a))break;break;
+      case 0x22:v->sp=0;break;
+      case 0x23:if(v->sp<2){v->error=1;break;}a=v->stack[v->sp-1];v->stack[v->sp-1]=v->stack[v->sp-2];v->stack[v->sp-2]=a;break;
+      case 0x24:if(!vltt__tt_push(v,v->sp))break;break;
+      case 0x25:if(!vltt__tt_pop(v,&a)||a<1||a>v->sp){v->error=1;break;}vltt__tt_push(v,v->stack[v->sp-a]);break;
+      case 0x26:if(!vltt__tt_pop(v,&a)||a<1||a>v->sp){v->error=1;break;}b=v->stack[v->sp-a];for(i=v->sp-a;i<v->sp-1;i++)v->stack[i]=v->stack[i+1];v->stack[v->sp-1]=b;break;
+      case 0x27:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;{vltt_tt_point *p1,*p2;if(vltt__tt_get_zone_point(v,v->gs.gep1,a,&p1)&&vltt__tt_get_zone_point(v,v->gs.gep0,b,&p2)){int d1=vltt__tt_project(&v->gs,p1->x,p1->y),d2=vltt__tt_project(&v->gs,p2->x,p2->y),delta=(d1-d2)/2;vltt__tt_move_projected(v,v->gs.gep1,a,-delta);vltt__tt_move_projected(v,v->gs.gep0,b,delta);}}break;
+      case 0x28:if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep0,a,&pt)){pt->touched_x=pt->touched_y=0;}}break;
+      case 0x2E:case 0x2F:if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep0,a,&pt)){int cur=vltt__tt_project(&v->gs,pt->x,pt->y),target=(op==0x2F)?vltt__tt_round(&v->gs,cur):cur;if(op==0x2F)vltt__tt_move_projected(v,v->gs.gep0,a,target-cur);else{if(v->gs.free_x)pt->touched_x=1;if(v->gs.free_y)pt->touched_y=1;}v->gs.rp0=v->gs.rp1=a;}}break;
+      case 0x30:vltt__tt_iup(v,0);break;case 0x31:vltt__tt_iup(v,1);break;
+      case 0x32:case 0x33:{int count=v->gs.loop,refzone=v->gs.gep0,refpt=(op==0x32)?v->gs.rp2:v->gs.rp1;vltt_tt_point *ref;if(count<1||count>v->stack_capacity||!vltt__tt_get_zone_point(v,refzone,refpt,&ref)){v->error=1;break;}int delta=vltt__tt_project(&v->gs,ref->x,ref->y)-vltt__tt_project_dual(&v->gs,ref->ox,ref->oy);for(i=0;i<count&&!v->error;i++){if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep2,a,&pt)){int cur=vltt__tt_project(&v->gs,pt->x,pt->y);vltt__tt_move_projected(v,v->gs.gep2,a,delta);(void)cur;}}}v->gs.loop=1;break;}
+      case 0x34:case 0x35:{int contour,refzone=v->gs.gep0,refpt=(op==0x34)?v->gs.rp2:v->gs.rp1;vltt_tt_point *ref;if(!vltt__tt_pop(v,&contour)||!vltt__tt_get_zone_point(v,refzone,refpt,&ref))break;int delta=vltt__tt_project(&v->gs,ref->x,ref->y)-vltt__tt_project_dual(&v->gs,ref->ox,ref->oy);vltt_tt_zone*z=&v->zones[v->gs.gep2];if(contour<0||contour>=z->contours||!z->contour_ends){v->error=1;break;}int st=contour?z->contour_ends[contour-1]+1:0,en=z->contour_ends[contour];for(i=st;i<=en;i++)vltt__tt_move_projected(v,v->gs.gep2,i,delta);break;}
+      case 0x36:case 0x37:{int refzone=v->gs.gep0,refpt=(op==0x36)?v->gs.rp2:v->gs.rp1;vltt_tt_point *ref;if(!vltt__tt_pop(v,&a)||!vltt__tt_get_zone_point(v,refzone,refpt,&ref))break;int delta=vltt__tt_project(&v->gs,ref->x,ref->y)-vltt__tt_project_dual(&v->gs,ref->ox,ref->oy);vltt_tt_zone*z=&v->zones[a];if(a<0||a>1){v->error=1;break;}for(i=0;i<z->count;i++)vltt__tt_move_projected(v,a,i,delta);break;}
+      case 0x38:{int count=v->gs.loop,z=v->gs.gep2,*pts;if(count<1||count>v->stack_capacity){v->error=1;break;}pts=(int*)malloc((size_t)count*sizeof(int));if(!pts){v->error=1;break;}for(i=0;i<count&&!v->error;i++)if(!vltt__tt_pop(v,&pts[i]))break;if(!v->error&&!vltt__tt_pop(v,&b))v->error=1;if(!v->error)for(i=0;i<count;i++)vltt__tt_move(v,z,pts[i],b);free(pts);v->gs.loop=1;break;}
+      case 0x39:{int count=v->gs.loop;vltt_tt_point *r1,*r2;if(count<1||count>v->stack_capacity||!vltt__tt_get_zone_point(v,v->gs.gep0,v->gs.rp1,&r1)||!vltt__tt_get_zone_point(v,v->gs.gep1,v->gs.rp2,&r2)){v->error=1;break;}int o1=vltt__tt_project_dual(&v->gs,r1->ox,r1->oy),o2=vltt__tt_project_dual(&v->gs,r2->ox,r2->oy),n1=vltt__tt_project(&v->gs,r1->x,r1->y),n2=vltt__tt_project(&v->gs,r2->x,r2->y);for(i=0;i<count&&!v->error;i++){if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep2,a,&pt)){int orig=vltt__tt_project_dual(&v->gs,pt->ox,pt->oy),target;if(o1==o2)target=n1;else target=n1+(int)(((int64_t)(orig-o1)*(n2-n1))/(o2-o1));int cur=vltt__tt_project(&v->gs,pt->x,pt->y);vltt__tt_move_projected(v,v->gs.gep2,a,target-cur);}}}v->gs.loop=1;break;}
+      case 0x3A:case 0x3B:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;{vltt_tt_point *pt,*ref;if(vltt__tt_get_zone_point(v,v->gs.gep1,a,&pt)&&vltt__tt_get_zone_point(v,v->gs.gep0,v->gs.rp0,&ref)){int cur=vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y);vltt__tt_move_projected(v,v->gs.gep1,a,b-cur);v->gs.rp1=v->gs.rp0;v->gs.rp2=a;if(op&1)v->gs.rp0=a;}}break;
+      case 0x3C:if(v->gs.loop<1||v->gs.loop>v->stack_capacity){v->error=1;break;}for(i=0;i<v->gs.loop&&!v->error;i++){if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt,*ref;if(vltt__tt_get_zone_point(v,v->gs.gep1,a,&pt)&&vltt__tt_get_zone_point(v,v->gs.gep0,v->gs.rp0,&ref)){int cur=vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y);vltt__tt_move_projected(v,v->gs.gep1,a,-cur);}}}v->gs.loop=1;break;
+      case 0x3D:v->gs.round_mode=0;v->gs.round_period=64;v->gs.round_phase=0;v->gs.round_threshold=32;break;
+      case 0x3E:case 0x3F:if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;if(b<0||b>=v->cvt_count){v->error=1;break;}{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep0,a,&pt)){int cur=vltt__tt_project(&v->gs,pt->x,pt->y),orig=vltt__tt_project_dual(&v->gs,pt->ox,pt->oy),target=v->cvt[b];if(op&1){if(abs(target-orig)>v->gs.cvt_cut_in)target=orig;target=vltt__tt_round(&v->gs,target);}vltt__tt_move_projected(v,v->gs.gep0,a,target-cur);if(v->gs.gep0==0){pt->ox=pt->x;pt->oy=pt->y;}v->gs.rp0=v->gs.rp1=a;}}break;
+      case 0x42:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(b<0||b>=v->storage_count){v->error=1;break;}v->storage[b]=a;break;
+      case 0x43:if(!vltt__tt_pop(v,&a))break;if(a<0||a>=v->storage_count){v->error=1;break;}vltt__tt_push(v,v->storage[a]);break;
+      case 0x44:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(b<0||b>=v->cvt_count){v->error=1;break;}v->cvt[b]=a;break;
+      case 0x45:if(!vltt__tt_pop(v,&a))break;if(a<0||a>=v->cvt_count){v->error=1;break;}vltt__tt_push(v,v->cvt[a]);break;
+      case 0x46:case 0x47:if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep2,a,&pt))vltt__tt_push(v,op==0x46?vltt__tt_project(&v->gs,pt->x,pt->y):vltt__tt_project_dual(&v->gs,pt->ox,pt->oy));}break;
+      case 0x48:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep2,b,&pt)){int cur=vltt__tt_project(&v->gs,pt->x,pt->y);vltt__tt_move(v,v->gs.gep2,b,a-cur);}}break;
+      case 0x49:case 0x4A:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;{vltt_tt_point *p1,*p2;if(vltt__tt_get_zone_point(v,v->gs.gep0,b,&p1)&&vltt__tt_get_zone_point(v,v->gs.gep1,a,&p2))vltt__tt_push(v,op==0x49?vltt__tt_project(&v->gs,p2->x-p1->x,p2->y-p1->y):vltt__tt_project_dual(&v->gs,p2->ox-p1->ox,p2->oy-p1->oy));}break;
+      case 0x4B:vltt__tt_push(v,v->ppem);break;
+      case 0x4C:vltt__tt_push(v,v->ppem*64);break;
+      case 0x4D:v->gs.auto_flip=1;break;
+      case 0x4E:v->gs.auto_flip=0;break;
+      case 0x4F:if(!vltt__tt_pop(v,&a))break;break;
+      case 0x60:case 0x61:case 0x62:case 0x63:case 0x64:case 0x65:case 0x66:case 0x67:case 0x68:case 0x69:case 0x6A:case 0x6B:case 0x6C:case 0x6D:case 0x6E:case 0x6F:
+         if(op==0x64||op==0x65){if(!vltt__tt_pop(v,&a))break;c=op==0x64?vltt__tt_abs_sat(a):(a==INT32_MIN?INT32_MAX:-a);}
+         else if(op>=0x66&&op<=0x6F){if(!vltt__tt_pop(v,&a))break;switch(op){case 0x66:c=vltt__tt_floor64(a);break;case 0x67:c=vltt__tt_ceil64(a);break;case 0x68:case 0x69:case 0x6A:case 0x6B:c=vltt__tt_round(&v->gs,a);break;case 0x6C:c=a;break;case 0x6D:c=a;break;case 0x6E:c=a;break;default:c=a;break;}}
+         else {if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;switch(op){case 0x60:c=(int32_t)((int64_t)a+b);break;case 0x61:c=(int32_t)((int64_t)a-b);break;case 0x62:c=b?(int32_t)(((int64_t)a*64)/b):0;break;default:c=(int32_t)(((int64_t)a*b)/64);break;}}
+         if(!vltt__tt_push(v,c))break;break;
+      case 0x70:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(b<0||b>=v->cvt_count){v->error=1;break;}v->cvt[b]=a;break;
+      case 0x71:case 0x72:case 0x73:case 0x74:case 0x75:vltt__tt_delta(v,op);break;
+      case 0x76:case 0x77:if(!vltt__tt_pop(v,&a))break;{int period=(a>>6)&3,phase=(a>>4)&3,threshold=a&15;if(op==0x77){v->gs.round_period=45;v->gs.round_phase=phase*45/4;v->gs.round_threshold=threshold==0?0:threshold*45/16;}else{v->gs.round_period=period==0?32:period==1?64:period==2?128:64;v->gs.round_phase=phase*16;v->gs.round_threshold=threshold==0?0:threshold*4;}}break;
+      case 0x7A:v->gs.round_mode=4;v->gs.round_period=0;break;
+      case 0x7B:v->gs.round_mode=1;v->gs.round_period=64;v->gs.round_phase=0;v->gs.round_threshold=0;break;
+      case 0x7C:v->gs.round_mode=2;v->gs.round_period=64;v->gs.round_phase=0;v->gs.round_threshold=0;break;
+      case 0x7D:if(!vltt__tt_pop(v,&a))break;v->gs.angle_weight=a;break;
+      case 0x7E:if(!vltt__tt_pop(v,&a))break;break;
+      case 0x7F:break;
+      case 0x80:if(v->gs.loop<1||v->gs.loop>v->stack_capacity){v->error=1;break;}for(i=0;i<v->gs.loop;i++){if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep2,a,&pt))pt->on_curve=(unsigned char)!pt->on_curve;}}v->gs.loop=1;break;
+      case 0x81:case 0x82:if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;if(a<0||b<a||b>=v->zones[v->gs.gep2].count){v->error=1;break;}for(i=a;i<=b;i++)v->zones[v->gs.gep2].points[i].on_curve=(unsigned char)(op==0x81);break;
+      case 0x86:case 0x87:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;{vltt_tt_point *p1,*p2;if(vltt__tt_get_zone_point(v,v->gs.gep2,b,&p1)&&vltt__tt_get_zone_point(v,v->gs.gep1,a,&p2)){int x=p2->ox-p1->ox,y=p2->oy-p1->oy;if(op&1){int t=x;x=-y;y=t;}vltt__tt_unit_vector(x,y,&c,&d);v->gs.dual_x=c;v->gs.dual_y=d;x=p2->x-p1->x;y=p2->y-p1->y;if(op&1){int t=x;x=-y;y=t;}vltt__tt_unit_vector(x,y,&v->gs.proj_x,&v->gs.proj_y);}}break;
+      case 0x88:if(!vltt__tt_pop(v,&a))break;c=0;if(a&1)c|=(v->interpreter_version?v->interpreter_version:40)&255;if((a&2)&&(v->glyph_flags&1))c|=1<<8;if((a&4)&&(v->glyph_flags&2))c|=1<<9;if(a&8)c|=1<<10;if(a&16)c|=1<<11;if((a&32)&&(v->glyph_flags&4))c|=1<<12;if(!vltt__tt_push(v,c))break;break;
+      case 0x8A:if(v->sp<3){v->error=1;break;}a=v->stack[v->sp-3];v->stack[v->sp-3]=v->stack[v->sp-2];v->stack[v->sp-2]=v->stack[v->sp-1];v->stack[v->sp-1]=a;break;
+      case 0x8B:case 0x8C:if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;if(!vltt__tt_push(v,op==0x8B?(a>b?a:b):(a<b?a:b)))break;break;
+      case 0x85:if(!vltt__tt_pop(v,&a))break;v->gs.scan_control=a&0xffff;break;
+      case 0x8D:if(!vltt__tt_pop(v,&a))break;v->gs.scan_type=a&0xffff;break;
+      case 0x8E:if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;if(a<1||a>3){v->error=1;break;}if((a==1&&(b!=0&&b!=1))||(a==2&&(b!=0&&b!=2))||(a==3&&(b!=0&&b!=4))){v->error=1;break;}v->compatibility_flags=(v->compatibility_flags&~(1<<(a-1)))|(b?1<<(a-1):0);break;
+      case 0x1F:if(!vltt__tt_pop(v,&a))break;v->gs.single_width_value=a;break;
+      case 0x91:for(i=0;i<v->variation_count;i++)if(!vltt__tt_push(v,v->variation_coords[i]))break;break;
+      default: {int ii=vltt__tt_find_idef(v,(int)op);if(ii>=0){if(v->call_depth>=v->max_call_depth){v->error=1;break;}v->call_depth++;vltt__tt_exec(v,v->idef_code[ii],v->idef_size[ii],limit);v->call_depth--;}else if(op==0x59){if(v->call_depth>0)ip=n;}else if(op==0x2D){ip=n;}if(op==0x89){v->error=1;}else { /* reserved opcodes are tolerated */ }}break;
       }
    }
    return !v->error;
@@ -22368,11 +22011,12 @@ STBTT_DEF int vltt_tt_vm_init(vltt_tt_vm *v,int sc,int storage,int cvt,int twili
    v->max_call_depth=VLTT_TT_MAX_CALL_DEPTH;v->interpreter_version=0;v->compatibility_flags=0;vltt_tt_vm_reset_graphics(v);return 1;
 }
 STBTT_DEF void vltt_tt_vm_done(vltt_tt_vm *v){if(!v)return;free(v->stack);free(v->storage);free(v->cvt);free(v->twilight_x);free(v->twilight_y);free(v->twilight_tx);free(v->twilight_ty);memset(v,0,sizeof(*v));}
-STBTT_DEF void vltt_tt_vm_reset_graphics(vltt_tt_vm *v){if(!v)return;memset(&v->gs,0,sizeof(v->gs));v->gs.proj_x=16384;v->gs.free_x=16384;v->gs.dual_x=16384;v->gs.loop=1;v->gs.minimum_distance=1<<6;v->gs.cvt_cut_in=17<<6;v->gs.single_width_cut_in=0;v->gs.delta_base=9;v->gs.delta_shift=3;v->gs.auto_flip=1;v->gs.round_period=64;v->gs.round_phase=0;v->gs.round_threshold=32;v->gs.gep0=v->gs.gep1=v->gs.gep2=1;v->sp=0;}
+STBTT_DEF void vltt_tt_vm_reset_graphics(vltt_tt_vm *v){if(!v)return;memset(&v->gs,0,sizeof(v->gs));v->gs.proj_x=16384;v->gs.free_x=16384;v->gs.dual_x=16384;v->gs.loop=1;v->gs.minimum_distance=1<<6;v->gs.cvt_cut_in=17<<6;v->gs.single_width_cut_in=0;v->gs.delta_base=9;v->gs.delta_shift=3;v->gs.auto_flip=1;v->gs.round_period=64;v->gs.round_phase=0;v->gs.round_threshold=32;v->gs.round_mode=0;v->gs.gep0=v->gs.gep1=v->gs.gep2=1;v->sp=0;}
 STBTT_DEF int vltt_tt_execute(vltt_tt_vm *v,const unsigned char *p,size_t n,int limit){if(!v||!p||n>65536)return 0;if(limit<=0||limit>VLTT_TT_MAX_INSTRUCTIONS)limit=VLTT_TT_MAX_INSTRUCTIONS;return vltt__tt_exec(v,p,n,limit);}
-STBTT_DEF int vltt_tt_execute_font_program(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l;if(!f||!v||!vltt__table_bounds(f,"fpgm",&o,&l))return 1;(void)ppem;return vltt_tt_execute(v,f->data+o,l,VLTT_TT_MAX_INSTRUCTIONS);}
-STBTT_DEF int vltt_tt_execute_prep(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l;if(!f||!v||!vltt__table_bounds(f,"prep",&o,&l))return 1;(void)ppem;return vltt_tt_execute(v,f->data+o,l,VLTT_TT_MAX_INSTRUCTIONS);}
-STBTT_DEF int vltt_tt_execute_glyph(const vltt_face *f,vltt_tt_vm *v,int glyph,int ppem){(void)f;(void)v;(void)glyph;(void)ppem;return 1;}
+STBTT_DEF int vltt_tt_execute_font_program(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l;if(!f||!v)return 0;v->ppem=ppem>0?ppem:0;v->execution_mode=1;v->function_count=0;v->idef_count=0;if(!vltt__table_bounds(f,"fpgm",&o,&l))return 1;if(l>65536)return 0;return vltt_tt_execute(v,f->data+o,l,VLTT_TT_MAX_INSTRUCTIONS);}
+static int vltt__tt_load_cvt(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l,ho,hl;int upem=1000,n,i;if(!f||!v)return 0;if(vltt__table_bounds(f,"head",&ho,&hl)&&hl>=20){int q=ttUSHORT(f->data+ho+18);if(q>0)upem=q;}v->units_per_em=upem;if(!vltt__table_bounds(f,"cvt ",&o,&l))return 1;if(l&1)return 0;n=(int)(l/2);if(n>v->cvt_count)return 0;for(i=0;i<n;i++){int val=(int16_t)ttUSHORT(f->data+o+(size_t)i*2);v->cvt[i]=(int32_t)(((int64_t)val*ppem*64)/upem);}for(;i<v->cvt_count;i++)v->cvt[i]=0;return 1;}
+STBTT_DEF int vltt_tt_execute_prep(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l;if(!f||!v)return 0;v->ppem=ppem>0?ppem:0;v->execution_mode=2;vltt_tt_vm_reset_graphics(v);if(!vltt__tt_load_cvt(f,v,v->ppem))return 0;if(!vltt__table_bounds(f,"prep",&o,&l))return 1;if(l>65536)return 0;return vltt_tt_execute(v,f->data+o,l,VLTT_TT_MAX_INSTRUCTIONS);}
+STBTT_DEF int vltt_tt_execute_glyph(const vltt_face *f,vltt_tt_vm *v,int glyph,int ppem){const unsigned char *ins=0;size_t il=0;vltt_tt_point *pts=0;int n=0,*ends=0,nc=0,ok; if(!f||!v||glyph<0||glyph>=f->numGlyphs||ppem<1)return 0;v->ppem=ppem;v->execution_mode=3;v->variation_count=f->vltt_var_coords_valid?(f->vltt_var_axes<64?f->vltt_var_axes:64):0;for(int vi=0;vi<v->variation_count;vi++)v->variation_coords[vi]=(int32_t)lrintf(f->vltt_var_coords[vi]*16384.0f); if(!stbtt__vl_decode_simple_glyph(f,glyph,&pts,&n,&ends,&nc,&ins,&il))return 0; if(!ins||!il){if(pts)STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return 1;} v->zones[1].points=pts;v->zones[1].count=n;v->zones[1].contours=nc;v->zones[1].contour_ends=ends;{vltt_tt_point *tw=0;int j;if(v->twilight_count){tw=(vltt_tt_point*)calloc((size_t)v->twilight_count,sizeof(*tw));if(!tw){v->zones[1].points=0;STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return 0;}for(j=0;j<v->twilight_count;j++){tw[j].x=tw[j].ox=v->twilight_x[j];tw[j].y=tw[j].oy=v->twilight_y[j];tw[j].touched_x=v->twilight_tx[j];tw[j].touched_y=v->twilight_ty[j];}}v->zones[0].points=tw;v->zones[0].count=v->twilight_count;v->zones[0].contours=0;v->zones[0].contour_ends=0;ok=vltt_tt_execute(v,ins,il,VLTT_TT_MAX_INSTRUCTIONS);for(j=0;j<v->twilight_count;j++){v->twilight_x[j]=tw[j].x;v->twilight_y[j]=tw[j].y;v->twilight_tx[j]=tw[j].touched_x;v->twilight_ty[j]=tw[j].touched_y;}free(tw);}v->zones[1].points=0;v->zones[1].count=0;v->zones[1].contours=0;v->zones[1].contour_ends=0;v->zones[0].points=0;v->zones[0].count=0;if(pts)STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return ok;}
 STBTT_DEF int vltt_tt_hint_points(vltt_tt_vm *v,vltt_tt_zone *z,int ppem){int i;if(!v||!z||!z->points||z->count<0||ppem<1)return 0;for(i=0;i<z->count;i++){if(!z->points[i].touched_x)z->points[i].x=(z->points[i].x+32)&~63;if(!z->points[i].touched_y)z->points[i].y=(z->points[i].y+32)&~63;}return 1;}
 
 /* ========================================================================

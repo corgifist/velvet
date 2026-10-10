@@ -1,5 +1,4 @@
 #include "font/atlas.h"
-#include "platform/universal/vl_truetype.h"
 #include "support/base_math.h"
 #include "support/error_pool.h"
 #include "support/math.h"

@@ -21,7 +21,8 @@ enum vl_css_value_type {
     VL_CSS_VALUE_DYNAMIC_LITERAL,
     VL_CSS_VALUE_INTEGER,
     VL_CSS_VALUE_LIST,
-    VL_CSS_VALUE_STRING
+    VL_CSS_VALUE_STRING,
+    VL_CSS_VALUE_FLOATING
 };
 typedef enum vl_css_value_type vl_css_value_type_t;
 
@@ -63,6 +64,7 @@ struct vl_css_value {
     vl_css_value_type_t type;
     union {
         int integer;
+        float floating;
         vl_css_size_metric_t metric1;
         vl_css_size_metric_t metric2[2];
         vl_css_size_metric_t metric3[3];
@@ -106,6 +108,8 @@ typedef struct vl_css_value vl_css_value_t;
 #define VL_CSS_VALUE_INTEGER(INTEGER) \
     VL_CSS_VALUE(VL_CSS_VALUE_INTEGER, {.integer = (int) (INTEGER)})
 
+#define VL_CSS_VALUE_FLOATING(FLOATING) \
+    VL_CSS_VALUE(VL_CSS_VALUE_FLOATING, {.floating = (float) (FLOATING)})
 
 #define VL_CSS_VALUE_LIST1(LIST) \
     VL_CSS_VALUE(VL_CSS_VALUE_LIST, {.list = (LIST)})

@@ -222,10 +222,6 @@ vl_result_t vl_css_value_copy(vl_css_value_t *dst, const vl_css_value_t *value) 
 
 static void print_metric_unit(const vl_css_size_metric_t *metric) {
     switch (metric->type) {
-    case VL_CSS_SIZE_METRIC_NONE: {
-        printf("none");
-        break;
-    }
     case VL_CSS_SIZE_METRIC_PIXELS: {
         printf("px");
         break;
@@ -244,6 +240,11 @@ static void print_metric_unit(const vl_css_size_metric_t *metric) {
     }
     case VL_CSS_SIZE_METRIC_AUTO: {
         printf("auto");
+        break;
+    }
+    default:
+    case VL_CSS_SIZE_METRIC_NONE: {
+        printf("none");
         break;
     }
     }
@@ -307,6 +308,10 @@ static void print_value(const vl_css_value_t value) {
     }
     case VL_CSS_VALUE_INTEGER: {
         printf("%i", value.as.integer);
+        break;
+    }
+    case VL_CSS_VALUE_FLOATING: {
+        printf("%f", value.as.floating);
         break;
     }
     case VL_CSS_VALUE_LIST: {

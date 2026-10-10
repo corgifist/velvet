@@ -62,7 +62,7 @@ vl_result_t vl_css_parser_init_(vl_css_parser_t *parser, const char *text, vl_so
     return VL_SUCCESS;
 }
 
-static vl_css_size_metric_type_t map_str_to_metric_type(const char *str) {
+static vl_css_size_metric_type_t map_str_to_metric_type(const char *str, int length) {
     static const struct {
         const char *unit;
         vl_css_size_metric_type_t type;
@@ -74,7 +74,8 @@ static vl_css_size_metric_type_t map_str_to_metric_type(const char *str) {
     };
 
     for (int i = 0; i < VL_ARR_LEN(s_metric_unit_map); i++) {
-        if (memcmp(str, s_metric_unit_map[i].unit, strlen(s_metric_unit_map[i].unit)) == 0) {
+        if (strlen(s_metric_unit_map[i].unit) != length) continue;
+        if (memcmp(str, s_metric_unit_map[i].unit, length) == 0) {
             return s_metric_unit_map[i].type;
         }
     }
@@ -88,16 +89,16 @@ static vl_css_value_t parse_single_metric(vl_css_parser_t *parser, vl_css_rule_t
         tokenize(parser); skip_spaces(parser);
         return VL_CSS_VALUE_METRIC1(VL_CSS_SIZE_AUTO());
     }
-    float value = strtod(current->text, NULL);
+    float value = strtof(current->text, NULL);
     if (tokenize(parser) || skip_spaces(parser)) return VL_CSS_VALUE_NONE();
-    if (current->type != VL_CSS_TOKEN_TYPE_ID || VL_TOKEN_COMPARE(current, "auto")) {
+    if ((current->type != VL_CSS_TOKEN_TYPE_ID && !VL_TOKEN_COMPARE(current, "%"))) {
         return VL_CSS_VALUE_METRIC1(
             VL_CSS_SIZE_PIXELS(value)
         );
     }
-    vl_css_size_metric_type_t metric_type = map_str_to_metric_type(current->text);
+    vl_css_size_metric_type_t metric_type = map_str_to_metric_type(current->text, current->text_length);
     if (tokenize(parser) || skip_spaces(parser) || metric_type == VL_CSS_SIZE_METRIC_NONE) return VL_CSS_VALUE_NONE();
-    if (metric_type == VL_CSS_SIZE_METRIC_PERCENTAGE) metric_type /= 100.0f;
+    if (metric_type == VL_CSS_SIZE_METRIC_PERCENTAGE) value /= 100.0f;
     return VL_CSS_VALUE_METRIC1(
         VL_CSS_SIZE_METRIC(metric_type, value)
     );
@@ -227,7 +228,7 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
         tokenize(parser); skip_spaces(parser);
         return result;
     }
-    if ((current->type == VL_CSS_TOKEN_TYPE_NUMBER && (current + 1)->type == VL_CSS_TOKEN_TYPE_ID)
+    if ((current->type == VL_CSS_TOKEN_TYPE_NUMBER && ((current + 1)->type == VL_CSS_TOKEN_TYPE_ID) || VL_TOKEN_COMPARE(current + 1, "%"))
             || VL_TOKEN_COMPARE(current, "auto")) {
         // single metric: 10px / 5em / 25%
         return parse_single_metric(parser, rule);
@@ -241,10 +242,15 @@ static vl_css_value_t parse_primary_value(vl_css_parser_t *parser, vl_css_rule_t
             }
         }
         if (!dot_found) {
-            char *endptr;
+            char *endptr = NULL;
             int integer = strtol(current->text, &endptr, 10);
             tokenize(parser); skip_spaces(parser);
             return VL_CSS_VALUE_INTEGER(integer);
+        } else {
+            char *endptr = NULL;
+            float floating = strtof(current->text, &endptr);
+            tokenize(parser); skip_spaces(parser);
+            return VL_CSS_VALUE_FLOATING(floating);
         }
     }
     if (VL_TOKEN_COMPARE(current, "rgba") && VL_TOKEN_COMPARE(current + 1, "(")) {

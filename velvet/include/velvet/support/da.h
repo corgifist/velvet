@@ -133,6 +133,11 @@ typedef void* VL_DA;
 #define VL_DA_LAST(DA) \
     (VL_DA_EMPTY(DA) ? NULL : (VL_PTR_FORWARD(DA, (VL_DA_LENGTH(DA) - 1) * VL_DA_HEADER(DA)->element_size)))
 
+#define VL_DA_POP(DA) \
+    do { \
+        if (VL_DA_LENGTH(DA) > 0) VL_DA_DELETE(DA, VL_DA_LENGTH(DA) - 1); \
+    } while (0) \
+
 /*
     dispose the dynamic array using default deallocator
 */

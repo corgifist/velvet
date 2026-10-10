@@ -868,6 +868,7 @@ void css_test() {
             outline-color: rgba(128 128 128 0.6);
             font-family: Roboto, 'EB Garamond', serif;
             margin: 0 auto;
+            opacity: 67%;
         }
     );
     vl_css_parser_t parser = {0};
@@ -1632,7 +1633,7 @@ void styling_test() {
     //             }
     //     </style>
     //     </head>
-    //     <body style="font-family: serif" class="highlight">
+    //     <body style="font-family: serif" class="">
     //     <h1>Text Wrapping Test Page</h1>
 
     //     <p>
@@ -1745,43 +1746,43 @@ void styling_test() {
     // const char *input = VL_STRINGIFY(
     //     <p style="font-size: 3em">Ελληνικά 1 2 3 4 5</p>
     // );
-    const char *input = VL_STRINGIFY(
-        <h1>Advanced Typography</h1>
-        <style>
-            p {
-                font-size: 3em;
-                margin-block-start: 0.5em;
-                margin-block-end: 0.5em;
-            }
+    // const char *input = VL_STRINGIFY(
+    //     <h1>Advanced Typography</h1>
+    //     <style>
+    //         p {
+    //             font-size: 3em;
+    //             margin-block-start: 0.5em;
+    //             margin-block-end: 0.5em;
+    //         }
 
-            body {
-                // --velvet-element-highlight: highlight-green;
-            }
-        </style>
-        <p>
-            السلام عليكم<br>
-            بسم الله الرحمن الرحيم<br>
-            لا إله إلا الله<br>
-            محمد رسول الله<br>
-            العربية لغة جميلة<br>
-        </p>
-        <p>Ελληνικά, 中文, 日本語</p>
-        <p>العربية, हिन्दी</p>
-        <p style="font-family: Zapfino">Zapfino!</p>
-        <p style="font-family: Skia;">
-            AVATAR WAY WA To Te<br>
-            office ffi ff fi fl<br>
-            1234567890<br>
-        </p>
-        <p style="font-family: 'Hoefler Text">
-            The office of the affinity official
-            AVATAR To Ta Te
-        </p>
-        <p style="font-family: 'Hiragino Sans'">
-            日本語の文章です<br>
-            漢字とひらがなとカタカナ
-        </p>
-    );
+    //         body {
+    //             // --velvet-element-highlight: highlight-green;
+    //         }
+    //     </style>
+    //     <p>
+    //         السلام عليكم<br>
+    //         بسم الله الرحمن الرحيم<br>
+    //         لا إله إلا الله<br>
+    //         محمد رسول الله<br>
+    //         العربية لغة جميلة<br>
+    //     </p>
+    //     <p>Ελληνικά, 中文, 日本語</p>
+    //     <p>العربية, हिन्दी</p>
+    //     <p style="font-family: Zapfino">Zapfino!</p>
+    //     <p style="font-family: Skia;">
+    //         AVATAR WAY WA To Te<br>
+    //         office ffi ff fi fl<br>
+    //         1234567890<br>
+    //     </p>
+    //     <p style="font-family: 'Hoefler Text">
+    //         The office of the affinity official
+    //         AVATAR To Ta Te
+    //     </p>
+    //     <p style="font-family: 'Hiragino Sans'">
+    //         日本語の文章です<br>
+    //         漢字とひらがなとカタカナ
+    //     </p>
+    // );
     // const char *input = VL_STRINGIFY(
     //     <p style="font-size: 1em">السلام عليكم</p>
     //     <p style="font-size: 2em">السلام عليكم</p>
@@ -1795,6 +1796,31 @@ void styling_test() {
     //         Hello, World!
     //     </p>
     // );
+    const char *input = VL_STRINGIFY(
+        <style>
+            p {
+                font-size: 4.5em;
+            }
+            .transparent {
+                opacity: 70%;
+            }
+        </style>
+        <h1>Arabic overlaps</h1>
+        <p>
+            السلام عليكم<br>
+            بسم الله الرحمن الرحيم<br>
+            لا إله إلا الله<br>
+            محمد رسول الله<br>
+            العربية لغة جميلة<br>
+        </p>
+        <p class="transparent">
+            السلام عليكم<br>
+            بسم الله الرحمن الرحيم<br>
+            لا إله إلا الله<br>
+            محمد رسول الله<br>
+            العربية لغة جميلة<br>
+        </p>
+    );
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);

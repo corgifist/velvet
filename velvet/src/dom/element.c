@@ -277,6 +277,7 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     vl_dom_element_funcs_t *funcs = VL_DOM_ELEMENT_FUNCS(element);
     if (!funcs->render) return VL_SUCCESS;
     vl_web_t *web = element->owner->owner;
+    vl_graphics_render_push_alpha(web->render, element->layout.opacity);
     render_element_background(element);
     render_element_borders(element);
     if (element->layout.pseudo_before) {
@@ -289,6 +290,7 @@ vl_result_t vl_dom_element_render(vl_dom_element_t *element) {
     render_element_highlight(element);
     render_margin_highlight(element);
     vl_graphics_render_pop_transform(web->render);
+    vl_graphics_render_pop_alpha(web->render);
     return result;
 }
 
