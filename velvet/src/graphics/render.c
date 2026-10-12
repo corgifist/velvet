@@ -27,7 +27,7 @@ vl_result_t vl_graphics_render_clear(vl_graphics_render_t *render, vl_color_t co
 
 vl_result_t vl_graphics_render_push_alpha(vl_graphics_render_t *render, float alpha) {
     if (!render || !render->alpha) return VL_ERROR;
-    float top = (VL_DA_LENGTH(render->alpha) > 0 ? *((float*) VL_DA_LAST(render->alpha)) : 1.0f);
+    float top = ((VL_DA_LENGTH(render->alpha) > 0 ? *VL_DA_LAST(render->alpha) : 1));
     *VL_DA_PUSH(render->alpha, float) = top * alpha;
     return VL_SUCCESS; 
 }
@@ -90,11 +90,11 @@ vl_result_t vl_graphics_render_batch_vertex(vl_graphics_render_t *render, vl_vec
     if (render->transform && !VL_DA_EMPTY(render->transform)) {
         vl_vec4_t src = {point.x, point.y, 0, 1};
         vl_vec4_t dst;
-        vl_mat4_mul_vec4(&dst, *((vl_mat4_t*) VL_DA_LAST(render->transform)), src);
+        vl_mat4_mul_vec4(&dst, *VL_DA_LAST(render->transform), src);
         point = VL_POINT(dst.x, dst.y);
     }
     if (render->alpha && !VL_DA_EMPTY(render->alpha)) {
-        color.a *= *((float*) VL_DA_LAST(render->alpha));
+        color.a *= *VL_DA_LAST(render->alpha);
     }
     return render->context->graphics_render_batch_vertex(render, point, brush, color, uv); 
 }
@@ -346,5 +346,6 @@ vl_result_t vl_graphics_render_resize(vl_graphics_render_t *render, int w, int h
 vl_result_t vl_graphics_render_free(vl_graphics_render_t *render) {
     if (!render || !vl_platform_context_valid(render->context) || !render->context->graphics_render_free) return VL_ERROR;
     VL_DA_FREE(render->transform);
+    VL_DA_FREE(render->alpha);
     return render->context->graphics_render_free(render);
 }

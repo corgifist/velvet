@@ -73,13 +73,16 @@ vl_result_t vl_dom_element_process(vl_dom_element_t *element) {
 static void render_element_background(vl_dom_element_t *element) {
     vl_web_t *web = element->owner->owner;
     bool is_body = (element->tag && (strcmp(element->tag, "body") == 0));
+    vl_graphics_render_push_translate(web->render, element->layout.position);
     if (is_body) {
         vl_color_t raw_color = element->layout.background.color;
         vl_css_layout_node_t *web_root = element->layout.parent->parent;
+        vl_graphics_render_push_break(web->render);
         if (raw_color.a != 0) 
             vl_graphics_render_batch_rect_colored(web->render, VL_RECT_EX(0, 0, web_root->size.x, web_root->size.y), NULL, VL_QUAD_COLOR(raw_color));
+        vl_graphics_render_pop_transform(web->render);
+        return;
     }
-    vl_graphics_render_push_translate(web->render, element->layout.position);
     if (!is_body) {
         vl_color_t raw_color = element->layout.background.color;
         if (raw_color.a != 0)

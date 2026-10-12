@@ -32,7 +32,7 @@
 void da_test() {
     VL_DA(int) array = VL_DA_INIT(int);
     vl_da_header_t *header = VL_DA_HEADER(array);
-    printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
+    printf("%i %i %i\n", header->capacity, header->count, header->element_size);
     VL_DA_FREE(array);
 
     VL_DA(int) array2 = VL_DA_INIT(int);
@@ -40,7 +40,7 @@ void da_test() {
         *VL_DA_PUSH(array2, int) = (i + 1) * 13;
     }
     header = VL_DA_HEADER(array2);
-    printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
+    printf("%i %i %i\n", header->capacity, header->count, header->element_size);
     for (int i = 0; i < header->count; ++i) {
         printf("%i: %i\n", i, array2[i]);
     }
@@ -49,7 +49,7 @@ void da_test() {
     VL_DA_DELETE(array2, 1);
     VL_DA_DELETE(array2, 1);
     VL_DA_DELETE(array2, 1);
-    printf("%zu %zu %zu\n", header->capacity, header->count, header->element_size);
+    printf("%i %i %i\n", header->capacity, header->count, header->element_size);
     for (int i = 0; i < header->count; ++i) {
         printf("%i: %i\n", i, array2[i]);
     }
@@ -70,7 +70,7 @@ void da_stress_test() {
     for (int i = 0; i < 100; i++) {
         printf("%i\n", da[i]);
     }
-    printf("added 100 random numbers: %zu %zu %zu\n", VL_DA_HEADER(da)->capacity, VL_DA_HEADER(da)->count, VL_DA_HEADER(da)->element_size);
+    printf("added 100 random numbers: %i %i %i\n", VL_DA_HEADER(da)->capacity, VL_DA_HEADER(da)->count, VL_DA_HEADER(da)->element_size);
     for (int i = 0; i < 99; ++i) {
         VL_DA_DELETE(da, 0);
     }
@@ -1625,7 +1625,7 @@ void styling_test() {
     //     <title>Text Wrapping Test</title>
     //     <style>
     //             body {
-    //                 // --velvet-element-highlight: highlight-green;
+    //                 --velvet-element-highlight: highlight-green;
     //             }
 
     //             .highlight {
@@ -1756,7 +1756,7 @@ void styling_test() {
     //         }
 
     //         body {
-    //             // --velvet-element-highlight: highlight-green;
+    //             --velvet-element-highlight: highlight-green;
     //         }
     //     </style>
     //     <p>
@@ -1804,6 +1804,10 @@ void styling_test() {
     //         .transparent {
     //             opacity: 70%;
     //         }
+
+    //         body {
+    //             --velvet-element-highlight: highlight-orange;
+    //         }
     //     </style>
     //     <h1>Arabic overlaps</h1>
     //     <p>
@@ -1820,29 +1824,60 @@ void styling_test() {
     //         محمد رسول الله<br>
     //         العربية لغة جميلة<br>
     //     </p>
+    //     <p class="" style="font-size: 2.5em;">
+    //         पन्ह पन्ह त्र र्च कृकृ ड्ड न्हृे إلا بسم الله
+    //     </p>
+    //     <p class="transparent" style="font-size: 2.5em">
+    //         पन्ह पन्ह त्र र्च कृकृ ड्ड न्हृे إلا بسم الله
+    //     </p>
+    // );
+    // const char *input = VL_STRINGIFY(
+    //     <style>
+    //         div {
+    //             font-family: "Arial";
+    //             font-weight: bold;
+    //             font-size: 4rem;
+    //             box-sizing: border-box;
+    //             border: 0.25rem solid black;
+    //             padding: 0 4px;
+    //             width: 14rem;
+    //             margin: 1rem;
+    //         }
+    //         .wrap {
+    //             text-wrap-mode: wrap;
+    //         }
+    //         .nowrap {
+    //             text-wrap-mode: nowrap;
+    //         }
+    //     </style>
+    //     <div class="wrap">CSS IS AWESOME</div>
+    //     <div class="nowrap">CSS IS AWESOME</div>
     // );
     const char *input = VL_STRINGIFY(
         <style>
-            div {
-                font-family: "Arial";
-                font-weight: bold;
-                font-size: 4rem;
-                box-sizing: border-box;
-                border: 0.25rem solid black;
-                padding: 0 4px;
-                width: 14rem;
-                margin: 1rem;
-            }
-            .wrap {
-                text-wrap-mode: wrap;
-            }
-            .nowrap {
-                text-wrap-mode: nowrap;
+            body {
+                // --velvet-element-highlight: highlight-orange;
             }
         </style>
-        <div class="wrap">CSS IS AWESOME</div>
-        <div class="nowrap">CSS IS AWESOME</div>
-    );
+        <h1>Continuous shaping</h1>
+        <div style="font-size:30px; line-height: 1.5em;">
+            <span style="color:red;">पन</span>्ह <span style="color:red">पन्</span>ह <span style="color:red">त</span>्र <span style="color:red">र्</span>च <span style="color:red">क</span>ृक<span style="color:red">ृ</span> <span style="color:red">ड</span><span style="color:green">्ड</span> <span style="color:red">न</span><span style="color:green">्ह</span><span style="color:blue">ृ</span><span style="color:orange">े</span> <span style="color:red">إل</span><span style="color:green">ا</span> <span style="color:red">ب</span><span style="color:green">س</span><span style="color:blue">م</span>  <span style="color:red">ا</span><span style="color:green">ل</span><span style="color:blue">ل</span><span style="color:orange">ه</span>
+        </div>
+        <div style="font-size:30px; line-height: 1.5em;">
+            पन्ह पन्ह त्र र्च कृकृ ड्ड न्हृे إلا بسم الله
+        </div>
+        <p style="font-size: 2.5em;">Cross-span kerning: <span>V</span>A A<span>V</span></p>
+        <div style="font-size: 2.5em;">
+            <span style="color:red">Hello</span>, <span style="color:blue">World!</span><br>
+            <span style="color:purple">Hello, </span><span style="color:deeppink">World!</span><br>
+            <span style="color:brown">Hello</span><span style="color:teal">, World!</span><br>
+        </div>
+        <div style="font-size: 3em">
+            <span>بسم</span><br><span>بسم</span>
+        </div>
+    ) "    <h2 class='collapse'>    Default behavior;\n"
+        "   all   whitespace   is   collapsed\n"
+        " in    the          heading       .</h2>";
     vl_html_document_t *doc = vl_html_document_new(input);
     vl_html_document_print(doc);
     VL_ASSERT(doc);
@@ -1888,7 +1923,7 @@ void styling_test() {
 void font_search() {
     VL_DA(vl_font_search_description_t) results = NULL;
     vl_font_search_query(&results, "Arial");
-    printf("%zu results:\n", VL_DA_LENGTH(results));
+    printf("%i results:\n", VL_DA_LENGTH(results));
     for (int i = 0; i < VL_DA_LENGTH(results); i++) {
         vl_font_search_description_print(results + i);
     }
@@ -1934,6 +1969,22 @@ void line_test() {
     vl_memory_print_allocations();
 }
 
+void da_last_test() {
+    VL_DA(int) ints = VL_DA_INIT(int);
+    printf("length: %i; last: %p\n", VL_DA_LENGTH(ints), VL_DA_LAST(ints));
+    *VL_DA_PUSH(ints, int) = 6;
+    printf("length: %i; last: %p\n", VL_DA_LENGTH(ints), VL_DA_LAST(ints));
+}
+
+void html_spaces_test() {
+    const char *source = 
+        "<p>|LOL.  OXOS KDMSJNDK\n|                                  |"
+        "AAHello, World!"
+        "</p>";
+    vl_html_document_t *doc = vl_html_document_new(source);
+    vl_html_document_print(doc);
+}
+
 #include "velvet/support/main.h"
 
 int main(int argc, const char *argv[]) {
@@ -1967,6 +2018,8 @@ int main(int argc, const char *argv[]) {
     styling_test();
     // font_search();
     // line_test();
+    // da_last_test();
+    // html_spaces_test();
 
     return 0;
 }

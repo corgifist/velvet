@@ -8,7 +8,7 @@ static void vl_da_grow(vl_da_header_t **hp, vl_source_location_t loc, vl_allocat
     if (!hp || !*hp) return;
     vl_da_header_t *header = *hp;
     // https://rcoh.me/posts/notes-on-cpython-list-internals/
-    header->capacity = (size_t) header->capacity + (header->capacity >> 3) +
+    header->capacity = (int) header->capacity + (header->capacity >> 3) +
         (header->capacity < 9 ? 3 : 6);
     *hp = vl_arealloc(*allocator, header, sizeof(vl_da_header_t) + header->element_size * header->capacity, loc);
 }
@@ -21,7 +21,7 @@ static void *vl_da_shrink(VL_DA(void) da, vl_source_location_t loc, vl_allocator
     return VL_PTR_FORWARD(header, sizeof(vl_da_header_t));
 }
 
-void *vl_da_init(size_t element_size, size_t capacity, vl_source_location_t loc, vl_allocator_t allocator) {
+void *vl_da_init(int element_size, int capacity, vl_source_location_t loc, vl_allocator_t allocator) {
     vl_byte_t *mem;
     mem = vl_amalloc(allocator, sizeof(vl_da_header_t) + element_size * capacity, loc);
     if (!mem) return NULL;
@@ -40,7 +40,7 @@ VL_DA(char) vl_da_init_from_string(const char *string, vl_source_location_t loc,
     return vl_da_init_from_string_with_size(string, strlen(string), loc, allocator);
 }
 
-VL_DA(char) vl_da_init_from_string_with_size(const char *string, size_t string_len, vl_source_location_t loc, vl_allocator_t allocator) {
+VL_DA(char) vl_da_init_from_string_with_size(const char *string, int string_len, vl_source_location_t loc, vl_allocator_t allocator) {
     if (!string) return NULL;
     VL_DA(char) da = vl_da_init(1, string_len + 1, loc, allocator);
     if (!da) return NULL;
@@ -70,7 +70,7 @@ void vl_da_clear(VL_DA *da) {
     *da = VL_PTR_FORWARD(new_header, sizeof(vl_da_header_t));
 }
 
-void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_source_location_t loc) {
+void *vl_da_append(VL_DA(void) *da, void *item, int element_size, vl_source_location_t loc) {
     if (!da || !*da) return NULL;
     VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));
     vl_da_header_t *header = VL_DA_HEADER(*da);
@@ -85,7 +85,7 @@ void *vl_da_append(VL_DA(void) *da, void *item, size_t element_size, vl_source_l
     return target_ptr;
 }
 
-void vl_da_delete(VL_DA(void) *da, size_t index, vl_source_location_t loc) {
+void vl_da_delete(VL_DA(void) *da, int index, vl_source_location_t loc) {
     if (!da || !*da) return;
     VL_ASSERT(VL_DA_MAGIC_MATCHES(*da));
     vl_da_header_t *header = VL_DA_HEADER(*da);
@@ -124,8 +124,8 @@ void vl_da_dump_header(vl_da_header_t *header) {
         return;
     }
     printf("magic: %llu == %llu\n", header->magic, VL_DA_MAGIC);
-    printf("count: %zu\n", header->count);
-    printf("capacity: %zu\n", header->capacity);
-    printf("element size: %zu\n", header->element_size);
+    printf("count: %i\n", header->count);
+    printf("capacity: %i\n", header->capacity);
+    printf("element size: %i\n", header->element_size);
     printf("---------------------\n");
 }

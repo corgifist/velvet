@@ -27,10 +27,10 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     web->refresh_styles = true;
     vl_web_fonts_init(&web->fonts, web);
     web->fonts.owner = web;
-    vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Tiro Devanagari Sanskrit");
+#if VL_PLATFORM(MAC)
+    vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Devanagari Sangam MN");
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Songti TC");
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Songti SC");
-#if VL_PLATFORM(MAC)
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Geeza Pro");
     vl_result_t res = vl_web_fonts_add_parts_from_disk(&web->fonts, "serif", "/System/Library/Fonts/Times.ttc");
     if (res) {
@@ -38,6 +38,8 @@ vl_result_t vl_web_init(vl_platform_context_t *context, vl_web_t *web, vl_html_d
     }
     vl_web_fonts_add_parts_from_system(&web->fonts, "monospace", "Menlo");
 #else
+    vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Nirmala UI");
+    vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Arabic Typesetting");
     vl_web_fonts_add_parts_from_system(&web->fonts, "serif", "Times New Roman");
     vl_web_fonts_add_parts_from_system(&web->fonts, "monospace", "Courier New");
 #endif

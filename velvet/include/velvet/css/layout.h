@@ -56,12 +56,27 @@ enum vl_css_layout_text_wrap_mode {
 };
 typedef enum vl_css_layout_text_wrap_mode vl_css_layout_text_wrap_mode_t;
 
+enum vl_css_layout_bidi_direction {
+    VL_CSS_LAYOUT_BIDI_UNKNOWN = 0,
+    VL_CSS_LAYOUT_BIDI_LTR = 1,
+    VL_CSS_LAYOUT_BIDI_RTL = 2,
+    VL_CSS_LAYOUT_BIDI_MIXED = 3
+};
+typedef enum vl_css_layout_bidi_direction vl_css_layout_bidi_direction_t;
+
 struct vl_css_layout_whitespace {
     vl_css_layout_text_wrap_mode_t text_wrap_mode;
 };
 typedef struct vl_css_layout_whitespace vl_css_layout_whitespace_t;
 
 struct vl_css_layout_node;
+struct vl_css_layout_span_region {
+    struct vl_css_layout_node *owner;
+    VL_STRING text;
+    int len;
+};
+typedef struct vl_css_layout_span_region vl_css_layout_span_region_t;
+
 struct vl_web;
 typedef void vl_css_layout_node_owner_t;
 typedef vl_vec2_t (*vl_css_layout_node_get_content_size)(struct vl_css_layout_node *node);
@@ -95,21 +110,38 @@ struct vl_css_layout_node {
     vl_vec4_t margin;
     bool auto_margin[4];
     vl_vec4_t padding;
+
     vl_css_layout_border_t border[4];
     vl_css_layout_background_t background;
     vl_vec4_t color;
     float opacity;
+
     vl_vec4_t effective_padding;
+
     float block_last_margin;
     float block_applied_margin;
     float block_first_margin;
     float block_first_offset;
+
+    VL_STRING span_text;
+    VL_STRING span_flattened_text;
+    VL_STRING span_ref_flatenned_text;
+    int span_index;
+    int span_index_last;
+    VL_DA(VL_DA(vl_css_layout_span_region_t)) span_regions;
+    VL_DA(vl_css_layout_span_region_t) span_ref_region;
     float span_y_offset;
     float span_x_cursor, span_x_area;
     float span_line_height, span_line_gap;
     vl_vec2_t span_last_cursor;
     bool span_wrapped;
+    bool span_should_flip;
+    vl_css_layout_bidi_direction_t span_bidi_direction;
+    vl_css_layout_bidi_direction_t span_paragraph_direction;
+    int span_bidi_level;
+
     vl_css_layout_whitespace_t whitespace;
+
     bool calculating_layout;
 };
 

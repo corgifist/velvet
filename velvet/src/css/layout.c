@@ -20,6 +20,8 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     node->tag = tag;
     node->class_names = NULL;
     node->children = VL_DA_INIT(vl_css_layout_node_t*, 1);
+    node->span_index = -1;
+    node->span_index_last = -1;
     vl_css_style_init(&node->style);
     return VL_SUCCESS;
 }
@@ -58,8 +60,7 @@ static vl_result_t stylesheet_broad_query(vl_css_layout_node_t *node, VL_DA(vl_c
                     vl_css_class_atom_t *atom = id->atoms + l;
                     switch (atom->type) {
                     case VL_CSS_CLASS_ATOM_ALL: {
-                        match = true;
-                        goto next_selector;
+                        break;
                     }
                     case VL_CSS_CLASS_ATOM_ELEMENT: {
                         if (level->pseudo_type && !gate_pseudo_elements) goto next_selector;
@@ -226,6 +227,8 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     construct_background(node);
     node->whitespace = construct_whitespace(node);
     node->effective_padding = VL_VEC4_ADD(node->padding, VL_VEC4(node->border[0].width, node->border[1].width, node->border[2].width, node->border[3].width));
+    // printf("%s (%f): ", node->tag, node->margin.x);
+    // vl_css_style_print(&node->style);
     return VL_SUCCESS;
 }
 
@@ -309,6 +312,11 @@ vl_result_t vl_css_layout_node_layout(vl_css_layout_node_t *node) {
     node->block_applied_margin = VL_FLOAT_MIN;
     node->block_first_margin = VL_FLOAT_MIN;
     node->span_y_offset = 0;
+    node->span_wrapped = false;
+    node->span_should_flip = false;
+    node->span_line_height = 0;
+    node->span_line_gap = 0;
+    node->span_last_cursor = VL_VEC2();
     for (int i = 0; i < VL_ARR_LEN(s_layout_overrides); i++) {
         if (strcmp(node->tag, s_layout_overrides[i].tag) == 0) {
             s_layout_overrides[i].layout(node);
@@ -318,13 +326,15 @@ vl_result_t vl_css_layout_node_layout(vl_css_layout_node_t *node) {
     node->size = vl_css_layout_node_get_raw_content_size(node);
 
     final:
-    if (node->auto_margin[1] && node->auto_margin[3]) {
-        node->margin.y = (node->parent->size.x / 2 - node->size.x / 2);
-        node->margin.w = node->margin.y;
-    } else if (node->auto_margin[3]) {
-        node->margin.w = node->parent->size.x - node->size.x;
-    } else if (node->auto_margin[1]) {
-        node->margin.y = node->parent->size.x - node->size.x;
+    if (node->parent) {
+        if (node->auto_margin[1] && node->auto_margin[3]) {
+            node->margin.y = (node->parent->size.x / 2 - node->size.x / 2);
+            node->margin.w = node->margin.y;
+        } else if (node->auto_margin[3]) {
+            node->margin.w = node->parent->size.x - node->size.x;
+        } else if (node->auto_margin[1]) {
+            node->margin.y = node->parent->size.x - node->size.x;
+        }
     }
     node->position.x += node->margin.w;
     node->position.y += node->margin.x;
@@ -342,7 +352,8 @@ static const char *s_inherited_properties[] = {
     "--velvet-element-highlight",
     "--velvet-margin-highlight",
     "font-family",
-    "text-align"
+    "text-align",
+    "direction"
 };
 
 vl_css_value_t vl_css_layout_node_get_property(vl_css_layout_node_t *node, const char *property, vl_css_value_t fallback) {
@@ -415,6 +426,7 @@ vl_css_size_metric_t vl_css_layout_node_process_metric(vl_css_layout_node_t *nod
 
 vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node) {
     if (!node) return VL_ERROR;
+    node->span_ref_region = NULL;
     VL_STRING_FREE(node->unique_id);
     if (node->class_names) {
         for (int i = 0; i < VL_DA_LENGTH(node->class_names); i++) {
@@ -422,7 +434,19 @@ vl_result_t vl_css_layout_node_deinit(vl_css_layout_node_t *node) {
         }
         VL_DA_FREE(node->class_names);
     }
+    VL_STRING_FREE(node->span_text);
     VL_STRING_FREE(node->content_string);
+    VL_STRING_FREE(node->span_flattened_text);
+    if (node->span_regions) {
+        for (int i = 0; i < VL_DA_LENGTH(node->span_regions); i++) {
+            VL_DA(vl_css_layout_span_region_t) region = node->span_regions[i];
+            for (int j = 0; j < VL_DA_LENGTH(region); j++) {
+                VL_STRING_FREE(region[j].text);
+            }
+            VL_DA_FREE(region);
+        }
+        VL_DA_FREE(node->span_regions);
+    }
     vl_css_style_deinit(&node->style);
     vl_css_inline_style_deinit(&node->inline_style);
     if (node->pseudo_before) {

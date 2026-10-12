@@ -16,7 +16,6 @@ vl_result_t vl_html_attribute_deinit(vl_html_attribute_t *attribute) {
     return VL_SUCCESS;
 }
 
-
 vl_result_t vl_html_node_print(vl_html_node_t *node) {
     return vl_html_node_print_with_indent(node, 0);
 }
@@ -62,7 +61,7 @@ vl_result_t vl_html_node_print_with_indent(vl_html_node_t *node, int indent) {
         printf("\t");
     }
     if (node->text) {
-        printf("%s\n", node->text);
+        printf("'%s'\n", node->text);
         return VL_SUCCESS;
     }
     printf("<%s", node->tag);

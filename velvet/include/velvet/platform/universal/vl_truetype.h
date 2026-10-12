@@ -4158,23 +4158,27 @@ error:
  *
  * This is deliberately kept independent from the legacy stb edge walker.
  * Curves are adaptively flattened in font space and coverage is accumulated
- * by a deterministic high-resolution area sampler.  The implementation uses
- * a non-zero winding rule, explicit clipping to the destination bitmap, and
- * bounded temporary storage.  It is intended to behave like the smooth
- * coverage stage of a production font engine rather than like a binary
- * edge test.
+ * by a deterministic area sampler.  The implementation uses a non-zero
+ * winding rule, resolves crossings before clipping spans, and bounds temporary
+ * storage.  The default 32 vertical samples improve coverage stability; a
+ * restrained coverage S-curve makes grayscale edges look a little crisper
+ * while preserving the 50% contour. Set STBTT_VL_RASTER_COVERAGE_CONTRAST to
+ * 0.0f to obtain unmodified geometric area coverage.
  */
 #ifndef STBTT_VL_RASTER_SAMPLES_X
 #define STBTT_VL_RASTER_SAMPLES_X 8
 #endif
 #ifndef STBTT_VL_RASTER_SAMPLES_Y
-#define STBTT_VL_RASTER_SAMPLES_Y 24
+#define STBTT_VL_RASTER_SAMPLES_Y 32
 #endif
 #ifndef STBTT_VL_RASTER_MAX_POINTS
 #define STBTT_VL_RASTER_MAX_POINTS (1u << 22)
 #endif
 #ifndef STBTT_VL_RASTER_FLATNESS
 #define STBTT_VL_RASTER_FLATNESS 0.03125
+#endif
+#ifndef STBTT_VL_RASTER_COVERAGE_CONTRAST
+#define STBTT_VL_RASTER_COVERAGE_CONTRAST 0.08f
 #endif
 #ifndef STBTT_VL_NATIVE_HINTING
 #define STBTT_VL_NATIVE_HINTING 1
@@ -4320,13 +4324,21 @@ static int stbtt__vl_hint_simple_glyph(const stbtt_fontinfo *info,int glyph,floa
       if(!vltt_tt_vm_init(&vm,2048,storage_count,cvt_count,tw_count))goto done;vm_ready=1;
       vm.zones[1].points=p;vm.zones[1].count=n;vm.zones[1].contours=nc;vm.zones[1].contour_ends=ends;
       tw=(vltt_tt_point*)STBTT_malloc((size_t)tw_count*sizeof(*tw),info->userdata);if(!tw)goto done;memset(tw,0,(size_t)tw_count*sizeof(*tw));
-      for(int q=0;q<tw_count;q++){tw[q].x=tw[q].ox=vm.twilight_x[q];tw[q].y=tw[q].oy=vm.twilight_y[q];}
+      for(int q=0;q<tw_count;q++){
+         tw[q].x=tw[q].ox=vm.twilight_x[q];
+         tw[q].y=tw[q].oy=vm.twilight_y[q];
+         tw[q].touched_x=vm.twilight_tx[q];
+         tw[q].touched_y=vm.twilight_ty[q];
+      }
       vm.zones[0].points=tw;vm.zones[0].count=tw_count;vm.zones[0].contours=0;vm.zones[0].contour_ends=0;
       vm.variation_count=(info->vltt_var_coords_valid&&info->vltt_var_axes>0)?(info->vltt_var_axes<64?info->vltt_var_axes:64):0;for(int vi=0;vi<vm.variation_count;vi++)vm.variation_coords[vi]=(int32_t)lrintf(info->vltt_var_coords[vi]*16384.0f);
       if(!vltt_tt_execute_font_program(info,&vm,ppem))goto done;
       if(!vltt_tt_execute_prep(info,&vm,ppem))goto done;
       vm.zones[1].points=p;vm.zones[1].count=n;vm.zones[1].contours=nc;vm.zones[1].contour_ends=ends;vm.zones[0].points=tw;vm.zones[0].count=tw_count;
-      vm.sp=0;vm.error=0;vm.instructions=0;vm.call_depth=0;
+      /* prep state (graphics state, CVT, storage and twilight points) is live
+         when glyph instructions begin.  Only the operand stack and execution
+         mode are per-program state. */
+      vm.sp=0;vm.error=0;vm.instructions=0;vm.call_depth=0;vm.execution_mode=3;
       if(!vltt_tt_execute(&vm,ins,insn,STBTT_VL_HINT_MAX_INSTRUCTIONS)||vm.error)goto done;
       for(int q=0;q<tw_count;q++){vm.twilight_x[q]=tw[q].x;vm.twilight_y[q]=tw[q].y;vm.twilight_tx[q]=tw[q].touched_x;vm.twilight_ty[q]=tw[q].touched_y;}
       {
@@ -4451,10 +4463,10 @@ static void stbtt__vl_rasterize(stbtt__bitmap *result, stbtt_vertex *vertices, i
    float flat=flatness_in_pixels>0.0f?flatness_in_pixels:STBTT_VL_RASTER_FLATNESS;
    int sy=STBTT_VL_RASTER_SAMPLES_Y;
    int x0=0,y0=0,x1=0,y1=0;
-   if (!result || !result->pixels || result->w<=0 || result->h<=0 || num_verts<=0) return;
+   if (!result || !result->pixels || result->w<=0 || result->h<=0 || result->stride<result->w) return;
    stbtt__vl_clear(result->pixels,result->w,result->h,result->stride);
-   if (!(scale>0.0f) || !isfinite(scale)) return;
-   if (sy<1 || sy>32) return;
+   if (num_verts<=0 || !(scale>0.0f) || !isfinite(scale)) return;
+   if (sy<1 || sy>128) return;
 
    pts=stbtt_FlattenCurves(vertices,num_verts,flat/scale,&counts,&contours,userdata);
    if (!pts || !counts || contours<=0) goto cleanup;
@@ -4516,10 +4528,12 @@ static void stbtt__vl_rasterize(stbtt__bitmap *result, stbtt_vertex *vertices, i
                   const stbtt__point *b=&pts[base+n];
                   if ((a->y<=py && b->y>py) || (b->y<=py && a->y>py)) {
                      float x=a->x+(py-a->y)*(b->x-a->x)/(b->y-a->y);
-                     if (x>(float)x0 && x<(float)x1) {
-                        if (nc<total) { cross[nc].x=x; cross[nc].winding=(b->y>a->y)?1:-1; ++nc; }
-                     } else if (x==(float)x0 || x==(float)x1) {
-                        if (nc<total) { cross[nc].x=x; cross[nc].winding=(b->y>a->y)?1:-1; ++nc; }
+                     /* Keep off-bitmap crossings too.  They determine the winding
+                        inside the clipped bitmap when a contour enters from outside. */
+                     if (isfinite(x) && nc<total) {
+                        cross[nc].x=x;
+                        cross[nc].winding=(b->y>a->y)?1:-1;
+                        ++nc;
                      }
                   }
                }
@@ -4547,9 +4561,23 @@ static void stbtt__vl_rasterize(stbtt__bitmap *result, stbtt_vertex *vertices, i
       }
       {
          int x;
-         float inv=(float)(255.0/(double)sy);
+         float inv=1.0f/(float)sy;
+         float contrast=(float)STBTT_VL_RASTER_COVERAGE_CONTRAST;
          for (x=x0;x<x1;++x) {
-            int v=(int)(coverage[x-x0]*inv+0.5f);
+            float a=coverage[x-x0]*inv;
+            int v;
+            if (!isfinite(a) || a<=0.0f) a=0.0f;
+            else if (a>=1.0f) a=1.0f;
+            /* A very small S-curve increases edge contrast without moving the
+               50% coverage contour or changing fully-covered/empty pixels.  Set
+               STBTT_VL_RASTER_COVERAGE_CONTRAST to 0 for pure area coverage. */
+            if (contrast>0.0f && isfinite(contrast) && a>0.0f && a<1.0f) {
+               float t=a-0.5f;
+               a += contrast*4.0f*t*a*(1.0f-a);
+               if (a<0.0f) a=0.0f;
+               if (a>1.0f) a=1.0f;
+            }
+            v=(int)(a*255.0f+0.5f);
             if (v>255) v=255;
             if (v<0) v=0;
             result->pixels[(size_t)i*(size_t)result->stride+(size_t)x]=(unsigned char)v;
@@ -21855,6 +21883,12 @@ static void vltt__tt_move_projected(vltt_tt_vm *v,int zone,int p,int distance) {
    if(dot==0){v->error=1;return;}
    vltt__tt_move(v,zone,p,(int)((int64_t)distance*16384*16384/dot));
 }
+static void vltt__tt_init_twilight_point(vltt_tt_vm *v,int zone,int p) {
+   vltt_tt_point *q;
+   if(zone==0&&vltt__tt_get_zone_point(v,zone,p,&q)){
+      q->ox=q->x;q->oy=q->y;
+   }
+}
 static int vltt__tt_read_push(vltt_tt_vm *v,const unsigned char *p,size_t n,size_t *ip,unsigned op) {
    size_t i,count;
    if(op>=0xB0 && op<=0xB7){count=(size_t)(op-0xB0)+1; if(*ip+count>n)return 0;for(i=0;i<count;i++)if(!vltt__tt_push(v,p[(*ip)++]))return 0;return 1;}
@@ -21915,8 +21949,8 @@ static int vltt__tt_exec(vltt_tt_vm *v,const unsigned char *p,size_t n,int limit
          if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;
          switch(op){case 0x50:c=(a==b);break;case 0x51:c=(a!=b);break;case 0x52:c=(a>b);break;case 0x53:c=(a>=b);break;case 0x54:c=(a<b);break;case 0x55:c=(a<=b);break;case 0x56:case 0x57:c=0;break;case 0x5A:c=(a&&b);break;case 0x5B:c=(a||b);break;default:c=(a!=b);break;}if(!vltt__tt_push(v,c))break;continue;
       }
-      if(op>=0xC0&&op<=0xDF){int z0=v->gs.gep0,z1=v->gs.gep1,rp=v->gs.rp0;vltt_tt_point *pt,*ref;int dist,orig;if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_get_zone_point(v,z1,a,&pt)||!vltt__tt_get_zone_point(v,z0,rp,&ref))break;dist=vltt__tt_project_dual(&v->gs,pt->ox-ref->ox,pt->oy-ref->oy);orig=dist;if(op&4)dist=vltt__tt_round(&v->gs,dist);if((op&8)&&abs(dist)<v->gs.minimum_distance)dist=dist<0?-v->gs.minimum_distance:v->gs.minimum_distance;vltt__tt_move_projected(v,z1,a,dist-vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y));v->gs.rp1=rp;v->gs.rp2=a;if(op&16)v->gs.rp0=a;continue;}
-      if(op>=0xE0){int z0=v->gs.gep0,z1=v->gs.gep1,rp=v->gs.rp0,dist,orig;vltt_tt_point *pt,*ref;if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_get_zone_point(v,z1,a,&pt)||!vltt__tt_get_zone_point(v,z0,rp,&ref))break;orig=vltt__tt_project_dual(&v->gs,pt->ox-ref->ox,pt->oy-ref->oy);dist=(b>=0&&b<v->cvt_count)?v->cvt[b]:orig;if(v->gs.auto_flip&&((dist<0)!=(orig<0)))dist=-dist;if(op&4){if(abs(dist-orig)>v->gs.cvt_cut_in)dist=orig;dist=vltt__tt_round(&v->gs,dist);}if((op&8)&&abs(dist)<v->gs.minimum_distance)dist=dist<0?-v->gs.minimum_distance:v->gs.minimum_distance;vltt__tt_move_projected(v,z1,a,dist-vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y));v->gs.rp1=rp;v->gs.rp2=a;if(op&16)v->gs.rp0=a;continue;}
+      if(op>=0xC0&&op<=0xDF){int z0=v->gs.gep0,z1=v->gs.gep1,rp=v->gs.rp0;vltt_tt_point *pt,*ref;int dist,orig;if(!vltt__tt_pop(v,&a))break;if(!vltt__tt_get_zone_point(v,z1,a,&pt)||!vltt__tt_get_zone_point(v,z0,rp,&ref))break;dist=vltt__tt_project_dual(&v->gs,pt->ox-ref->ox,pt->oy-ref->oy);orig=dist;if(op&4)dist=vltt__tt_round(&v->gs,dist);if((op&8)&&abs(dist)<v->gs.minimum_distance)dist=dist<0?-v->gs.minimum_distance:v->gs.minimum_distance;vltt__tt_move_projected(v,z1,a,dist-vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y));vltt__tt_init_twilight_point(v,z1,a);v->gs.rp1=rp;v->gs.rp2=a;if(op&16)v->gs.rp0=a;continue;}
+      if(op>=0xE0){int z0=v->gs.gep0,z1=v->gs.gep1,rp=v->gs.rp0,dist,orig;vltt_tt_point *pt,*ref;if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_get_zone_point(v,z1,a,&pt)||!vltt__tt_get_zone_point(v,z0,rp,&ref))break;orig=vltt__tt_project_dual(&v->gs,pt->ox-ref->ox,pt->oy-ref->oy);dist=(b>=0&&b<v->cvt_count)?v->cvt[b]:orig;if(v->gs.auto_flip&&((dist<0)!=(orig<0)))dist=-dist;if(op&4){if(abs(dist-orig)>v->gs.cvt_cut_in)dist=orig;dist=vltt__tt_round(&v->gs,dist);}if((op&8)&&abs(dist)<v->gs.minimum_distance)dist=dist<0?-v->gs.minimum_distance:v->gs.minimum_distance;vltt__tt_move_projected(v,z1,a,dist-vltt__tt_project(&v->gs,pt->x-ref->x,pt->y-ref->y));vltt__tt_init_twilight_point(v,z1,a);v->gs.rp1=rp;v->gs.rp2=a;if(op&16)v->gs.rp0=a;continue;}
       if(op>=0x06&&op<=0x0D){
          if(op<=0x09){vltt_tt_point *p1,*p2;int x,y;if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;if(!vltt__tt_get_zone_point(v,v->gs.gep2,a,&p1)||!vltt__tt_get_zone_point(v,v->gs.gep1,b,&p2))break;x=p2->x-p1->x;y=p2->y-p1->y;if(op&1){int t=x;x=-y;y=t;}vltt__tt_unit_vector(x,y,&c,&d);if(op==0x06||op==0x07){v->gs.proj_x=v->gs.dual_x=c;v->gs.proj_y=v->gs.dual_y=d;}else{v->gs.free_x=c;v->gs.free_y=d;}continue;}
          if(op==0x0A||op==0x0B){if(!vltt__tt_pop(v,&b)||!vltt__tt_pop(v,&a))break;vltt__tt_unit_vector(a,b,&c,&d);if(op==0x0A){v->gs.proj_x=v->gs.dual_x=c;v->gs.proj_y=v->gs.dual_y=d;}else{v->gs.free_x=c;v->gs.free_y=d;}continue;}
@@ -21948,7 +21982,7 @@ static int vltt__tt_exec(vltt_tt_vm *v,const unsigned char *p,size_t n,int limit
       case 0x26:if(!vltt__tt_pop(v,&a)||a<1||a>v->sp){v->error=1;break;}b=v->stack[v->sp-a];for(i=v->sp-a;i<v->sp-1;i++)v->stack[i]=v->stack[i+1];v->stack[v->sp-1]=b;break;
       case 0x27:if(!vltt__tt_pop(v,&a)||!vltt__tt_pop(v,&b))break;{vltt_tt_point *p1,*p2;if(vltt__tt_get_zone_point(v,v->gs.gep1,a,&p1)&&vltt__tt_get_zone_point(v,v->gs.gep0,b,&p2)){int d1=vltt__tt_project(&v->gs,p1->x,p1->y),d2=vltt__tt_project(&v->gs,p2->x,p2->y),delta=(d1-d2)/2;vltt__tt_move_projected(v,v->gs.gep1,a,-delta);vltt__tt_move_projected(v,v->gs.gep0,b,delta);}}break;
       case 0x28:if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep0,a,&pt)){pt->touched_x=pt->touched_y=0;}}break;
-      case 0x2E:case 0x2F:if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep0,a,&pt)){int cur=vltt__tt_project(&v->gs,pt->x,pt->y),target=(op==0x2F)?vltt__tt_round(&v->gs,cur):cur;if(op==0x2F)vltt__tt_move_projected(v,v->gs.gep0,a,target-cur);else{if(v->gs.free_x)pt->touched_x=1;if(v->gs.free_y)pt->touched_y=1;}v->gs.rp0=v->gs.rp1=a;}}break;
+      case 0x2E:case 0x2F:if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep0,a,&pt)){int cur=vltt__tt_project(&v->gs,pt->x,pt->y),target=(op==0x2F)?vltt__tt_round(&v->gs,cur):cur;if(op==0x2F)vltt__tt_move_projected(v,v->gs.gep0,a,target-cur);else{if(v->gs.free_x)pt->touched_x=1;if(v->gs.free_y)pt->touched_y=1;}vltt__tt_init_twilight_point(v,v->gs.gep0,a);v->gs.rp0=v->gs.rp1=a;}}break;
       case 0x30:vltt__tt_iup(v,0);break;case 0x31:vltt__tt_iup(v,1);break;
       case 0x32:case 0x33:{int count=v->gs.loop,refzone=v->gs.gep0,refpt=(op==0x32)?v->gs.rp2:v->gs.rp1;vltt_tt_point *ref;if(count<1||count>v->stack_capacity||!vltt__tt_get_zone_point(v,refzone,refpt,&ref)){v->error=1;break;}int delta=vltt__tt_project(&v->gs,ref->x,ref->y)-vltt__tt_project_dual(&v->gs,ref->ox,ref->oy);for(i=0;i<count&&!v->error;i++){if(!vltt__tt_pop(v,&a))break;{vltt_tt_point *pt;if(vltt__tt_get_zone_point(v,v->gs.gep2,a,&pt)){int cur=vltt__tt_project(&v->gs,pt->x,pt->y);vltt__tt_move_projected(v,v->gs.gep2,a,delta);(void)cur;}}}v->gs.loop=1;break;}
       case 0x34:case 0x35:{int contour,refzone=v->gs.gep0,refpt=(op==0x34)?v->gs.rp2:v->gs.rp1;vltt_tt_point *ref;if(!vltt__tt_pop(v,&contour)||!vltt__tt_get_zone_point(v,refzone,refpt,&ref))break;int delta=vltt__tt_project(&v->gs,ref->x,ref->y)-vltt__tt_project_dual(&v->gs,ref->ox,ref->oy);vltt_tt_zone*z=&v->zones[v->gs.gep2];if(contour<0||contour>=z->contours||!z->contour_ends){v->error=1;break;}int st=contour?z->contour_ends[contour-1]+1:0,en=z->contour_ends[contour];for(i=st;i<=en;i++)vltt__tt_move_projected(v,v->gs.gep2,i,delta);break;}
@@ -22016,7 +22050,7 @@ STBTT_DEF int vltt_tt_execute(vltt_tt_vm *v,const unsigned char *p,size_t n,int 
 STBTT_DEF int vltt_tt_execute_font_program(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l;if(!f||!v)return 0;v->ppem=ppem>0?ppem:0;v->execution_mode=1;v->function_count=0;v->idef_count=0;if(!vltt__table_bounds(f,"fpgm",&o,&l))return 1;if(l>65536)return 0;return vltt_tt_execute(v,f->data+o,l,VLTT_TT_MAX_INSTRUCTIONS);}
 static int vltt__tt_load_cvt(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l,ho,hl;int upem=1000,n,i;if(!f||!v)return 0;if(vltt__table_bounds(f,"head",&ho,&hl)&&hl>=20){int q=ttUSHORT(f->data+ho+18);if(q>0)upem=q;}v->units_per_em=upem;if(!vltt__table_bounds(f,"cvt ",&o,&l))return 1;if(l&1)return 0;n=(int)(l/2);if(n>v->cvt_count)return 0;for(i=0;i<n;i++){int val=(int16_t)ttUSHORT(f->data+o+(size_t)i*2);v->cvt[i]=(int32_t)(((int64_t)val*ppem*64)/upem);}for(;i<v->cvt_count;i++)v->cvt[i]=0;return 1;}
 STBTT_DEF int vltt_tt_execute_prep(const vltt_face *f,vltt_tt_vm *v,int ppem){size_t o,l;if(!f||!v)return 0;v->ppem=ppem>0?ppem:0;v->execution_mode=2;vltt_tt_vm_reset_graphics(v);if(!vltt__tt_load_cvt(f,v,v->ppem))return 0;if(!vltt__table_bounds(f,"prep",&o,&l))return 1;if(l>65536)return 0;return vltt_tt_execute(v,f->data+o,l,VLTT_TT_MAX_INSTRUCTIONS);}
-STBTT_DEF int vltt_tt_execute_glyph(const vltt_face *f,vltt_tt_vm *v,int glyph,int ppem){const unsigned char *ins=0;size_t il=0;vltt_tt_point *pts=0;int n=0,*ends=0,nc=0,ok; if(!f||!v||glyph<0||glyph>=f->numGlyphs||ppem<1)return 0;v->ppem=ppem;v->execution_mode=3;v->variation_count=f->vltt_var_coords_valid?(f->vltt_var_axes<64?f->vltt_var_axes:64):0;for(int vi=0;vi<v->variation_count;vi++)v->variation_coords[vi]=(int32_t)lrintf(f->vltt_var_coords[vi]*16384.0f); if(!stbtt__vl_decode_simple_glyph(f,glyph,&pts,&n,&ends,&nc,&ins,&il))return 0; if(!ins||!il){if(pts)STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return 1;} v->zones[1].points=pts;v->zones[1].count=n;v->zones[1].contours=nc;v->zones[1].contour_ends=ends;{vltt_tt_point *tw=0;int j;if(v->twilight_count){tw=(vltt_tt_point*)calloc((size_t)v->twilight_count,sizeof(*tw));if(!tw){v->zones[1].points=0;STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return 0;}for(j=0;j<v->twilight_count;j++){tw[j].x=tw[j].ox=v->twilight_x[j];tw[j].y=tw[j].oy=v->twilight_y[j];tw[j].touched_x=v->twilight_tx[j];tw[j].touched_y=v->twilight_ty[j];}}v->zones[0].points=tw;v->zones[0].count=v->twilight_count;v->zones[0].contours=0;v->zones[0].contour_ends=0;ok=vltt_tt_execute(v,ins,il,VLTT_TT_MAX_INSTRUCTIONS);for(j=0;j<v->twilight_count;j++){v->twilight_x[j]=tw[j].x;v->twilight_y[j]=tw[j].y;v->twilight_tx[j]=tw[j].touched_x;v->twilight_ty[j]=tw[j].touched_y;}free(tw);}v->zones[1].points=0;v->zones[1].count=0;v->zones[1].contours=0;v->zones[1].contour_ends=0;v->zones[0].points=0;v->zones[0].count=0;if(pts)STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return ok;}
+STBTT_DEF int vltt_tt_execute_glyph(const vltt_face *f,vltt_tt_vm *v,int glyph,int ppem){const unsigned char *ins=0;size_t il=0;vltt_tt_point *pts=0;int n=0,*ends=0,nc=0,ok; if(!f||!v||glyph<0||glyph>=f->numGlyphs||ppem<1)return 0;v->ppem=ppem;v->execution_mode=3;v->variation_count=f->vltt_var_coords_valid?(f->vltt_var_axes<64?f->vltt_var_axes:64):0;for(int vi=0;vi<v->variation_count;vi++)v->variation_coords[vi]=(int32_t)lrintf(f->vltt_var_coords[vi]*16384.0f); if(!stbtt__vl_decode_simple_glyph(f,glyph,&pts,&n,&ends,&nc,&ins,&il))return 0; if(!ins||!il){if(pts)STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return 1;} v->zones[1].points=pts;v->zones[1].count=n;v->zones[1].contours=nc;v->zones[1].contour_ends=ends;{vltt_tt_point *tw=0;int j;if(v->twilight_count){tw=(vltt_tt_point*)calloc((size_t)v->twilight_count,sizeof(*tw));if(!tw){v->zones[1].points=0;STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return 0;}for(j=0;j<v->twilight_count;j++){tw[j].x=tw[j].ox=v->twilight_x[j];tw[j].y=tw[j].oy=v->twilight_y[j];tw[j].touched_x=v->twilight_tx[j];tw[j].touched_y=v->twilight_ty[j];}}v->zones[0].points=tw;v->zones[0].count=v->twilight_count;v->zones[0].contours=0;v->zones[0].contour_ends=0;v->sp=0;v->error=0;v->call_depth=0;v->execution_mode=3;ok=vltt_tt_execute(v,ins,il,VLTT_TT_MAX_INSTRUCTIONS);for(j=0;j<v->twilight_count;j++){v->twilight_x[j]=tw[j].x;v->twilight_y[j]=tw[j].y;v->twilight_tx[j]=tw[j].touched_x;v->twilight_ty[j]=tw[j].touched_y;}free(tw);}v->zones[1].points=0;v->zones[1].count=0;v->zones[1].contours=0;v->zones[1].contour_ends=0;v->zones[0].points=0;v->zones[0].count=0;if(pts)STBTT_free(pts,f->userdata);if(ends)STBTT_free(ends,f->userdata);return ok;}
 STBTT_DEF int vltt_tt_hint_points(vltt_tt_vm *v,vltt_tt_zone *z,int ppem){int i;if(!v||!z||!z->points||z->count<0||ppem<1)return 0;for(i=0;i<z->count;i++){if(!z->points[i].touched_x)z->points[i].x=(z->points[i].x+32)&~63;if(!z->points[i].touched_y)z->points[i].y=(z->points[i].y+32)&~63;}return 1;}
 
 /* ========================================================================

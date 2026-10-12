@@ -96,7 +96,8 @@ static vl_result_t init_font(vl_platform_context_t *ctx, vl_platform_context_typ
 
         ctx->font_shaper_new = vl_font_shaper_universal_new;
         ctx->font_shaper_run_new = vl_font_shaper_run_universal_new;
-        ctx->font_shaper_process = vl_font_shaper_univesal_process;
+        ctx->font_shaper_process = vl_font_shaper_universal_process;
+        ctx->font_shaper_process_spans = vl_font_shaper_universal_process_spans;
         ctx->font_shaper_add_font = vl_font_shaper_universal_add_font;
         ctx->font_shaper_free_font = vl_font_shaper_universal_free_font;
         ctx->font_shaper_shape = vl_font_shaper_universal_shape;

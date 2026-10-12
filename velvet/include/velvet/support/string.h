@@ -36,7 +36,7 @@ typedef struct vl_string vl_string_t;
 #define VL_STRING_INIT2(SOURCE, LEN) \
     VL_STRING_INIT3(SOURCE, LEN, VL_HERE)
 #define VL_STRING_INIT1(SOURCE) \
-    VL_STRING_INIT2(SOURCE, strlen((SOURCE)))
+    VL_STRING_INIT2(SOURCE, (SOURCE) ? strlen((SOURCE)) : 0)
 #define VL_STRING_INIT0() \
     VL_STRING_INIT1(NULL)
 #define VL_STRING_INIT(...) \

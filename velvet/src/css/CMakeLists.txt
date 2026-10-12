@@ -3,6 +3,7 @@ set(Velvet_Sources
     src/css/lexer.c
     src/css/parser.c
     src/css/style.c
+    src/css/bidi.c
     src/css/stylesheet.c
     src/css/layout.c
     PARENT_SCOPE

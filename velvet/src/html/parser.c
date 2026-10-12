@@ -1,4 +1,5 @@
 #include "html/parser.h"
+#include "css/lexer.h"
 #include "html/document.h"
 #include "html/lexer.h"
 #include "html/tags.h"
@@ -215,7 +216,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected '>' while parsing closing node");
             return VL_ERROR;
         }
-        if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
+        if (tokenize(parser)) return VL_ERROR; // skip >
         return VL_HTML_PARSER_CLOSE_NODE;
     }
     if (VL_TOKEN_COMPARE(current, "!")) {
@@ -251,7 +252,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             }
 
         }
-        if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
+        if (tokenize(parser)) return VL_ERROR; // skip >
         return VL_HTML_PARSER_DOCTYPE_NODE;
     }
     close_tag_begin = close_tag_end = NULL;
@@ -276,7 +277,7 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
                 vl_error_pool_append(parser->ep, current->line, current->inline_pos, "expected '>' while parsing node");
                 return VL_ERROR;
             }
-            if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
+            if (tokenize(parser)) return VL_ERROR; // skip >
             return VL_SUCCESS;
         }
         vl_html_attribute_t attribute = {0};
@@ -312,13 +313,29 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
         VL_DA_APPEND(node->attributes, attribute);
     }
 
-    if (tokenize(parser) || skip_spaces(parser)) return VL_ERROR; // skip >
+    if (tokenize(parser)) return VL_ERROR; // skip >
     vl_html_node_t tmp_node = {0};
     bool first = true;
     bool prev_text = true;
     while (true && !short_tag) {
-        bool empty_before = (*(current->text - 1) == ' ') || (*(current->text - 1) == '\t') || (*(current->text - 1) == '\n');
+        VL_DA(char) empty_zone = VL_DA_INIT(char);
+        while (current->type != VL_HTML_TOKEN_TYPE_STOP && VL_TOKEN_EMPTY(current)) {
+            for (int i = 0; i < current->text_length; i++) {
+                if (!empty_zone) empty_zone = VL_DA_INIT(char);
+                *VL_DA_PUSH(empty_zone, char) = current->text[i];
+            }
+            tokenize(parser);
+        }
         vl_result_t parse_result = vl_html_parser_get_ex(parser, &tmp_node);
+        if (!node->children) node->children = VL_DA_INIT(vl_html_node_t, 1);
+        if (empty_zone) {
+            if (VL_DA_LENGTH(empty_zone) > 0) {
+                vl_html_node_t empty_text_node = {0};
+                empty_text_node.text = VL_STRING_FROM_DA(empty_zone);
+                VL_DA_APPEND(node->children, empty_text_node);
+            }
+            VL_DA_FREE(empty_zone);
+        }
         if (parse_result == VL_HTML_PARSER_STOP) {
             return VL_SUCCESS;
         }
@@ -339,20 +356,15 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
             }
             return VL_SUCCESS;
         }
-        if (!first && empty_before && vl_html_is_tag_inline(tmp_node.tag) && !prev_text) {
-            vl_html_node_t *space_node = VL_DA_PUSH(node->children, vl_html_node_t);
-            space_node->text = VL_STRING_INIT(" ");
-        }
         first = false;
         prev_text = (tmp_node.text ? 1 : 0);
-        if (!node->children) node->children = VL_DA_INIT(vl_html_node_t, 1);
         VL_DA_APPEND(node->children, tmp_node);
     }
 
     return VL_SUCCESS;
 }
 
-static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node) {
+static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node, VL_DA(char) empty_zones) {
     if (!parser || !node) return VL_ERROR;
     vl_html_token_t *current = parser->lookahead;
     node->text = VL_DA_INIT(char);
@@ -361,6 +373,12 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
         if ((*(current->text - 1) == ' ' || *(current->text - 1) == '\n' || *(current->text - 1) == '\t') && vl_html_is_tag_inline_ex(close_tag_begin, close_tag_end)) {
             *VL_DA_PUSH(node->text, char) = ' ';
         }
+    }
+    if (empty_zones) {
+        for (int i = 0; i < VL_DA_LENGTH(empty_zones); i++) {
+            *VL_DA_PUSH(node->text, char) = empty_zones[i];
+        }
+        VL_DA_FREE(empty_zones);
     }
     while (true) {
         if (current->type == VL_HTML_TOKEN_TYPE_STOP) {
@@ -435,11 +453,6 @@ static vl_result_t tokenize_text(vl_html_parser_t *parser, vl_html_node_t *node)
             *VL_DA_PUSH(node->text, char) = current->text[i];
         }
         if (tokenize(parser)) return VL_ERROR;
-        bool empty_token = VL_TOKEN_EMPTY(current);
-        if (skip_spaces(parser)) return VL_ERROR;
-        if (!(VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "/")) && empty_token) {
-            *VL_DA_PUSH(node->text, char) = ' ';
-        }
     }
 
     success:
@@ -456,10 +469,21 @@ vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node
         return VL_HTML_PARSER_STOP;
     }
     VL_ZERO_OUT(node);
-    if (skip_spaces(parser)) return VL_ERROR;
+    
+    VL_DA(char) empty_zone = VL_DA_INIT(char);
+    while (VL_TOKEN_EMPTY(current)) {
+        for (int i = 0; i < current->text_length; i++) {
+            *VL_DA_PUSH(empty_zone, char) = current->text[i];
+        }
+        if (tokenize(parser)) {
+            VL_DA_FREE(empty_zone);
+            return VL_ERROR;
+        }
+    }
     if (VL_TOKEN_COMPARE(current, "<") && (current + 1)->type == VL_HTML_TOKEN_TYPE_WORD 
             || VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "/")
             || VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "!")) {
+        VL_DA_FREE(empty_zone);
         // parse html tag
         // <tag attr1="" attr2="">
         //     ...
@@ -467,7 +491,7 @@ vl_result_t vl_html_parser_get_ex(vl_html_parser_t *parser, vl_html_node_t *node
         return tokenize_node(parser, node);
     }
 
-    return tokenize_text(parser, node);
+    return tokenize_text(parser, node, empty_zone);
 }
 
 vl_result_t vl_html_parser_get(vl_html_parser_t *parser, vl_html_node_t *node) {

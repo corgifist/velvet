@@ -31,9 +31,17 @@ vl_result_t vl_font_shaper_free_font(vl_font_shaper_t *shaper, vl_font_shaper_fo
     return shaper->context->font_shaper_free_font(shaper, font);
 }
 
-vl_result_t vl_font_shaper_process(vl_font_shaper_t *shaper, const char *text, size_t text_length) {
+vl_result_t vl_font_shaper_process(vl_font_shaper_t *shaper, const char *text, int text_length) {
     if (!shaper || !text || !shaper->context || !shaper->context->font_shaper_process) return VL_ERROR;
     return shaper->context->font_shaper_process(shaper, text, text_length);
+}
+
+VL_API vl_result_t vl_font_shaper_process_spans(vl_font_shaper_t *shaper, const vl_font_shaper_span_t *spans, int spans_count, int first_span_index) {
+    if (!shaper || spans_count < 0 || (spans_count > 0 && !spans) ||
+        first_span_index < 0 || first_span_index > spans_count ||
+        !shaper->context || !shaper->context->font_shaper_process_spans)
+        return VL_ERROR;
+    return shaper->context->font_shaper_process_spans(shaper, spans, spans_count, first_span_index);
 }
 
 bool vl_font_shaper_shape(vl_font_shaper_t *shaper, vl_font_shaper_run_t *run) {
@@ -61,8 +69,8 @@ vl_result_t vl_font_shaper_pop_all_fonts(vl_font_shaper_t *shaper) {
 }
 
 vl_result_t vl_font_shaper_run_reset(vl_font_shaper_run_t *run) {
-    if (!run || !run->font || !run->font->context || !run->font->context->font_shaper_run_reset) return VL_ERROR;
-    return run->font->context->font_shaper_run_reset(run);
+    if (!run || !run->font || !run->font->owner->context || !run->font->owner->context->font_shaper_run_reset) return VL_ERROR;
+    return run->font->owner->context->font_shaper_run_reset(run);
 }
 
 vl_result_t vl_font_shaper_run_free(vl_font_shaper_run_t *run) {

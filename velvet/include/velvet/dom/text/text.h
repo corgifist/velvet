@@ -63,7 +63,6 @@ typedef struct vl_dom_element_text_layout vl_dom_element_text_layout_t;
 
 struct vl_dom_element_text {
     vl_dom_element_t base;
-    VL_STRING text;
     vl_dom_element_text_layout_t layout;
 };
 

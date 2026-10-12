@@ -10,7 +10,6 @@
 struct vl_font_shaper_font_ref;
 struct vl_font_shaper {
     vl_platform_context_t *context;
-
     VL_DA(struct vl_font_shaper_font_ref*) font_stack;
 };
 
@@ -22,6 +21,9 @@ struct vl_font_shaper_glyph {
     float x, y;
     float advance_x, advance_y;
     bool last;
+    int span_index;
+    int span_cluster_first, span_cluster_last;
+    int source_cluster_first, source_cluster_last;
 };
 
 typedef struct vl_font_shaper_glyph vl_font_shaper_glyph_t;
@@ -35,18 +37,24 @@ typedef enum vl_font_shaper_run_direction vl_font_shaper_run_direction_t;
 
 struct vl_font_shaper_run {
     vl_font_shaper_t *owner;
-    vl_font_t *font;
+    vl_font_info_t *font;
     bool hard_line_break;
+    vl_font_shaper_run_direction_t paragraph_direction;
     vl_font_shaper_run_direction_t direction;
+    int span_index;
 };
-
 typedef struct vl_font_shaper_run vl_font_shaper_run_t;
 
 struct vl_font_shaper_font_ref {
     vl_font_t *font;
 };
-
 typedef struct vl_font_shaper_font_ref vl_font_shaper_font_ref_t;
+
+struct vl_font_shaper_span {
+    VL_STRING text;
+    int len;
+};
+typedef struct vl_font_shaper_span vl_font_shaper_span_t;
 
 #define vl_font_shaper_run_new_va_expand(shaper, loc) \
     vl_font_shaper_run_new_(shaper, loc)
@@ -63,7 +71,8 @@ VL_API vl_result_t vl_font_shaper_run_free(vl_font_shaper_run_t *run);
 VL_API vl_font_shaper_t *vl_font_shaper_new_(vl_platform_context_t *context, vl_source_location_t loc);
 VL_API vl_font_shaper_font_ref_t *vl_font_shaper_add_font(vl_font_shaper_t *shaper, vl_font_t *font);
 VL_API vl_result_t vl_font_shaper_push_font(vl_font_shaper_t *shaper, vl_font_shaper_font_ref_t *font_ref);
-VL_API vl_result_t vl_font_shaper_process(vl_font_shaper_t *shaper, const char *text, size_t text_length);
+VL_API vl_result_t vl_font_shaper_process(vl_font_shaper_t *shaper, const char *text, int text_length);
+VL_API vl_result_t vl_font_shaper_process_spans(vl_font_shaper_t *shaper, const vl_font_shaper_span_t *spans, int spans_count, int first_span_index);
 VL_API bool vl_font_shaper_shape(vl_font_shaper_t *shaper, vl_font_shaper_run_t *run);
 VL_API vl_font_shaper_glyph_t *vl_font_shaper_iterate(vl_font_shaper_run_t *run, vl_font_shaper_glyph_t *glyph);
 VL_API vl_result_t vl_font_shaper_pop_font(vl_font_shaper_t *shaper);
