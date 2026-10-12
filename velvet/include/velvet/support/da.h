@@ -35,7 +35,6 @@ struct vl_da_header {
     int count, capacity;
     int element_size;
 };
-
 typedef struct vl_da_header vl_da_header_t;
 
 /* 
@@ -51,7 +50,7 @@ typedef void* VL_DA;
 #define VL_DA_INIT4(TYPE, CAPACITY, LOC, ALLOCATOR) \
     (vl_da_init(sizeof(TYPE), (CAPACITY), (LOC), (ALLOCATOR)))
 #define VL_DA_INIT3(TYPE, CAPACITY, LOC) \
-    VL_DA_INIT4(TYPE, CAPACITY, LOC, VL_ALLOCATOR_DEFAULT())
+    VL_DA_INIT4(TYPE, CAPACITY, LOC, vl_default_allocator())
 #define VL_DA_INIT2(TYPE, CAPACITY) \
     VL_DA_INIT3(TYPE, CAPACITY, VL_HERE)
 #define VL_DA_INIT1(TYPE) \
@@ -60,19 +59,19 @@ typedef void* VL_DA;
     VL_VA_DISPATCH(VL_DA_INIT, __VA_ARGS__)
 
 #define VL_DA_INIT_FROM_STRING(STRING) \
-    VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, VL_ALLOCATOR_DEFAULT())
+    VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, vl_default_allocator())
 
 #define VL_DA_INIT_FROM_STRING_WITH_ALLOCATOR(STRING, ALLOCATOR) \
-    (vl_da_init_from_string(STRING, VL_SOURCE_LOCATION_HERE, ALLOCATOR))
+    (vl_da_init_from_string(STRING, VL_SOURCE_LOCATION_HERE, vl_default_allocator()))
 
 #define VL_DA_INIT_FROM_STRING_WITH_SIZE(STRING, SIZE) \
-    VL_DA_INIT_FROM_STRING_WITH_SIZE_AND_ALLOCATOR(STRING, SIZE, VL_ALLOCATOR_DEFAULT())
+    VL_DA_INIT_FROM_STRING_WITH_SIZE_AND_ALLOCATOR(STRING, SIZE, vl_default_allocator())
 
 #define VL_DA_INIT_FROM_STRING_WITH_SIZE_AND_ALLOCATOR(STRING, SIZE, ALLOCATOR) \
     (vl_da_init_from_string_with_size(STRING, SIZE, VL_HERE, ALLOCATOR))
 
 #define VL_DA_COPY1(DA) \
-    (vl_da_copy((void*) DA, VL_HERE, VL_ALLOCATOR_DEFAULT()))
+    (vl_da_copy((void*) DA, VL_HERE, vl_default_allocator()))
 #define VL_DA_COPY2(DA, LOC) \
     (vl_da_copy((void*) DA, VL_HERE, ALLOCATOR))
 #define VL_DA_COPY(...) \

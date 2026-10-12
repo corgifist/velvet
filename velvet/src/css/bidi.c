@@ -19,25 +19,17 @@ struct vl_css_bidi_context {
     const vl_css_layout_span_region_t *spans;
     size_t span_count;
     size_t codepoint_count;
-    size_t *span_cp_start;
-    size_t *span_cp_end;
-    uint_least32_t *source;
-    uint_least32_t *processed;
-    uint_least32_t *line_processed;
-    size_t *line_source_index;
-    int_least8_t *levels;
-    int_least8_t *line_levels;
-    int_least8_t *working_levels;
-    bool *line_spans;
+    VL_DA(size_t) span_cp_offsets;
+    VL_DA(uint_least32_t) processed;
+    VL_DA(uint_least32_t) line_processed;
+    VL_DA(size_t) line_source_index;
+    VL_DA(int_least8_t) levels;
+    VL_DA(int_least8_t) line_levels;
+    VL_DA(int_least8_t) working_levels;
+    VL_DA(bool) line_spans;
     vl_css_layout_bidi_direction_t paragraph_direction;
     bool valid;
 };
-
-static void *bidi_alloc_array(size_t count, size_t item_size) {
-    if (item_size == 0 || count > SIZE_MAX / item_size) return NULL;
-    if (count == 0) count = 1;
-    return vl_malloc(count * item_size);
-}
 
 static vl_css_layout_bidi_direction_t bidi_direction_from_grapheme(
     enum grapheme_bidirectional_direction direction) {
@@ -61,74 +53,47 @@ static enum grapheme_bidirectional_direction bidi_paragraph_override(
 
 static void bidi_context_free_arrays(vl_css_bidi_context_t *context) {
     if (!context) return;
-    vl_free(context->span_cp_start);
-    vl_free(context->span_cp_end);
-    vl_free(context->source);
-    vl_free(context->processed);
-    vl_free(context->line_processed);
-    vl_free(context->line_source_index);
-    vl_free(context->levels);
-    vl_free(context->line_levels);
-    vl_free(context->working_levels);
-    vl_free(context->line_spans);
-    context->span_cp_start = NULL;
-    context->span_cp_end = NULL;
-    context->source = NULL;
-    context->processed = NULL;
-    context->line_processed = NULL;
-    context->line_source_index = NULL;
-    context->levels = NULL;
-    context->line_levels = NULL;
-    context->working_levels = NULL;
-    context->line_spans = NULL;
+    VL_DA_FREE(context->span_cp_offsets);
+    VL_DA_FREE(context->processed);
+    VL_DA_FREE(context->line_processed);
+    VL_DA_FREE(context->line_source_index);
+    VL_DA_FREE(context->levels);
+    VL_DA_FREE(context->line_levels);
+    VL_DA_FREE(context->working_levels);
+    VL_DA_FREE(context->line_spans);
 }
 
 vl_css_bidi_context_t *vl_css_bidi_context_create(vl_css_layout_node_t *node) {
     if (!node) return NULL;
-    vl_css_bidi_context_t *context = bidi_alloc_array(1, sizeof(*context));
+    vl_css_bidi_context_t *context = VL_NEW(vl_css_bidi_context_t);
     if (!context) return NULL;
-    memset(context, 0, sizeof(*context));
     context->paragraph_direction = VL_CSS_LAYOUT_BIDI_UNKNOWN;
+    context->span_cp_offsets = VL_DA_INIT(size_t);
+    context->processed = VL_DA_INIT(uint_least32_t);
+    context->line_processed = VL_DA_INIT(uint_least32_t);
+    context->line_source_index = VL_DA_INIT(size_t);
+    context->levels = VL_DA_INIT(int_least8_t);
+    context->line_levels = VL_DA_INIT(int_least8_t);
+    context->working_levels = VL_DA_INIT(int_least8_t);
+    context->line_spans = VL_DA_INIT(bool);
+    VL_DA(uint_least32_t) source = VL_DA_INIT(uint_least32_t);
 
-    // if (node->spans) {
-    //     context->spans = node->spans;
-    //     context->span_count = (size_t)VL_DA_LENGTH(node->spans);
-    // } else 
     if (node->span_ref_region) {
         context->spans = node->span_ref_region;
         context->span_count = (size_t)VL_DA_LENGTH(node->span_ref_region);
     }
-    if (!context->spans || context->span_count == 0) return context;
+    if (!context->spans || context->span_count == 0) {
+        VL_DA_FREE(source);
+        return context;
+    }
 
-    size_t total_bytes = 0;
+    /* Record a codepoint offset for every span boundary while decoding once. */
     for (size_t i = 0; i < context->span_count; i++) {
         const vl_css_layout_span_region_t *span = context->spans + i;
         if (span->len < 0 || (span->len > 0 && !span->text)) goto fail;
-        if ((size_t)span->len > SIZE_MAX - total_bytes) goto fail;
-        total_bytes += (size_t)span->len;
-    }
-    if (total_bytes == 0) return context;
+        *VL_DA_PUSH(context->span_cp_offsets, size_t) = (size_t)VL_DA_LENGTH(source);
+        *VL_DA_PUSH(context->line_spans, bool) = false;
 
-    context->span_cp_start = bidi_alloc_array(context->span_count, sizeof(size_t));
-    context->span_cp_end = bidi_alloc_array(context->span_count, sizeof(size_t));
-    context->source = bidi_alloc_array(total_bytes, sizeof(uint_least32_t));
-    context->processed = bidi_alloc_array(total_bytes, sizeof(uint_least32_t));
-    context->line_processed = bidi_alloc_array(total_bytes, sizeof(uint_least32_t));
-    context->line_source_index = bidi_alloc_array(total_bytes, sizeof(size_t));
-    context->levels = bidi_alloc_array(total_bytes, sizeof(int_least8_t));
-    context->line_levels = bidi_alloc_array(total_bytes, sizeof(int_least8_t));
-    context->working_levels = bidi_alloc_array(total_bytes, sizeof(int_least8_t));
-    context->line_spans = bidi_alloc_array(context->span_count, sizeof(bool));
-    if (!context->span_cp_start || !context->span_cp_end || !context->source ||
-        !context->processed || !context->line_processed ||
-        !context->line_source_index || !context->levels || !context->line_levels ||
-        !context->working_levels || !context->line_spans)
-        goto fail;
-
-    size_t cp_count = 0;
-    for (size_t i = 0; i < context->span_count; i++) {
-        const vl_css_layout_span_region_t *span = context->spans + i;
-        context->span_cp_start[i] = cp_count;
         size_t byte_offset = 0;
         size_t byte_length = (size_t)span->len;
         while (byte_offset < byte_length) {
@@ -139,24 +104,35 @@ vl_css_bidi_context_t *vl_css_bidi_context_create(vl_css_layout_node_t *node) {
                 consumed = 1;
                 codepoint = GRAPHEME_INVALID_CODEPOINT;
             }
-            if (cp_count >= total_bytes) goto fail;
-            context->source[cp_count++] = codepoint;
+            VL_DA_APPEND(source, codepoint);
             byte_offset += consumed;
         }
-        context->span_cp_end[i] = cp_count;
     }
-    context->codepoint_count = cp_count;
-    if (cp_count == 0) return context;
+    *VL_DA_PUSH(context->span_cp_offsets, size_t) = (size_t)VL_DA_LENGTH(source);
+    context->codepoint_count = (size_t)VL_DA_LENGTH(source);
+    if (context->codepoint_count == 0) {
+        VL_DA_FREE(source);
+        return context;
+    }
+
+    /* The bidi API writes into caller-provided buffers, so size its DA buffers
+       once here; later line scratch arrays are rebuilt for each line. */
+    for (size_t i = 0; i < context->codepoint_count; i++) {
+        *VL_DA_PUSH(context->processed, uint_least32_t) = 0;
+        *VL_DA_PUSH(context->levels, int_least8_t) = 0;
+        *VL_DA_PUSH(context->working_levels, int_least8_t) = 0;
+    }
 
     enum grapheme_bidirectional_direction override = bidi_paragraph_override(node);
     size_t paragraph_offset = 0;
-    while (paragraph_offset < cp_count) {
+    while (paragraph_offset < context->codepoint_count) {
         enum grapheme_bidirectional_direction resolved =
             GRAPHEME_BIDIRECTIONAL_DIRECTION_NEUTRAL;
-        size_t remaining = cp_count - paragraph_offset;
+        size_t remaining = context->codepoint_count - paragraph_offset;
         size_t consumed = grapheme_bidirectional_preprocess_paragraph(
-            context->source + paragraph_offset, remaining, override,
-            context->processed + paragraph_offset, remaining, &resolved);
+            source + paragraph_offset, remaining,
+            override, context->processed + paragraph_offset,
+            remaining, &resolved);
         if (consumed == 0 || consumed > remaining) goto fail;
         size_t level_count = grapheme_bidirectional_get_line_embedding_levels(
             context->processed + paragraph_offset, consumed,
@@ -168,13 +144,15 @@ vl_css_bidi_context_t *vl_css_bidi_context_create(vl_css_layout_node_t *node) {
     }
     if (context->paragraph_direction == VL_CSS_LAYOUT_BIDI_UNKNOWN)
         context->paragraph_direction = VL_CSS_LAYOUT_BIDI_LTR;
+    VL_DA_FREE(source);
     context->valid = true;
     return context;
 
 fail:
+    VL_DA_FREE(source);
     bidi_context_free_arrays(context);
-    context->valid = false;
-    return context;
+    vl_free(context);
+    return NULL;
 }
 
 void vl_css_bidi_context_destroy(vl_css_bidi_context_t *context) {
@@ -273,7 +251,9 @@ static void bidi_apply_line_l1(vl_css_bidi_context_t *context,
     size_t cp_count = context->codepoint_count;
     memcpy(context->working_levels, context->levels,
            cp_count * sizeof(*context->working_levels));
-    memset(context->line_spans, 0, context->span_count * sizeof(*context->line_spans));
+
+    for (int i = 0; i < VL_DA_LENGTH(context->line_spans); i++)
+        context->line_spans[i] = false;
 
     for (int i = 0; i < element_count; i++) {
         vl_css_layout_node_t *child = elements[i];
@@ -286,19 +266,27 @@ static void bidi_apply_line_l1(vl_css_bidi_context_t *context,
             context->line_spans[span] = true;
     }
 
-    size_t line_count = 0;
+    /* Rebuild only the line-specific scratch arrays. */
+    VL_DA_FREE(context->line_processed);
+    VL_DA_FREE(context->line_source_index);
+    VL_DA_FREE(context->line_levels);
+    context->line_processed = VL_DA_INIT(uint_least32_t);
+    context->line_source_index = VL_DA_INIT(size_t);
+    context->line_levels = VL_DA_INIT(int_least8_t);
+
     for (size_t span = 0; span < context->span_count; span++) {
         if (!context->line_spans[span]) continue;
-        size_t first = context->span_cp_start[span];
-        size_t end = context->span_cp_end[span];
+        size_t first = context->span_cp_offsets[span];
+        size_t end = context->span_cp_offsets[span + 1];
         if (end > cp_count) end = cp_count;
         for (size_t cp = first; cp < end; cp++) {
-            if (line_count >= cp_count) return;
-            context->line_processed[line_count] = context->processed[cp];
-            context->line_source_index[line_count] = cp;
-            line_count++;
+            *VL_DA_PUSH(context->line_processed, uint_least32_t) = context->processed[cp];
+            *VL_DA_PUSH(context->line_source_index, size_t) = cp;
+            *VL_DA_PUSH(context->line_levels, int_least8_t) = 0;
         }
     }
+
+    size_t line_count = (size_t)VL_DA_LENGTH(context->line_processed);
     if (line_count == 0) return;
     size_t levels = grapheme_bidirectional_get_line_embedding_levels(
         context->line_processed, line_count, context->line_levels, line_count);
@@ -327,8 +315,8 @@ static int bidi_child_source_level(const vl_css_bidi_context_t *context,
     int first_level = -1;
     size_t best_count = 0;
     for (int span = first_span; span <= last_span; span++) {
-        size_t first_cp = context->span_cp_start[span];
-        size_t end_cp = context->span_cp_end[span];
+        size_t first_cp = context->span_cp_offsets[span];
+        size_t end_cp = context->span_cp_offsets[span + 1];
         if (end_cp > context->codepoint_count) end_cp = context->codepoint_count;
         for (size_t cp = first_cp; cp < end_cp; cp++) {
             int level = context->working_levels[cp];

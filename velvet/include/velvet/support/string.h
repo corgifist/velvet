@@ -32,7 +32,7 @@ typedef struct vl_string vl_string_t;
 #define VL_STRING_INIT4(SOURCE, LEN, LOC, ALLOCATOR) \
     (vl_string_init((SOURCE), (LEN), (LOC), (ALLOCATOR)))
 #define VL_STRING_INIT3(SOURCE, LEN, LOC) \
-    VL_STRING_INIT4(SOURCE, LEN, LOC, VL_ALLOCATOR_DEFAULT())
+    VL_STRING_INIT4(SOURCE, LEN, LOC, vl_default_allocator())
 #define VL_STRING_INIT2(SOURCE, LEN) \
     VL_STRING_INIT3(SOURCE, LEN, VL_HERE)
 #define VL_STRING_INIT1(SOURCE) \

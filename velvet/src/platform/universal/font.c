@@ -4,11 +4,19 @@
 #include "support/math.h"
 #include "support/da.h"
 #include "support/math.h"
-#include <stddef.h>
+
+static void *vl_stbtt_malloc(size_t size) {
+    return vl_malloc(size);
+}
+
+static void vl_stbtt_free(void *ptr) {
+    vl_free(ptr);
+}
+
+#define STBTT_malloc(x,u)  ((void)(u),vl_stbtt_malloc(x))
+#define STBTT_free(x,u)    ((void)(u),vl_stbtt_free(x))
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "velvet/platform/universal/font.h"
-#include "font/font.h"
-#include "support/result.h"
 
 vl_font_t *vl_font_universal_new_with_subfont_indices(vl_platform_context_t *context, const char *name, int height, float density, const vl_byte_t *data, size_t data_length, VL_DA(int) subfonts, vl_source_location_t loc) {
     if (!context) return NULL;

@@ -7,7 +7,7 @@
 static vl_html_node_t create_minimal_node(const char *tag, bool create_children) {
     vl_html_node_t node = {0};
     node.tag = VL_STRING_INIT(tag);
-    if (create_children) node.children = VL_DA_INIT(vl_html_node_t);
+    if (create_children) node.children = VL_DA_INIT(vl_html_node_t, 2);
     return node;
 }
 

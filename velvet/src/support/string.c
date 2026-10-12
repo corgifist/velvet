@@ -5,7 +5,6 @@
 
 #include "support/allocator.h"
 #include "support/memory.h"
-#include "velvet/vendor/utf8.h"
 
 char *vl_string_init(const char *source, int len, vl_source_location_t loc, vl_allocator_t allocator) {
     if (!source) return NULL;

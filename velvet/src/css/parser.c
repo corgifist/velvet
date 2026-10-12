@@ -471,6 +471,7 @@ vl_result_t vl_css_parser_get(vl_css_parser_t *parser, vl_css_class_t *class) {
     if (current->type == VL_CSS_TOKEN_TYPE_STOP) {
         return VL_STOP;
     }
+    if (skip_spaces(parser)) goto fail;
     if (parse_class_selectors(parser, class)) goto fail;
     VL_TOKEN_CONSUME(parser, "{", goto fail);
     class->rules = VL_DA_INIT(vl_css_rule_t);
@@ -520,6 +521,7 @@ vl_result_t vl_css_parser_get_rule(vl_css_parser_t *parser, vl_css_rule_t *rule)
     if (current->type == VL_CSS_TOKEN_TYPE_STOP) {
         return VL_STOP;
     }
+    skip_spaces(parser);
     vl_result_t result = parse_rule(parser, rule);
     if (VL_TOKEN_COMPARE(current, ";") || result) { tokenize(parser); skip_spaces(parser); }
     return result;

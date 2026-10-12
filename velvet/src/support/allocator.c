@@ -38,3 +38,17 @@ void vl_zeroing_free(void *mem) {
     memset(header, 0, sizeof(vl_memory_basic_header_t) + header->size);
     free(header);
 }
+
+const vl_allocator_t vl_default_allocator() {
+    static vl_allocator_pointers_t s_default_allocator = (vl_allocator_pointers_t) {0};
+    return &s_default_allocator;
+}
+
+const vl_allocator_t vl_stdlib_allocator() {
+    static vl_allocator_pointers_t s_stdlib_allocator = (vl_allocator_pointers_t) {
+        .malloc = vl_zeroing_malloc,
+        .realloc = vl_zeroing_realloc,
+        .free = vl_zeroing_free
+    };
+    return &s_stdlib_allocator;
+}

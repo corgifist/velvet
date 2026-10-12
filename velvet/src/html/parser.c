@@ -1,5 +1,4 @@
 #include "html/parser.h"
-#include "css/lexer.h"
 #include "html/document.h"
 #include "html/lexer.h"
 #include "html/tags.h"
@@ -7,12 +6,7 @@
 #include "support/error_pool.h"
 #include "support/result.h"
 #include "support/string.h"
-
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-
+#include "vendor/utf8.h"
 
 #define VL_TOKEN_COMPARE_EX(A, A_LENGTH, B) \
     ((A_LENGTH == sizeof(B) - 1) && (!vl_nstrcicmp(A, B, A_LENGTH)))
@@ -314,6 +308,34 @@ static vl_result_t tokenize_node(vl_html_parser_t *parser, vl_html_node_t *node)
     }
 
     if (tokenize(parser)) return VL_ERROR; // skip >
+    if (vl_html_is_tag_text(node->tag)) {
+        node->children = VL_DA_INIT(vl_html_node_t, 1);
+        VL_DA(char) acc = VL_DA_INIT(char);
+        while (!(VL_TOKEN_COMPARE(current, "<") && VL_TOKEN_COMPARE(current + 1, "/") 
+                && (current + 2)->text_length == VL_STRING_LEN(node->tag) 
+                && utf8ncmp((current + 2)->text, node->tag, (current + 2)->text_length) == 0
+                && VL_TOKEN_COMPARE(current + 3, ">"))) {
+            if (current->type == VL_HTML_TOKEN_TYPE_STOP) goto text_error;
+            for (int i = 0; i < current->text_length; i++) {
+                *VL_DA_PUSH(acc, char) = current->text[i];
+            }
+            if (tokenize(parser)) goto text_error;
+            continue;
+            text_error:
+            VL_DA_FREE(acc);
+            VL_DA_FREE(node->children);
+            return VL_ERROR;
+        }
+        tokenize(parser); // skip '<'
+        tokenize(parser); // skip '/'
+        tokenize(parser); // skip closing tag name
+        tokenize(parser); // skip '>'
+        vl_html_node_t text_node = {0};
+        text_node.text = VL_STRING_FROM_DA(acc);
+        VL_DA_FREE(acc);
+        VL_DA_APPEND(node->children, text_node);
+        return VL_SUCCESS;
+    }
     vl_html_node_t tmp_node = {0};
     bool first = true;
     bool prev_text = true;

@@ -22,6 +22,7 @@ vl_result_t vl_css_layout_node_init(vl_css_layout_node_t *node, const char *tag)
     node->children = VL_DA_INIT(vl_css_layout_node_t*, 1);
     node->span_index = -1;
     node->span_index_last = -1;
+    node->pseudo_type = VL_CSS_LAYOUT_PSEUDO_ELEMENT_NONE;
     vl_css_style_init(&node->style);
     return VL_SUCCESS;
 }
@@ -192,6 +193,7 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     }
     VL_DA_FREE(matched_classes);
     vl_css_style_merge_inline(&node->style, &node->inline_style);
+    // printf("%s: ", node->tag);
     // vl_css_style_print(&node->style);
 
     node->display = get_display_mode(node);    
@@ -227,8 +229,6 @@ vl_result_t vl_css_layout_node_refresh_style(vl_css_layout_node_t *node) {
     construct_background(node);
     node->whitespace = construct_whitespace(node);
     node->effective_padding = VL_VEC4_ADD(node->padding, VL_VEC4(node->border[0].width, node->border[1].width, node->border[2].width, node->border[3].width));
-    // printf("%s (%f): ", node->tag, node->margin.x);
-    // vl_css_style_print(&node->style);
     return VL_SUCCESS;
 }
 
@@ -250,6 +250,8 @@ static vl_result_t layout_center(vl_css_layout_node_t *node) {
     VL_DA_FREE(lines);
     return VL_SUCCESS;
 }
+
+#include "bits/update_children_style.c"
 
 static vl_result_t layout_html(vl_css_layout_node_t *node) {
     layout_generic_div(node);
@@ -339,6 +341,9 @@ vl_result_t vl_css_layout_node_layout(vl_css_layout_node_t *node) {
     node->position.x += node->margin.w;
     node->position.y += node->margin.x;
     node->calculating_layout = false;
+    // if (strcmp(node->tag, "html") == 0) {
+    //     printf("html size is: %f %f\n", node->size.x, node->size.y);
+    // }
     return VL_SUCCESS;
 }
 

@@ -57,7 +57,7 @@ void da_test() {
 }
 
 void da_stress_test() {
-    VL_DA(int) da = VL_DA_INIT(int, 8, VL_HERE, VL_ALLOCATOR_DEFAULT());
+    VL_DA(int) da = VL_DA_INIT(int, 8, VL_HERE, vl_default_allocator());
     vl_da_header_t *header = VL_DA_HEADER(da);
     VL_ASSERT(da);
     srand(time(NULL));
@@ -1518,7 +1518,6 @@ void styling_test() {
     //             border-style: solid;
     //             margin: auto;
     //             background: #ffffff;
-    //             // --velvet-element-highlight: highlight-orange;
     //         }
 
     //         body {
@@ -1610,7 +1609,7 @@ void styling_test() {
     //     <div class="a highlight">
     //         <div class="box b c">
     //         This does <strong class="">not</strong> match <code>.a.b.c</code>, and it also does <strong>not</strong> 
-    //         match <code>.a .b .c</code> because <code>.c</code> is not /*a descendant of <code>.b</code> here.*/
+    //         match <code>.a .b .c</code> because <code>.c</code> is not a descendant of <code>.b</code> here.
     //         </div>
     //     </div>
     //     </body>
@@ -1744,7 +1743,12 @@ void styling_test() {
     //     X<span>inside span</span>X
     // );
     // const char *input = VL_STRINGIFY(
-    //     <p style="font-size: 3em">Ελληνικά 1 2 3 4 5</p>
+    //     <style>
+    //         html {
+    //             color: red;
+    //         }
+    //     </style>
+    //     <p style="font-size: 3em">Ελληνικά 1 2 3 4 5 %</p>
     // );
     // const char *input = VL_STRINGIFY(
     //     <h1>Advanced Typography</h1>
@@ -1875,6 +1879,7 @@ void styling_test() {
         <div style="font-size: 3em">
             <span>بسم</span><br><span>بسم</span>
         </div>
+        <div>
     ) "    <h2 class='collapse'>    Default behavior;\n"
         "   all   whitespace   is   collapsed\n"
         " in    the          heading       .</h2>";

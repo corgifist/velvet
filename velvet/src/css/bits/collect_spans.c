@@ -179,7 +179,7 @@ static void span_collect_child(vl_css_layout_node_t *root,
                                vl_css_layout_node_t *parent,
                                vl_css_layout_node_t *child,
                                VL_DA(vl_css_layout_span_region_t) *regions) {
-    if (!child || update_children_style(parent, child) != VL_SUCCESS)
+    if (!child)
         return;
 
     if (span_is_tag(child, "text")) {

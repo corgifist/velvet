@@ -122,7 +122,7 @@ vl_platform_context_t *vl_platform_context_new_(vl_platform_context_types_t type
     if (init_graphics(ctx, &types)) goto drop;
     if (init_graphics_presentation(ctx, &types)) goto drop;
     if (init_font(ctx, &types)) goto drop;
-    if (!s_contexts) s_contexts = VL_DA_INIT(vl_platform_context_t*, 1, VL_HERE, VL_ALLOCATOR_STDLIB());
+    if (!s_contexts) s_contexts = VL_DA_INIT(vl_platform_context_t*, 1, VL_HERE, vl_stdlib_allocator());
     VL_DA_APPEND(s_contexts, ctx);
     return ctx;
 

@@ -120,10 +120,11 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
     for (int i = 0; i < VL_DA_LENGTH(node->children); i++) {
         update_children_style(node, node->children[i]);
     }
+    vl_css_bidi_context_t *bidi_context = NULL;
     if (!node->span_regions && node->display == VL_CSS_LAYOUT_DISPLAY_BLOCK) {
         recurse_spans(node);
+        bidi_context = vl_css_bidi_context_create(node);
     }
-    vl_css_bidi_context_t *bidi_context = vl_css_bidi_context_create(node);
     vl_vec2_t size = node->size;
     vl_vec2_t orig_size = size;
     bool is_html = (strcmp(node->tag, "html") == 0);
@@ -169,7 +170,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
                     cursor.y += VL_MAX(VL_MAX(prev->block_last_margin, node->block_last_margin), child->margin.x);
                 }
             }
-            child->position.y += cursor.y - child->margin.x + (strcmp(node->tag, "html") == 0) * child->margin.x;
+            child->position.y += cursor.y - child->margin.x + is_html * child->margin.x;
             if (node->allow_width_growth) size.x = VL_MAX(size.x, child->size.x + child->position.x + child->margin.y);
             size.x = VL_MIN(size.x, node->parent->size.x);
             if (!lock_height) size.y += (prev ? 1 : 0) * (VL_MAX(node->block_last_margin, child->margin.x)) + child->size.y;
@@ -231,7 +232,11 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
             if (child->span_wrapped) {
                 cursor.x = child->span_last_cursor.x + node->effective_padding.w;
                 cursor.y += child->span_last_cursor.y;
-                if (prev) child->position.y += prev_max_line_span - child->span_y_offset + child->span_line_gap ;
+                if (prev) {
+                    child->position.y += prev_max_line_span - child->span_y_offset + child->span_line_gap;
+                    cursor.y += prev_max_line_span - child->span_y_offset + child->span_line_gap;
+                }
+                
                 line = PUSH_NEW_BLOCK_LINE(lines);
             }
             if ((!child->span_wrapped && cursor.x > node->size.x && next) || (next && next->display == VL_CSS_LAYOUT_DISPLAY_BLOCK)) {
@@ -251,12 +256,12 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         next = seek_next_child(node, &i);
     }
 
-    vl_css_bidi_finalize_node(node, bidi_context);
+    if (bidi_context) vl_css_bidi_finalize_node(node, bidi_context);
 
     for (int i = 0; i < VL_DA_LENGTH(lines); i++) {
         vl_css_block_line *line = lines + i;
         if (VL_DA_LENGTH(line->elements) <= 0) continue;
-        vl_css_bidi_reorder_inline_line(node, bidi_context, line->elements, VL_DA_LENGTH(line->elements));
+        if (bidi_context) vl_css_bidi_reorder_inline_line(node, bidi_context, line->elements, VL_DA_LENGTH(line->elements));
         float max_span_offset = line->max_span_offset;
         for (int j = 0; j < VL_DA_LENGTH(line->elements); j++) {
             vl_css_layout_node_t *child = line->elements[j];
@@ -272,7 +277,7 @@ static VL_DA(vl_css_block_line) layout_generic_div_ex(vl_css_layout_node_t *node
         }
         node->span_line_gap = line->max_line_gap;
     }
-    vl_css_bidi_context_destroy(bidi_context);
+    if (bidi_context) vl_css_bidi_context_destroy(bidi_context);
     return lines;
 }
 

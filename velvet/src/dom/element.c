@@ -230,7 +230,9 @@ static void render_element_highlight(vl_dom_element_t *element) {
     vl_css_value_t velvet_element_highlight = vl_css_layout_node_get_property(&element->layout, 
         "--velvet-element-highlight", VL_CSS_VALUE_NONE()
     );
-    if (velvet_element_highlight.type != VL_CSS_VALUE_NONE && VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_element_highlight)) {
+    // printf("%s: ", element->tag);
+    // vl_css_value_print(velvet_element_highlight);
+    if (VL_CSS_VALUE_COLOR_COMPATIBLE(velvet_element_highlight)) {
         vl_color_t highlight_color = vl_css_value_to_rgba(velvet_element_highlight);
         if (highlight_color.a != 0) {
             vl_graphics_render_batch_rect_colored(web->render, 
