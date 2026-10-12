@@ -23,7 +23,7 @@ With configure presets, compilation is pretty straightforward:
 _Coming really really soon..._
 
 ## Gallery
-
+<img src="gallery/continuous.png">
 <table border="1">
     <tr>
         <td>
