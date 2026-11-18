@@ -1,0 +1,19 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "vcpkg",
+            "environment": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            }
+        },
+        {
+            "name": "vcpkg-debug",
+            "inherits": "vcpkg",
+            "environment": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_ASAN": "ON"
+            }
+        }
+    ]
+}

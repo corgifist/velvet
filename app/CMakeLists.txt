@@ -1,10 +1,13 @@
-add_executable(Velvet_App)
-target_sources(Velvet_App
+add_executable(velvet_app)
+target_sources(velvet_app
     PRIVATE
-    main.cpp
+    main.c
 )
 
-set_target_properties(Velvet_App PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
+target_link_libraries(velvet_app PRIVATE velvet)
+
+set_target_properties(velvet_app PROPERTIES
+    C_STANDARD 99
+    C_STANDARD_REQUIRED ON
+    C_EXTENSIONS OFF
 )
